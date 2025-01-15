@@ -34,21 +34,23 @@ export const checkPermission =
     (action: "fcreate" | "fread" | "fupdate" | "fdelete", menuId: number) =>
         async (req: Request, res: Response, next: NextFunction): Promise<any> => {
             try {
-                const getPermission = await verifyPermission(req.userDecode?.role_id, menuId);
+                const getPermission = await verifyPermission(req.userDecode?.user_id);
 
-                const verifiedPermission: Permission = {
-                    menu_id: getPermission.menu_id,
-                    fcreate: getPermission.fcreate,
-                    fread: getPermission.fread,
-                    fupdate: getPermission.fupdate,
-                    fdelete: getPermission.fdelete,
-                };
+                const verifiedPermission: Permission = getPermission.map((item: any) => ({
+                    menu_id: Number(item.menu_id),
+                    fcreate: item.fcreate,
+                    fread: item.fread,
+                    fupdate: item.fupdate,
+                    fdelete: item.fdelete,
+                }));
 
                 if (!verifiedPermission) {
                     throw new Error("Permission not provided or mismatched");
                 }
 
-                if (verifiedPermission[action]) {
+                const menuPermission = verifiedPermission.find((perm: any) => Number(perm.menu_id) === menuId);
+
+                if (menuPermission && menuPermission[action]) {
                     return next();
                 }
 
