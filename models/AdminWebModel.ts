@@ -81,33 +81,24 @@ export const loginAdmin = async (emailOrUname: string, password: string) => {
   }
 };
 
-export const verifyPermission = async (userId:any) => {
+export const verifyPermission = async (roleId:any, menuId:any) => {
   const client = await db.connect();
 
   try {
     await client.query(TRANS.BEGIN);
 
-    const checkUserData = await client.query(
-        "SELECT * FROM mst_admin_web WHERE id = $1",
-        [userId]
-    );
-    if (checkUserData.rows.length === 0) {
-      throw new Error("User Not Found");
-    }
-
-    const data = checkUserData.rows[0];
-
-    const permission = await client.query(
+    const checkPermission = await client.query(
         `
         SELECT menu_id, fcreate, fread, fupdate, fdelete
         FROM mst_menu_access
-        WHERE role_id = $1
+        WHERE role_id = $1 AND menu_id = $2
       `,
-        [data.role_id]
+        [roleId, menuId]
     );
-    data.permission = permission.rows;
+
+    const permission = checkPermission.rows[0];
     await client.query(TRANS.COMMIT);
-    return data.permission;
+    return permission;
   } catch (error) {
     await client.query(TRANS.ROLLBACK);
     console.error(error);
