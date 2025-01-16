@@ -103,6 +103,8 @@ export const verifyPermission = async (roleId:any, menuId:any) => {
     await client.query(TRANS.ROLLBACK);
     console.error(error);
     throw error;
+  } finally {
+    client.release();
   }
 }
 
