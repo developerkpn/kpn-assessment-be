@@ -131,3 +131,10 @@ export type QuestionResult = {
   };
   answers: Array<{ text?: string; image_url?: string; point: number }>;
 };
+
+// Category
+export type CategoryRequest = {
+  category_name: string,
+  category_code: string,
+  is_active: boolean;
+}
