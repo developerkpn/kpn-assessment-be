@@ -5,7 +5,7 @@ import {
     insertQuery,
     updateQuery,
 } from "#dep/helper/queryBuilder";
-import {CategoryRequest} from "#dep/types/MasterDataTypes";
+import {CategoryRequest, CategoryUpdateRequest} from "#dep/types/MasterDataTypes";
 
 
 export const createCategory = async (payload: CategoryRequest)=> {
@@ -45,7 +45,7 @@ export const getCategory = async ()=> {
     }
 }
 
-export const updateCategory = async (payload: CategoryRequest, id: number)=> {
+export const updateCategory = async (payload: CategoryUpdateRequest, id: number)=> {
     const client = await db.connect();
     try {
         await client.query(TRANS.BEGIN);
