@@ -53,9 +53,6 @@ export const handleUpdateCategory = async (req: Request, res: Response) => {
         ...req.body
     };
 
-    console.log(payload);
-    console.log(payload.updated_at);
-    console.log(payload.updated_by);
     try {
         const validatedRequest = Validation.validate(CategoryValidation.UPDATE, payload);
         const validatedId = Validation.validate(CategoryValidation.ID, id);

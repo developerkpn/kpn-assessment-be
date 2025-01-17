@@ -1,4 +1,6 @@
 // BUSINESS UNIT
+import {string} from "zod";
+
 export type BURequest = {
   id: string;
   bu_code: string;
@@ -136,5 +138,10 @@ export type QuestionResult = {
 export type CategoryRequest = {
   category_name: string,
   category_code: string,
+  is_active: boolean;
+}
+
+export type CategoryUpdateRequest = {
+  category_name: string;
   is_active: boolean;
 }
