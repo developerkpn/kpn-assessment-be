@@ -65,6 +65,7 @@ export type SeriesRequest = {
   is_active: boolean;
   created_by: string;
   created_date: Date;
+
 };
 
 // QUESTION
@@ -106,6 +107,8 @@ export type QuestionRequest = {
   key_answer_point_c?: number;
   key_answer_point_d?: number;
   key_answer_point_e?: number;
+  question_category: string;
+  question_code: string;
 };
 
 export type QuestionFields = {
@@ -144,4 +147,41 @@ export type CategoryRequest = {
 export type CategoryUpdateRequest = {
   category_name: string;
   is_active: boolean;
+}
+
+// SubTest
+export type SubTestRequest = {
+  subtest_name: string;
+  subtest_code: string;
+  subtest_duration: string;
+  category_id: string;
+  criteria_id: string;
+  is_active: boolean;
+  series: {
+    series_id: string;
+  }[];
+}
+
+export type SubTestHeaderRequest = {
+  id: string;
+  subtest_name: string;
+  subtest_code: string;
+  subtest_duration: string;
+  category_id: string;
+  criteria_id: string;
+  is_active: boolean;
+  created_by: string;
+  created_at: Date;
+};
+
+export type SubTestDetailRequest = {
+  series_id: string;
+}
+
+export type SubTestUpdateRequest = {
+  subtest_name?: string;
+  subtest_duration?: string;
+  category_id?: string;
+  criteria_id?: string;
+  is_active?: boolean;
 }
