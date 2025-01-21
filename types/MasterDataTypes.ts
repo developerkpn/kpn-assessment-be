@@ -185,3 +185,28 @@ export type SubTestUpdateRequest = {
   criteria_id?: string;
   is_active?: boolean;
 }
+
+// Group Test
+export type GroupTestRequest = {
+  grouptest_name: string;
+  grouptest_code: string;
+  is_active: boolean;
+  subtests: {
+    subtest_id: string;
+  }[];
+}
+
+export type GroupTestHeaderRequest = {
+  id: string;
+  grouptest_name: string;
+  grouptest_code: string;
+  is_active: boolean;
+  created_by: string;
+  created_at: Date;
+}
+
+export type GroupTestDetailRequest = {
+  subtest_id: string;
+}
+
+
