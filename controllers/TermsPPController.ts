@@ -7,6 +7,8 @@ import {
 } from "#dep/models/TermsPPModel";
 import { BriefRequest, TermsPPRequest } from "#dep/types/MasterDataTypes";
 import { Request, Response } from "express";
+import {Validation} from "#dep/validation/Validation";
+import {TermsPPValidation} from "#dep/validation/TermsPPValidation";
 
 export const handleGetTermsPP = async (_req: Request, res: Response) => {
   let data = { terms: "", pp: "" };
@@ -39,8 +41,10 @@ export const handleUpdateTerms = async (req: Request, res: Response) => {
     updated_by: req.body.updated_by,
     updated_date: today,
   };
+
   try {
-    let result = await updateTermsPP(payload, TERMS_ID);
+    const validatedRequest = Validation.validate(TermsPPValidation.UPDATETERMS, payload);
+    let result = await updateTermsPP(validatedRequest, TERMS_ID);
     res.status(200).send({
       message: `Success update terms`,
       id: result,
@@ -59,8 +63,10 @@ export const handleUpdatePP = async (req: Request, res: Response) => {
     updated_by: req.body.updated_by,
     updated_date: today,
   };
+
   try {
-    let result = await updateTermsPP(payload, PP_ID);
+    const validatedRequest = Validation.validate(TermsPPValidation.UPDATEPP, payload);
+    let result = await updateTermsPP(validatedRequest, PP_ID);
     res.status(200).send({
       message: `Success update privacy policy`,
       id: result,
@@ -94,7 +100,8 @@ export const handleUpdateBrief = async (req: Request, res: Response) => {
     updated_date: today,
   };
   try {
-    let result = await updateShortBrief(payload, BRIEF_ID);
+    const validatedRequest = Validation.validate(TermsPPValidation.UPDATESB, payload);
+    let result = await updateShortBrief(validatedRequest, BRIEF_ID);
     res.status(200).send({
       message: `Success update short brief`,
       id: result,
