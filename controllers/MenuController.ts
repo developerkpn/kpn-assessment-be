@@ -1,13 +1,15 @@
 import { getAdminMenu, getAllMenu } from "#dep/models/MenuModel";
 import { Request, Response } from "express";
 import { Secret, verify } from "jsonwebtoken";
+import {Validation} from "#dep/validation/Validation";
+import {MenuValidation} from "#dep/validation/MenuValidation";
 
 export const handleGetAdminMenu = async (req: Request, res: Response) => {
-  const roleId = req.userDecode?.role_id;
+  const roleId = String(req.userDecode?.role_id);
 
   try {
-    if (!roleId) throw new Error("Role ID not provided");
-    const result = await getAdminMenu(roleId);
+    const validatedRoleId = Validation.validate(MenuValidation.ID, roleId)
+    let result = await getAdminMenu(validatedRoleId);
     const groupedData = result.reduce((acc, item) => {
       const key = item.subheader || "Others"; // Use "Others" for null subheaders
       if (!acc[key]) {
