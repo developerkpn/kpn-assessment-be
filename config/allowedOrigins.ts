@@ -1,1 +1,1 @@
-export const origins = ["https://localhost:3000", "http://localhost:5173"];
+export const origins = ["https://localhost:5001", "https://localhost:5173"];
