@@ -25,24 +25,15 @@ export const createCategory = async (payload: CategoryRequest)=> {
     }
 }
 
-export const getCategory = async (page: number, search: string, date: string, active: boolean)=> {
+export const getCategory = async ()=> {
     const client = await db.connect();
     try {
-
-
-        const limit = 10;
-        const offset = (page - 1) * limit;
-
-        const sortOrder = date === 'ASC' ? 'ASC' : 'DESC';
-
         await client.query(TRANS.BEGIN);
         const result = await client.query(
             `
-            SELECT h.id, h.category_name, h.category_code, 
-            h.created_at, h.is_active, d.fullname AS created_by 
+            SELECT h.id, h.category_name, h.category_code, h.created_at, h.is_active, d.fullname AS created_by 
             FROM mst_category h
             LEFT JOIN mst_admin_web d ON h.created_by = d.id
-            WHERE h.is_active = 
             `
         );
         console.log(result);
