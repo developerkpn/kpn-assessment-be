@@ -7,16 +7,15 @@ import {createCategory, deleteCategory, getCategory, updateCategory} from "#dep/
 import {error} from "winston";
 
 export const handleCreateCategory = async (req: Request, res: Response) => {
-    const today = new Date();
-    const payload = {
-        category_name: req.body.category_name,
-        category_code: req.body.category_code,
-        created_by: req.userDecode?.user_id,
-        created_at: today,
-        is_active: req.body.is_active,
-    }
-
     try {
+        const today = new Date();
+        const payload = {
+            category_name: req.body.category_name,
+            category_code: req.body.category_code,
+            created_by: req.userDecode?.user_id,
+            created_at: today,
+            is_active: req.body.is_active,
+        }
         const validatedRequest = Validation.validate(CategoryValidation.CREATE, payload);
         let result = await createCategory(validatedRequest);
         res.status(200).send({
@@ -32,10 +31,10 @@ export const handleCreateCategory = async (req: Request, res: Response) => {
 
 export const handleGetCategory = async (req: Request, res: Response) => {
     try {
-        let result = await getCategory();
+        // let result = await getCategory();
         res.status(200).send({
             message: `Success get category`,
-            data: result,
+            // data: result,
         })
     } catch (error: any) {
         res.status(500).send({
