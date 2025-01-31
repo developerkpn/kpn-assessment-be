@@ -6,6 +6,7 @@
   "scripts": {
     "build": "tsc && tsc-alias",
     "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "nodemon dist/index.js",
     "server_dev": "set NODE_ENV=development&& nodemon index.ts",
     "server_prod": "set NODE_ENV=production&& nodemon index.ts",
     "server": "set NODE_ENV=development&& node index.ts"
@@ -28,7 +29,9 @@
     "otp-generator": "^4.0.1",
     "pg": "^8.13.0",
     "tsconfig-paths": "^4.2.0",
-    "uuid": "^10.0.0"
+    "uuid": "^10.0.0",
+    "winston": "^3.17.0",
+    "zod": "^3.24.1"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",

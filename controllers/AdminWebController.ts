@@ -15,15 +15,20 @@ import {
 } from "#dep/models/AdminWebModel";
 import { Emailer } from "#dep/services/mail/Emailer";
 import { User } from "#dep/types/AdminTypes";
-import { Request, Response } from "express";
+import {NextFunction, Request, Response} from "express";
 import { Secret, sign, verify } from "jsonwebtoken";
 import { v4 as uuidv4 } from "uuid";
+import {Validation} from "#dep/validation/Validation";
+import {AdminWebValidation} from "#dep/validation/AdminWebValidation";
 
-export const handleLoginAdmin = async (req: Request, res: Response): Promise<any> => {
-  const emailOrUname = req.body.username;
-  const password = req.body.password;
+export const handleLoginAdmin = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
-    const { data, accessToken } = await loginAdmin(emailOrUname, password);
+    const payload = {
+      emailOrUname: req.body.username,
+      password: req.body.password
+    }
+    const validatedRequest = Validation.validate(AdminWebValidation.LOGIN, payload);
+    const { data, accessToken } = await loginAdmin(validatedRequest.emailOrUname, validatedRequest.password);
     return res.status(200).send({
       message: `Success sign in, welcome ${data.fullname}`,
       data: {
@@ -36,11 +41,8 @@ export const handleLoginAdmin = async (req: Request, res: Response): Promise<any
         access_token: accessToken,
       },
     });
-  } catch (error: any) {
-    if (error.message === "Invalid Password" || error.message === "User Not Found") {
-      return res.status(400).send({ message: error.message });
-    }
-    return res.status(500).send({ message: error.message });
+  } catch (e) {
+    next(e);
   }
 };
 
@@ -77,7 +79,7 @@ export const refreshAccessToken = async (req: Request, res: Response): Promise<a
 
 export const handleGetAllAdmin = async (_req: Request, res: Response) => {
   try {
-    let result = await getAllAdmin();
+    const result = await getAllAdmin();
     res.status(200).send({
       message: `Success get admin accounts`,
       data: result,
@@ -91,7 +93,7 @@ export const handleGetAllAdmin = async (_req: Request, res: Response) => {
 
 export const handleGetRole = async (_req: Request, res: Response) => {
   try {
-    let result = await getRole();
+    const result = await getRole();
     res.status(200).send({
       message: `Success get role`,
       data: result,
@@ -104,9 +106,9 @@ export const handleGetRole = async (_req: Request, res: Response) => {
 };
 
 export const handleGetRoleById = async (req: Request, res: Response) => {
-  const id = req.params.id;
+  const validatedId = Validation.validate(AdminWebValidation.ID, req.params.id);
   try {
-    let result = await getPermission(id);
+    let result = await getPermission(validatedId);
 
     const formattedResult = result.reduce((acc, role) => {
       const { role_name, fcreate, fread, fupdate, fdelete, menu_id, menu_name, ...rest } = role;
@@ -136,26 +138,28 @@ export const handleGetRoleById = async (req: Request, res: Response) => {
 };
 
 export const handleCreateAdmin = async (req: Request, res: Response) => {
-  const today = new Date();
-  const data = req.body;
-  const password =
-    (process.env.DEFAULT_PASS as string) + Math.floor(1000 + Math.random() * 9000).toString();
-  const hashed = await hashPassword(password);
-
-  const payload = {
-    id: uuidv4(),
-    fullname: data.fullname,
-    username: data.username,
-    email: data.email,
-    password: hashed,
-    role_id: data.role_id,
-    is_active: data.is_active,
-    created_by: data.created_by,
-    created_date: today,
-  };
-
   try {
-    let result = await createAdmin(payload);
+    const today = new Date();
+    const data = req.body;
+    const password =
+        (process.env.DEFAULT_PASS as string) + Math.floor(1000 + Math.random() * 9000).toString();
+    const hashed = await hashPassword(password);
+
+    const validatedRequest = Validation.validate(AdminWebValidation.CREATEADMIN, req.body);
+
+    const requestPayload = {
+      id: uuidv4(),
+      fullname: validatedRequest.fullname,
+      username: validatedRequest.username,
+      email: validatedRequest.email,
+      password: hashed,
+      role_id: validatedRequest.role_id,
+      is_active: validatedRequest.is_active,
+      created_by: req.userDecode?.user_id,
+      created_date: today,
+    };
+
+    let result = await createAdmin(requestPayload);
 
     const emailData = {
       fullname: data.fullname,
@@ -179,19 +183,20 @@ export const handleCreateAdmin = async (req: Request, res: Response) => {
 };
 
 export const handleReqResetPassword = async (req: Request, res: Response): Promise<any> => {
-  const email = req.body.email;
-  if (!email) {
+  const validatedEmail = Validation.validate(AdminWebValidation.EMAIL, req.body.email);
+  if (!validatedEmail) {
     return res.status(400).send({
       message: "Email is required",
     });
   }
 
   try {
-    await reqResetPassword(email);
+    await reqResetPassword(validatedEmail);
 
     return res.status(200).send({
       message: "OTP sent, please check your email address",
     });
+
   } catch (error: any) {
     console.log(error);
     return res.status(500).send({
@@ -255,10 +260,9 @@ export const handleResetPassword = async (req: Request, res: Response): Promise<
 };
 
 export const handleGetAdminById = async (req: Request, res: Response) => {
-  const id = req.params.id;
-
   try {
-    let result = await getAdminById(id);
+    const validatedId = Validation.validate(AdminWebValidation.ID, req.params.id);
+    const result = await getAdminById(validatedId);
     res.status(200).send({
       message: `Success get admin`,
       data: result,
@@ -302,25 +306,24 @@ export const handleGetPermission = async (_req: Request, res: Response) => {
 };
 
 export const handleCreateRole = async (req: Request, res: Response) => {
-  const today = new Date();
-  const id = uuidv4();
-  const data = req.body;
-
-  const payload = {
-    id: id,
-    role_name: data.role_name,
-    is_active: data.is_active,
-    created_by: data.created_by,
-    created_date: today,
-  };
-
-  const accessPayload = data.permission.map((perm: any) => ({
-    ...perm,
-    role_id: id,
-  }));
-
   try {
-    let result = await createRole(payload, accessPayload);
+    const id = uuidv4();
+    const validatedRequest = Validation.validate(AdminWebValidation.CREATEROLE, req.body);
+
+    const headerPayload = {
+      id: id,
+      role_name: validatedRequest.role_name,
+      is_active: validatedRequest.is_active,
+      created_by: req.userDecode?.user_id,
+      created_date: new Date(),
+    };
+
+    const accessPayload = validatedRequest.permission.map((perm: any) => ({
+      ...perm,
+      role_id: id,
+    }));
+
+    const result = await createRole(headerPayload, accessPayload);
 
     res.status(200).send({
       message: `Success create role`,
@@ -334,26 +337,27 @@ export const handleCreateRole = async (req: Request, res: Response) => {
 };
 
 export const handleUpdateRole = async (req: Request, res: Response) => {
-  const id = req.params.id;
-  const today = new Date();
-  const data = req.body;
-
-  const payload = {
-    role_name: data.role_name,
-    updated_date: today,
-    updated_by: data.update_by,
-    is_active: data.is_active,
-  };
-
-  const permPayload = data.permission.map(({ menu_name, ...perm }: { menu_name: any }) => ({
-    ...perm,
-    role_id: id,
-    updated_date: today,
-    updated_by: data.update_by,
-  }));
-
   try {
-    let result = await updateRole(id, payload, permPayload);
+    const validatedId = Validation.validate(AdminWebValidation.ID, req.params.id);
+    const validatedRequest = Validation.validate(AdminWebValidation.UPDATEROLE, req.body);
+    const today = new Date();
+    const updatedBy = req.userDecode!.user_id;
+
+    const payload = {
+      role_name: validatedRequest.role_name,
+      updated_date: today,
+      updated_by: updatedBy,
+      is_active: validatedRequest.is_active,
+    };
+
+    const permPayload = validatedRequest.permission.map(({ menu_name, ...perm }: { menu_name: any }) => ({
+      ...perm,
+      role_id: validatedId,
+      updated_date: today,
+      updated_by: updatedBy,
+    }));
+
+    const result = await updateRole(validatedId, payload, permPayload);
     res.status(200).send({
       message: `Success update role`,
       id: result,

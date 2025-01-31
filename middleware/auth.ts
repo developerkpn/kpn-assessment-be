@@ -1,6 +1,7 @@
-import { TokenPayload } from "#dep/types/AdminTypes";
+import {Permission, TokenPayload} from "#dep/types/AdminTypes";
 import { NextFunction, Request, Response } from "express";
 import { Secret, verify } from "jsonwebtoken";
+import {verifyPermission} from "#dep/models/AdminWebModel";
 
 export const isAuth = (req: Request, res: Response, next: NextFunction): any => {
   const authHeaders = req.headers.Authorization || req.headers.authorization;
@@ -30,16 +31,30 @@ export const isAuth = (req: Request, res: Response, next: NextFunction): any => 
 };
 
 export const checkPermission =
-  (action: "fcreate" | "fread" | "fupdate" | "fdelete", menuId: number) =>
-  (req: Request, res: Response, next: NextFunction): any => {
-    const permission = req.userDecode?.permission;
+    (action: "fcreate" | "fread" | "fupdate" | "fdelete", menuId: number) =>
+        async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+            try {
+                const getPermission = await verifyPermission(req.userDecode?.role_id, menuId);
 
-    if (!permission) throw new Error("Permission not provided");
+                const verifiedPermission: Permission = {
+                    menu_id: getPermission.menu_id,
+                    fcreate: getPermission.fcreate,
+                    fread: getPermission.fread,
+                    fupdate: getPermission.fupdate,
+                    fdelete: getPermission.fdelete,
+                };
 
-    const menuPermission = permission.find((perm: any) => Number(perm.menu_id) === menuId);
+                if (!verifiedPermission) {
+                    throw new Error("Permission not provided or mismatched");
+                }
 
-    if (menuPermission && menuPermission[action]) {
-      return next();
-    }
-    return res.status(403).send({ message: "Forbidden" });
-  };
+                if (verifiedPermission[action]) {
+                    return next();
+                }
+
+                return res.status(403).send({ message: "Forbidden" });
+            } catch (error: any) {
+                console.error("Error in checkPermission middleware:", error.message);
+                return res.status(500).send({ message: "Internal Server Error" });
+            }
+        };
