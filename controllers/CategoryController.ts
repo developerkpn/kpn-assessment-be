@@ -31,10 +31,10 @@ export const handleCreateCategory = async (req: Request, res: Response) => {
 
 export const handleGetCategory = async (req: Request, res: Response) => {
     try {
-        let result = await getCategory();
+        // let result = await getCategory();
         res.status(200).send({
             message: `Success get category`,
-            data: result,
+            // data: result,
         })
     } catch (error: any) {
         res.status(500).send({

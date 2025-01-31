@@ -11,12 +11,10 @@ export class CategoryValidation {
 
     static readonly UPDATE: ZodType = z.object({
         category_name: z.string().trim().min(1).max(128).optional(),
-        category_code: z.string().trim().min(1).max(16).toUpperCase().optional(),
         updated_by: z.string().trim().min(1),
         updated_at: z.date(),
         is_active: z.boolean().optional()
-    });
+    }).strict();
 
     static readonly ID: ZodType = z.number().positive();
-
 }
