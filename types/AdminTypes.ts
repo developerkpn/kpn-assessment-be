@@ -17,3 +17,11 @@ export type TokenPayload = {
     fdelete: boolean;
   }>;
 };
+
+export type Permission = {
+    menu_id: number;
+    fcreate: boolean;
+    fread: boolean;
+    fupdate: boolean;
+    fdelete: boolean;
+};
