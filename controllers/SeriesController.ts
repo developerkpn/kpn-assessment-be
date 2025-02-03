@@ -1,13 +1,13 @@
 import {
   addQuestionToSeries,
   createSeries, deleteQuestionFromSeries,
-  deleteSeries, getListQuestionForSeries,
+  deleteSeries, getAvailableQuestionsForSeries, getListQuestionForSeries,
   getSeries,
   getSeriesDetail, getSeriesListQuestion,
   updateSeries
 } from "#dep/models/SeriesModel";
 import { SeriesRequest } from "#dep/types/MasterDataTypes";
-import { Request, Response } from "express";
+import {NextFunction, Request, Response} from "express";
 import { v4 as uuidv4 } from "uuid";
 import {Validation} from "#dep/validation/Validation";
 import {SeriesValidation} from "#dep/validation/SeriesValidation";
@@ -18,8 +18,8 @@ import {boolean, number} from "zod";
 
 export const handleGetQuestionsList = async (req: Request, res: Response) => {
   try {
-    const { page = 1, search = ""} = req.query;
-    const result = await getListQuestionForSeries(Number(page), String(search));
+    const validatedQuery: SeriesQuery = Validation.validate(SeriesValidation.QUERY, req.query);
+    const result = await getListQuestionForSeries(validatedQuery.page!, validatedQuery.search!, validatedQuery.category!);
     res.status(200).send({
       message: "Success!",
       result,
@@ -30,6 +30,26 @@ export const handleGetQuestionsList = async (req: Request, res: Response) => {
     });
   }
 }
+
+export const handleGetAvailableQuestionForSeries = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const validatedQuery: SeriesQuery = Validation.validate(SeriesValidation.QUERY, req.query);
+    const validatedId = Validation.validate(SeriesValidation.ID, req.params.id);
+
+    const result = await getAvailableQuestionsForSeries(validatedQuery.page!, validatedQuery.search!, validatedId);
+
+    res.status(200).send({
+      message: "Success!",
+      result,
+    })
+  } catch (e) {
+    
+  }
+  
+
+}
+
+
 
 export const handleCreateSeries = async (req: Request, res: Response) => {
   try {
