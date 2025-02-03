@@ -46,7 +46,7 @@ export const getQuestion = async () => {
       SELECT
         q.*, a.fullname AS created_by
       FROM mst_question_answer q
-      JOIN mst_admin_web a ON q.created_by = a.id
+      LEFT JOIN mst_admin_web a ON q.created_by = a.id
     `
     );
     await client.query(TRANS.COMMIT);
