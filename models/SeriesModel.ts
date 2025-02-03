@@ -7,11 +7,13 @@ import {format} from "logform";
 import cli = format.cli;
 
 
-export const getListQuestionForSeries = async (page: number, search: string) => {
+export const getListQuestionForSeries = async (page: number, search: string, category: number) => {
   const client = await db.connect();
-  const limit = 10; // Jumlah data per halaman
-  const offset = (page - 1) * limit; // Menghitung offset berdasarkan nomor halaman
 
+  // const limit = 10; // Jumlah data per halaman
+  // const offset = (page - 1) * limit; // Menghitung offset berdasarkan nomor halaman
+
+  console.log(category);
   try {
     await client.query(TRANS.BEGIN);
 
@@ -19,33 +21,32 @@ export const getListQuestionForSeries = async (page: number, search: string) => 
     const result = await client.query(
         `
       SELECT id, question_code FROM mst_question_answer
-      WHERE question_code ILIKE $3
-      LIMIT $1 OFFSET $2
-      `, [limit, offset, `%${search}%`]
+      WHERE question_code ILIKE $1 OR category_id = $2 
+      `, [`%${search}%`, category]
     );
 
-    // Query to count total rows matching the search term
-    const countResult = await client.query(
-        `
-      SELECT COUNT(*) AS total FROM mst_question_answer
-      WHERE question_code ILIKE $1
-      `, [`%${search}%`]
-    );
+    // // Query to count total rows matching the search term
+    // const countResult = await client.query(
+    //     `
+    //   SELECT COUNT(*) AS total FROM mst_question_answer
+    //   WHERE question_code ILIKE $1 AND category_id = $2
+    //   `, [`%${search}%`, category]
+    // );
 
     await client.query(TRANS.COMMIT);
 
-    const totalRows = parseInt(countResult.rows[0].total, 10);
-    const totalPages = Math.ceil(totalRows / limit);
-
-    if (page > totalPages) throw Error("Data tidak ditemukan");
+    // const totalRows = parseInt(countResult.rows[0].total, 10);
+    // const totalPages = Math.ceil(totalRows / limit);
+    //
+    // if (page > totalPages) throw Error("Data tidak ditemukan");
 
     return {
       data: result.rows,
-      paging: {
-        current_page: page,
-        total_page: totalPages,
-        size: limit,
-      },
+      // paging: {
+      //   current_page: page,
+      //   total_page: totalPages,
+      //   size: limit,
+      // },
     };
   } catch (error) {
     console.error(error);
@@ -56,7 +57,114 @@ export const getListQuestionForSeries = async (page: number, search: string) => 
   }
 }
 
+export const getAvailableQuestionsForSeries = async (
+    page: number,
+    search: string,
+    seriesId: string
+) => {
+  const client = await db.connect();
+  const limit = 10;
+  const offset = (page - 1) * limit;
 
+  try {
+    await client.query('BEGIN');
+
+    // 1. Ambil kategori series dan validasi keberadaan
+    const seriesQuery = await client.query(
+        `SELECT category_id FROM mst_series WHERE id = $1`,
+        [seriesId]
+    );
+
+    if (seriesQuery.rows.length === 0) {
+      throw new Error('Series tidak ditemukan');
+    }
+
+    const categoryId = seriesQuery.rows[0].category_id;
+
+    console.log(categoryId)
+    // 2. Ambil question_id yang sudah ada di series
+    const existingQuestions = await client.query(
+        `SELECT question_id FROM mst_series_det WHERE series_id = $1`,
+        [seriesId]
+    );
+
+    const existingIds = existingQuestions.rows.map(r => r.question_id);
+    console.log(existingIds)
+    // 3. Query utama dengan filter
+    const queryParams: any[] = [
+      limit,
+      offset,
+      `%${search}%`,
+      categoryId,
+    ];
+
+    // Filter ID yang sudah ada
+    let exclusionClause = '';
+    if (existingIds.length > 0) {
+      queryParams.push(existingIds);
+      exclusionClause = 'AND mqa.id != ALL($5)';
+    }
+
+    // Query data
+    const result = await client.query(
+        `
+      SELECT 
+        mqa.id,
+        mqa.question_code,
+        mqa.category_id
+      FROM mst_question_answer mqa
+      WHERE 
+        mqa.category_id = $4 AND
+        mqa.question_code ILIKE $3
+        ${exclusionClause}
+      ORDER BY mqa.question_code
+      LIMIT $1 OFFSET $2
+      `,
+        queryParams
+    );
+
+    console.log(result)
+
+    // Query total data
+    const countResult = await client.query(
+        `
+      SELECT COUNT(*) AS total
+      FROM mst_question_answer mqa
+      WHERE 
+        mqa.category_id = $2 AND
+        mqa.question_code ILIKE $1
+        ${existingIds.length > 0 ? 'AND mqa.id != ALL($3)' : ''}
+      `,
+        [
+          `%${search}%`,
+          categoryId,
+          ...(existingIds.length > 0 ? [existingIds] : [])
+        ]
+    );
+
+    await client.query('COMMIT');
+
+    // Hitung pagination
+    const totalRows = parseInt(countResult.rows[0].total, 10);
+    const totalPages = Math.ceil(totalRows / limit);
+
+    return {
+      data: result.rows,
+      paging: {
+        current_page: page,
+        total_page: totalPages,
+        size: limit,
+        total_items: totalRows
+      }
+    };
+
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+};
 
 export const createSeries = async (headerPayload: SeriesHeaderRequest) => { // (headerPayload: SeriesHeaderRequest, detailPayload: SeriesDetailRequest[])
   const client = await db.connect();
@@ -99,12 +207,12 @@ export const getSeries = async (page: number, search: string, date: string, acti
       FROM mst_series h
       LEFT JOIN mst_series_det d ON h.id = d.series_id
       LEFT JOIN mst_admin_web a ON h.created_by = a.id
-      WHERE h.is_active = ${active} AND (h.series_name ILIKE $3 OR h.series_code ILIKE $3)
+      WHERE h.is_active = $4 AND (h.series_name ILIKE $3 OR h.series_code ILIKE $3)
       GROUP BY h.id, h.series_name, h.series_code, h.is_active, h.created_by, h.created_date
       ORDER BY h.created_date ${sortOrder}
       LIMIT $1 OFFSET $2
       `,
-        [limit, offset, `%${search}%`]
+        [limit, offset, `%${search}%`, active]
     );
 
     // Query untuk menghitung total baris
