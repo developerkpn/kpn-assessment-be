@@ -44,9 +44,10 @@ export const getQuestion = async () => {
     const result = await client.query(
       `
       SELECT
-        q.*, a.fullname AS created_by
+        q.*, a.fullname AS created_by, c.category_name
       FROM mst_question_answer q
       LEFT JOIN mst_admin_web a ON q.created_by = a.id
+      LEFT JOIN mst_category c ON q.category_id = c.id
     `
     );
     await client.query(TRANS.COMMIT);
