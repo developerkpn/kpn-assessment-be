@@ -43,8 +43,7 @@ const parseQuestionForm = async (
         reject(new Error("Form parse error"));
         return;
       }
-      console.log(files);
-      console.log(fields);
+
       let q_input_image_url = "";
       const answers: any[] = [];
       for (let key in fields) {
@@ -62,8 +61,7 @@ const parseQuestionForm = async (
       for (let key in files) {
         if (key === "q_input_image" && files[key]) {
           const oldFilePath = files[key][0].filepath;
-          const originalFilename =
-            files[key][0].originalFilename || "default_filename";
+          const originalFilename = files[key][0].originalFilename || "default_filename";
           const extension = path.extname(originalFilename);
 
           const newFilename = `question${extension}`;
@@ -84,13 +82,10 @@ const parseQuestionForm = async (
         if (match && files[key]) {
           const index = parseInt(match[1], 10);
           const oldFilePath = files[key][0].filepath;
-          const originalFilename =
-            files[key][0].originalFilename || "default_filename";
+          const originalFilename = files[key][0].originalFilename || "default_filename";
           const extension = path.extname(originalFilename);
 
-          const newFilename = `answer_${String.fromCharCode(
-            97 + index
-          )}${extension}`;
+          const newFilename = `answer_${String.fromCharCode(97 + index)}${extension}`;
           const newFilePath = path.join(dir, newFilename);
 
           if (fs.existsSync(newFilePath)) {
@@ -106,9 +101,7 @@ const parseQuestionForm = async (
 
       const QAFields = {
         q_seq: fields.q_seq ? fields.q_seq[0] : undefined,
-        q_layout_type: fields.q_layout_type
-          ? fields.q_layout_type[0]
-          : undefined,
+        q_layout_type: fields.q_layout_type ? fields.q_layout_type[0] : undefined,
         q_input_text: fields.q_input_text ? fields.q_input_text[0] : undefined,
         q_input_image_url: files.q_input_image ? q_input_image_url : undefined,
         answer_type: fields.answer_type ? fields.answer_type[0] : undefined,
@@ -126,9 +119,7 @@ const removeImageFile = (dir: string, baseFileName: string) => {
       return;
     }
 
-    const matchingFile = files.find(
-      (file) => path.parse(file).name === baseFileName
-    );
+    const matchingFile = files.find((file) => path.parse(file).name === baseFileName);
 
     if (matchingFile) {
       const filePath = path.join(dir, matchingFile);
@@ -143,12 +134,9 @@ const removeImageFile = (dir: string, baseFileName: string) => {
   });
 };
 
-export const handleCreateQuestion = async (
-  req: Request,
-  res: Response
-): Promise<any> => {
+export const handleCreateQuestion = async (req: Request, res: Response): Promise<any> => {
   const id = uuidv4();
-  const dir = path.join(__dirname, `../uploads/question`);
+  const dir = "./uploads";
   const today = new Date();
 
   try {
@@ -188,10 +176,7 @@ export const handleCreateQuestion = async (
   }
 };
 
-export const handleUpdateQuestion = async (
-  req: Request,
-  res: Response
-): Promise<any> => {
+export const handleUpdateQuestion = async (req: Request, res: Response): Promise<any> => {
   const id = req.params.id;
   const dir = path.join(__dirname, `../uploads/question/${id}`);
   const today = new Date();
@@ -253,6 +238,7 @@ export const handleGetQuestion = async (_req: Request, res: Response) => {
 
       return {
         id: item.id,
+        question_code: item.question_code,
         q_seq: item.q_seq,
         q_layout_type: item.q_layout_type,
         q_input_text: item.q_input_text,
@@ -294,10 +280,7 @@ export const handleGetQuestionById = async (req: Request, res: Response) => {
       }
     });
 
-    const totalPoints = answers.reduce(
-      (acc, answer) => acc + Number(answer.point),
-      0
-    );
+    const totalPoints = answers.reduce((acc, answer) => acc + Number(answer.point), 0);
 
     const formattedResult: QuestionResult = {
       id: result.id,
