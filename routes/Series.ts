@@ -1,7 +1,7 @@
 import {
   handleAddQuestionToSeries,
   handleCreateSeries, handleDeleteQuestionFromSeries,
-  handleDeleteSeries, handleGetDetailSeries, handleGetQuestionsList,
+  handleDeleteSeries, handleGetAvailableQuestionForSeries, handleGetDetailSeries, handleGetQuestionsList,
   handleGetSeries, handleSeriesListQuestion,
   handleUpdateSeries,
 } from "#dep/controllers/SeriesController";
@@ -17,6 +17,7 @@ Series.patch("/:id", checkPermission("fupdate", 4), handleUpdateSeries);
 Series.get("/:id", checkPermission("fread", 4), handleGetDetailSeries);
 Series.post("/:id/questions", checkPermission("fcreate", 4), handleAddQuestionToSeries);
 Series.get("/:id/questions", checkPermission("fread", 4), handleSeriesListQuestion);
+Series.get("/:id/questions/available", checkPermission("fread", 4), handleGetAvailableQuestionForSeries)
 Series.delete("/:id/questions/:questionId", checkPermission("fdelete", 4), handleDeleteQuestionFromSeries);
 
 
