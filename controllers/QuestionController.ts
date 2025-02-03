@@ -136,7 +136,7 @@ const removeImageFile = (dir: string, baseFileName: string) => {
 
 export const handleCreateQuestion = async (req: Request, res: Response): Promise<any> => {
   const id = uuidv4();
-  const dir = path.join(__dirname, `../uploads/question/${id}`);
+  const dir = "./uploads";
   const today = new Date();
 
   try {
@@ -238,6 +238,7 @@ export const handleGetQuestion = async (_req: Request, res: Response) => {
 
       return {
         id: item.id,
+        question_code: item.question_code,
         q_seq: item.q_seq,
         q_layout_type: item.q_layout_type,
         q_input_text: item.q_input_text,
