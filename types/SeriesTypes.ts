@@ -23,6 +23,7 @@ export type SeriesQuery = {
     active?: boolean;
     page?: number;
     date?: string;
+    category?: number;
 }
 
 export type SeriesDetailRequest = {

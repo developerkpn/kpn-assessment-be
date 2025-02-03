@@ -27,8 +27,21 @@ export class SeriesValidation {
 
     static readonly QUERY: ZodType = z.object({
         search: z.string().min(0).optional().default(""),
-        active: z.enum(["true", "false"]).optional(),
-        page: z.number().positive().optional().default(1),
-        date: z.enum(['DESC', 'ASC']).optional().default('DESC')
-    });
+        active: z.enum(["true", "false"]).optional().default("true"),
+        page: z.preprocess((value) => {
+            if (typeof value === "string") {
+                const numberValue = parseInt(value, 10);
+                return isNaN(numberValue) ? undefined : numberValue; // Jika bukan angka, biarkan sebagai undefined
+            }
+            return value; // Jika bukan string, kembalikan nilai asli
+        }, z.number().positive().optional().default(1)), // Validasi sebagai number positif, default ke 1
+        date: z.enum(['DESC', 'ASC']).optional().default('DESC'),
+        category: z.preprocess((value) => {
+            if (typeof value === "string") {
+                const numberValue = parseInt(value, 10);
+                return isNaN(numberValue) ? undefined : numberValue; // Jika bukan angka, biarkan sebagai undefined
+            }
+            return value; // Jika bukan string, kembalikan nilai asli
+        }, z.number().positive().optional())
+    })
 }
