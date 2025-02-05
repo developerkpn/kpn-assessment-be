@@ -1,10 +1,7 @@
 import {
   addQuestionToSeries,
-  createSeries,
-  deleteQuestionFromSeries,
-  deleteSeries,
-  getAvailableQuestionsForSeries,
-  getListQuestionForSeries,
+  createSeries, deleteQuestionFromSeries,
+  deleteSeries, getAvailableQuestionsForSeries, getListQuestionForSeries, getListSeriesByCategory,
   getSeries,
   getSeriesDetail,
   getSeriesListQuestion,
@@ -13,17 +10,26 @@ import {
 import { SeriesRequest } from "#dep/types/MasterDataTypes";
 import { NextFunction, Request, Response } from "express";
 import { v4 as uuidv4 } from "uuid";
-import { Validation } from "#dep/validation/Validation";
-import { SeriesValidation } from "#dep/validation/SeriesValidation";
-import {
-  SeriesDetailRequest,
-  SeriesHeaderRequest,
-  SeriesQuery,
-  SeriesRequests,
-} from "#dep/types/SeriesTypes";
-import { deleteQuestion } from "#dep/models/QuestionModel";
-import { async } from "rxjs";
-import { boolean, number } from "zod";
+import {Validation} from "#dep/validation/Validation";
+import {SeriesValidation} from "#dep/validation/SeriesValidation";
+import {SeriesDetailRequest, SeriesHeaderRequest, SeriesQuery, SeriesRequests} from "#dep/types/SeriesTypes";
+import {deleteQuestion} from "#dep/models/QuestionModel";
+import {async} from "rxjs";
+import {boolean, number} from "zod";
+
+
+export const handleGetListSeriesByCategory = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const result = await getListSeriesByCategory(Number(req.params.id));
+    console.log(result);
+    res.status(200).send({
+      message: "Success",
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
 
 export const handleGetQuestionsList = async (req: Request, res: Response) => {
   try {
@@ -195,16 +201,8 @@ export const handleGetDetailSeries = async (req: Request, res: Response) => {
 export const handleSeriesListQuestion = async (req: Request, res: Response) => {
   try {
     const validatedId = Validation.validate(SeriesValidation.ID, req.params.id);
-    const validatedQuery: SeriesQuery = Validation.validate(
-      SeriesValidation.QUERY,
-      req.query
-    );
-    const result = await getSeriesListQuestion(
-      validatedId,
-      validatedQuery.page!,
-      validatedQuery.search!,
-      validatedQuery.date!
-    );
+    // const validatedQuery: SeriesQuery = Validation.validate(SeriesValidation.QUERY, req.query)
+    const result = await getSeriesListQuestion(validatedId);
     res.status(200).send({
       message: `Success!`,
       data: result,
