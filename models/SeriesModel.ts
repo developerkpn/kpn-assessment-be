@@ -3,9 +3,31 @@ import { TRANSACTION as TRANS } from "#dep/config/transaction";
 import { deleteQuery, insertQuery, updateQuery } from "#dep/helper/queryBuilder";
 import { SeriesRequest } from "#dep/types/MasterDataTypes";
 import {SeriesDetailRequest, SeriesHeaderRequest, SeriesRequests} from "#dep/types/SeriesTypes";
-import {format} from "logform";
-import cli = format.cli;
 
+
+export const getListSeriesByCategory = async (id: number) => {
+    const client = await db.connect();
+
+    try {
+      await client.query(TRANS.BEGIN);
+      const seriesListByCategory = await client.query(
+          `
+          SELECT
+           id, series_name, series_code
+          FROM mst_series
+          WHERE category_id = $1
+          `, [id]
+      );
+      await client.query(TRANS.COMMIT);
+      return seriesListByCategory.rows;
+    } catch (error) {
+      console.error(error);
+      await client.query(TRANS.ROLLBACK);
+      throw error;
+    } finally {
+      client.release();
+    }
+}
 
 export const getListQuestionForSeries = async (page: number, search: string, category: number) => {
   const client = await db.connect();
@@ -286,22 +308,19 @@ export const updateSeries = async (payload: SeriesRequest, id: string) => {
   }
 };
 
-export const getSeriesListQuestion = async (id: string, page: number, search: string, date: string) => {
+export const getSeriesListQuestion = async (id: string) => {
   const client = await db.connect();
-  const limit = 10; // Jumlah data per halaman
-  const offset = (page - 1) * limit; // Menghitung offset berdasarkan nomor halaman
-  const sortOrder = date === 'ASC' ? 'ASC' : 'DESC';
 
   try {
     await client.query(TRANS.BEGIN);
 
-    // Query utama untuk mendapatkan data dengan pagination dan search
+    // Query utama untuk mendapatkan semua data berdasarkan series_id
     const result = await client.query(
         `
       SELECT 
         d.id AS detail_id,
         d.question_id,
-        q.question_code,
+        q.*,
         c.category_code,
         a.fullname AS added_by,
         d.added_at
@@ -309,49 +328,13 @@ export const getSeriesListQuestion = async (id: string, page: number, search: st
       LEFT JOIN mst_question_answer q ON d.question_id = q.id
       LEFT JOIN mst_category c ON q.category_id = c.id
       LEFT JOIN mst_admin_web a ON d.added_by = a.id
-      WHERE 
-        d.series_id = $1
-        AND (
-          q.question_code ILIKE $4 OR 
-          c.category_code ILIKE $4
-        )
-      ORDER BY d.added_at ${sortOrder}
-      LIMIT $2 OFFSET $3
+      WHERE d.series_id = $1
       `,
-        [id, limit, offset, `%${search}%`]
-    );
-
-    // Query untuk menghitung total baris yang cocok
-    const countResult = await client.query(
-        `
-      SELECT 
-        COUNT(*) AS total
-      FROM mst_series_det d
-      LEFT JOIN mst_question_answer q ON d.question_id = q.id
-      LEFT JOIN mst_category c ON q.category_id = c.id
-      WHERE 
-        d.series_id = $1
-        AND (
-          q.question_code ILIKE $2 OR 
-          c.category_code ILIKE $2
-        )
-      `,
-        [id, `%${search}%`]
+        [id]
     );
 
     await client.query(TRANS.COMMIT);
-
-    const totalRows = parseInt(countResult.rows[0].total, 10);
-    const totalPages = Math.ceil(totalRows / limit);
-
-    return {
-      data: result.rows,
-      paging: {
-        current_page: page,
-        total_page: totalPages,
-        size: limit,
-      },
-    };
+    return { data: result.rows };
   } catch (error) {
     console.error(error);
     await client.query(TRANS.ROLLBACK);
@@ -360,6 +343,81 @@ export const getSeriesListQuestion = async (id: string, page: number, search: st
     client.release();
   }
 };
+
+// export const getSeriesListQuestion = async (id: string, page: number, search: string, date: string) => {
+//   const client = await db.connect();
+//   const limit = 10; // Jumlah data per halaman
+//   const offset = (page - 1) * limit; // Menghitung offset berdasarkan nomor halaman
+//   const sortOrder = date === 'ASC' ? 'ASC' : 'DESC';
+//
+//   try {
+//     await client.query(TRANS.BEGIN);
+//
+//     // Query utama untuk mendapatkan data dengan pagination dan search
+//     const result = await client.query(
+//         `
+//       SELECT
+//         d.id AS detail_id,
+//         d.question_id,
+//         q.question_code,
+//         c.category_code,
+//         a.fullname AS added_by,
+//         d.added_at
+//       FROM mst_series_det d
+//       LEFT JOIN mst_question_answer q ON d.question_id = q.id
+//       LEFT JOIN mst_category c ON q.category_id = c.id
+//       LEFT JOIN mst_admin_web a ON d.added_by = a.id
+//       WHERE
+//         d.series_id = $1
+//         AND (
+//           q.question_code ILIKE $4 OR
+//           c.category_code ILIKE $4
+//         )
+//       ORDER BY d.added_at ${sortOrder}
+//       LIMIT $2 OFFSET $3
+//       `,
+//         [id, limit, offset, `%${search}%`]
+//     );
+//
+//     // Query untuk menghitung total baris yang cocok
+//     const countResult = await client.query(
+//         `
+//       SELECT
+//         COUNT(*) AS total
+//       FROM mst_series_det d
+//       LEFT JOIN mst_question_answer q ON d.question_id = q.id
+//       LEFT JOIN mst_category c ON q.category_id = c.id
+//       WHERE
+//         d.series_id = $1
+//         AND (
+//           q.question_code ILIKE $2 OR
+//           c.category_code ILIKE $2
+//         )
+//       `,
+//         [id, `%${search}%`]
+//     );
+//
+//     await client.query(TRANS.COMMIT);
+//
+//     const totalRows = parseInt(countResult.rows[0].total, 10);
+//     const totalPages = Math.ceil(totalRows / limit);
+//
+//     return {
+//       data: result.rows,
+//       paging: {
+//         current_page: page,
+//         total_page: totalPages,
+//         size: limit,
+//       },
+//     };
+//   } catch (error) {
+//     console.error(error);
+//     await client.query(TRANS.ROLLBACK);
+//     throw error;
+//   } finally {
+//     client.release();
+//   }
+// };
 
 
 export const getSeriesDetail = async (id: string) => {
