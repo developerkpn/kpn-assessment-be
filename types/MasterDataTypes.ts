@@ -163,28 +163,22 @@ export type SubTestRequest = {
 }
 
 export type SubTestHeaderRequest = {
-  id: string;
-  subtest_name: string;
-  subtest_code: string;
-  subtest_duration: string;
-  category_id: string;
-  criteria_id: string;
-  is_active: boolean;
-  created_by: string;
-  created_at: Date;
+  id?: string;
+  subtest_name?: string;
+  subtest_code?: string;
+  subtest_duration?: string;
+  criteria_id?: string;
+  is_active?: boolean;
+  created_by?: string;
+  created_at?: Date;
+  updated_by?: string,
+  updated_at?: Date;
 };
 
 export type SubTestDetailRequest = {
   series_id: string;
 }
 
-export type SubTestUpdateRequest = {
-  subtest_name?: string;
-  subtest_duration?: string;
-  category_id?: string;
-  criteria_id?: string;
-  is_active?: boolean;
-}
 
 // Group Test
 export type GroupTestRequest = {

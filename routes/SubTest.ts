@@ -1,9 +1,8 @@
 import { Router } from "express";
 import {checkPermission} from "#dep/middleware/auth";
 import {
-    handleAddSeriesToSubTest,
     handleCreateSubTest, handleDeleteSeriesFromSubTest,
-    handleDeleteSubTest,
+    handleDeleteSubTest, handleGetAvailableSeriesForSubTest,
     handleGetSubTest, handleGetSubTestDetail,
     handleUpdateSubTest
 } from "#dep/controllers/SubTestController";
@@ -14,7 +13,7 @@ SubTest.get("/", checkPermission("fread", 12), handleGetSubTest);
 SubTest.delete("/:id", checkPermission("fread", 12), handleDeleteSubTest);
 SubTest.patch("/:id", checkPermission("fupdate", 12), handleUpdateSubTest);
 SubTest.get("/:id", checkPermission("fupdate", 12), handleGetSubTestDetail);
-SubTest.post("/:id/series", checkPermission("fcreate", 12), handleAddSeriesToSubTest);
+SubTest.get("/:id/series-available", checkPermission("fread", 12), handleGetAvailableSeriesForSubTest);
 SubTest.delete("/:id/series/:detailId", checkPermission("fdelete", 12), handleDeleteSeriesFromSubTest);
 
 export default SubTest;
