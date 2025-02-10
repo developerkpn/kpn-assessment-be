@@ -1,60 +1,56 @@
-import { Request, Response } from "express";
-import { v4 as uuidv4 } from "uuid";
-import {SubTestDetailRequest, SubTestHeaderRequest, SubTestRequest} from "#dep/types/MasterDataTypes";
+import {NextFunction, Request, Response} from "express";
+import { v4 as uuid } from "uuid";
+import {
+    SubTestDetailRequest,
+    SubTestHeaderRequest,
+    SubTestRequest,
+} from "#dep/types/MasterDataTypes";
 import {Validation} from "#dep/validation/Validation";
 import {SeriesValidation} from "#dep/validation/SeriesValidation";
 import {SubTestValidation} from "#dep/validation/SubTestValidation";
 import {
-    addSeriesToSubTest,
     createSubTest, deleteSeriesFromSubTest,
-    deleteSubTest,
-    getSubTest,
-    getSubtestDetail,
+    deleteSubTest, getAvailableSeriesForSubTest,
+    getSubTest, getSubTestDetail,
     updateSubTest
 } from "#dep/models/SubTestModel";
 import {SeriesDetailRequest} from "#dep/types/SeriesTypes";
-import SubTest from "#dep/routes/SubTest";
-import {addQuestionToSeries, deleteQuestionFromSeries} from "#dep/models/SeriesModel";
 
-export const handleCreateSubTest = async (req: Request, res: Response) => {
+export const handleCreateSubTest = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const request: SubTestRequest = req.body;
-        const date = new Date();
-        const subtestId = uuidv4();
-        const creator = req.userDecode!.user_id;
+        const validatedRequest = Validation.validate(SubTestValidation.CREATE, req.body);
 
-        const validatedRequest = Validation.validate(SubTestValidation.CREATE, request);
+        const date = new Date();
+        const subtestId = uuid();
+        const creator = req.userDecode!.user_id;
 
         const subtestHeaderRequest: SubTestHeaderRequest = {
             id: subtestId,
             subtest_name: validatedRequest.subtest_name,
             subtest_code: validatedRequest.subtest_code,
             subtest_duration: validatedRequest.subtest_duration,
-            category_id: validatedRequest.category_id,
             criteria_id: validatedRequest.criteria_id,
-            is_active: validatedRequest.is_active,
             created_by: creator,
             created_at: date
         }
 
         const subtestDetailRequest = validatedRequest.series.map((prev: SubTestDetailRequest) => ({
             ...prev,
-            id: uuidv4(),
+            id: uuid(),
             subtest_id: subtestId,
             added_by: creator,
             added_at: date
         }));
 
+        console.log(subtestHeaderRequest);
+
         const result = await createSubTest(subtestHeaderRequest, subtestDetailRequest);
 
-        res.status(200).send({
-            message: `Success create subtest`,
-            subtest_name: result,
+        res.status(201).send({
+            message: `Sub Test with code ${result} is created successfully!`,
         });
-    } catch (error: any) {
-        res.status(500).send({
-            message: error.message,
-        })
+    } catch (e) {
+        next(e);
     }
 }
 
@@ -62,7 +58,7 @@ export const handleGetSubTest = async (req: Request, res: Response) => {
     try {
         const result = await getSubTest();
         res.status(200).send({
-            message: `Success Get SubTest`,
+            message: `Success!`,
             data: result,
         })
     } catch (error: any) {
@@ -72,54 +68,61 @@ export const handleGetSubTest = async (req: Request, res: Response) => {
     }
 }
 
-export const handleUpdateSubTest = async (req: Request, res: Response) => {
+export const handleUpdateSubTest = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const updatedBy = req.userDecode!.user_id;
         const updatedAt = new Date();
 
         const validatedId = Validation.validate(SubTestValidation.ID, req.params.id);
-        const request: SubTestRequest = req.body;
+        const validatedRequest = Validation.validate(SubTestValidation.UPDATE, req.body)
 
-        const validatedRequest = Validation.validate(SubTestValidation.UPDATE, request)
-
-        const subtestUpdateRequest = {
-            ...validatedRequest,
+        const subtestHeaderRequest: SubTestHeaderRequest= {
+            subtest_name: validatedRequest.subtest_name,
+            subtest_code: validatedRequest.subtest_code,
+            subtest_duration: validatedRequest.subtest_duration,
+            criteria_id: validatedRequest.criteria_id,
+            is_active: validatedRequest.is_active,
             updated_by: updatedBy,
             updated_at: updatedAt,
         }
 
-        const result = await updateSubTest(validatedId, validatedRequest);
+        const subtestDetailRequest = validatedRequest.questions.map((prev: SeriesDetailRequest) => ({
+            ...prev,
+            id: uuid(),
+            series_id: validatedId,
+            added_by: updatedBy,
+            added_at: updatedAt,
+        }));
+
+        const result = await updateSubTest(validatedId, subtestHeaderRequest, subtestDetailRequest);
+
         res.status(200).send({
-            message: `Success Update SubTest`,
+            message: `Sub Test with code ${result} is updated successfully!`,
         });
 
-    } catch (error: any) {
-        res.status(500).send({
-            message: error.message
-        });
+    } catch (e) {
+        next(e)
     }
 }
 
-export const handleDeleteSubTest = async (req: Request, res: Response) => {
+export const handleDeleteSubTest = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const validatedId = Validation.validate(SubTestValidation.ID, req.params.id);
 
         const result = await deleteSubTest(validatedId);
 
         res.status(200).send({
-            message: `Success Delete SubTest`,
+            message: `Sub Test with code ${result} is deleted successfully!`,
         });
-    } catch (error: any) {
-        res.status(500).send({
-            message: error.message
-        });
+    } catch (e) {
+        next(e);
     }
 }
 
 export const handleGetSubTestDetail = async (req: Request, res: Response) => {
     try {
         const validatedId = Validation.validate(SubTestValidation.ID, req.params.id);
-        const  result = await getSubtestDetail(validatedId);
+        const  result = await getSubTestDetail(validatedId);
         res.status(200).send({
             message: "Success!",
             data: result
@@ -131,43 +134,23 @@ export const handleGetSubTestDetail = async (req: Request, res: Response) => {
     }
 }
 
-export const handleAddSeriesToSubTest = async (req: Request, res: Response) => {
+export const handleGetAvailableSeriesForSubTest = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const validatedId = Validation.validate(SubTestValidation.ID, req.params.id);
-        const validatedRequest = Validation.validate(SubTestValidation.ADDSERIES, req.body)
-        const updatedBy = req.userDecode!.user_id;
-        const updatedAt = new Date();
-        const addedBy = updatedBy;
-        const addedAt = updatedAt;
+        const result = await getAvailableSeriesForSubTest(validatedId);
 
-        const updatePayload = {
-            updated_by: updatedBy,
-            updated_at: updatedAt,
-        }
-
-        const subtestDetailRequest = validatedRequest.series.map((prev: SubTestDetailRequest) => ({
-            ...prev,
-            id: uuidv4(),
-            subtest_id: validatedId,
-            added_by: addedBy,
-            added_at: addedAt,
-        }));
-
-        await addSeriesToSubTest(validatedId, updatePayload, subtestDetailRequest);
-
-        res.status(201).send({
-            message: "Success Adding Series!",
+        res.status(200).send({
+            message: "Success!",
+            data: result,
         });
-    } catch (error: any) {
-        res.status(500).send({
-            message: error.message,
-        });
+    } catch (e) {
+        next(e);
     }
 }
 
 export const handleDeleteSeriesFromSubTest = async (req: Request, res: Response) => {
     try {
-        const validatedSeriesId = Validation.validate(SubTestValidation.ID, req.params.id);
+        const validatedSubtestId = Validation.validate(SubTestValidation.ID, req.params.id);
         const validatedDetailId = Validation.validate(SubTestValidation.ID, req.params.detailId);
         const updatedBy = req.userDecode!.user_id;
         const updatedAt = new Date();
@@ -177,10 +160,10 @@ export const handleDeleteSeriesFromSubTest = async (req: Request, res: Response)
             updated_at: updatedAt,
         }
 
-        await deleteSeriesFromSubTest(validatedDetailId, validatedSeriesId, updatePayload);
+        await deleteSeriesFromSubTest(validatedSubtestId, validatedDetailId, updatePayload);
 
         res.status(200).send({
-            message: "Success Delete Series!",
+            message: "Success delete Series from Sub Test!",
         });
     } catch (error: any) {
         res.status(500).send({
