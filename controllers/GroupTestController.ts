@@ -1,47 +1,52 @@
-import { Request, Response } from "express";
+import {NextFunction, Request, Response} from "express";
 import { v4 as uuidv4 } from "uuid";
 import {
     GroupTestDetailRequest,
     GroupTestHeaderRequest,
-    GroupTestRequest,
-    SubTestDetailRequest,
-    SubTestHeaderRequest
 } from "#dep/types/MasterDataTypes";
 import {Validation} from "#dep/validation/Validation";
-import {createSubTest, deleteSeriesFromSubTest} from "#dep/models/SubTestModel";
 import {GroupTestValidation} from "#dep/validation/GroupTestValidation";
 import {
-    addSubTestToGroupTest,
     createGroupTest,
-    deleteGroupTest, deleteSubTestFromGroupTest,
+    deleteGroupTest, deleteTestFromGroupTest, getAvailableSubTestForGroupTest,
     getGroupTest,
     getGroupTestDetail,
     updateGroupTest
 } from "#dep/models/GroupTestModel";
-import {error} from "winston";
-import {deleteFunctionMenu} from "#dep/models/FunctionMenuModel";
 import {SubTestValidation} from "#dep/validation/SubTestValidation";
 
 
-export const handleCreateGroupTest = async (req: Request, res: Response) => {
+
+export const handleGetAvailableSubTestForGroupTest = async(req: Request, res: Response, next: NextFunction) => {
     try {
-        const request: GroupTestRequest = req.body;
+        const validatedId = Validation.validate(GroupTestValidation.ID, req.params.id);
+        const result = await getAvailableSubTestForGroupTest(validatedId);
+
+        res.status(200).send({
+            message: "Success!",
+            data: result,
+        });
+    } catch (e) {
+        next(e);
+    }
+}
+
+export const handleCreateGroupTest = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const validatedRequest = Validation.validate(GroupTestValidation.CREATE, req.body);
         const date = new Date();
         const grouptestId = uuidv4();
         const creator = req.userDecode!.user_id;
-
-        const validatedRequest = Validation.validate(GroupTestValidation.CREATE, request);
 
         const grouptestHeaderRequest: GroupTestHeaderRequest = {
             id: grouptestId,
             grouptest_name: validatedRequest.grouptest_name,
             grouptest_code: validatedRequest.grouptest_code,
-            is_active: validatedRequest.is_active,
             created_by: creator,
             created_at: date
         }
 
-        const grouptestDetailRequest = validatedRequest.subtests.map((prev: GroupTestDetailRequest) => ({
+        const grouptestDetailRequest = validatedRequest.tests.map((prev: GroupTestDetailRequest) => ({
             ...prev,
             id: uuidv4(),
             grouptest_id: grouptestId,
@@ -51,39 +56,32 @@ export const handleCreateGroupTest = async (req: Request, res: Response) => {
 
         const result = await createGroupTest(grouptestHeaderRequest, grouptestDetailRequest);
 
-        res.status(200).send({
-            message: `Success create grouptest`,
-            subtest_name: result,
+        res.status(201).send({
+            message: `Group test with code ${result} is created successfully!`,
         });
-    } catch (error: any) {
-        res.status(500).send({
-            message: error.message,
-        })
+    } catch (e) {
+        next(e);
     }
 }
 
-export const handleGetGroupTest = async (req: Request, res: Response) => {
+export const handleGetGroupTest = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const result = await getGroupTest();
         res.status(200).send({
-            message: `Success update grouptest`,
+            message: `Success!`,
             data: result,
         });
-    } catch (error: any) {
-        res.status(500).send({
-            message: error.message,
-        });
+    } catch (e) {
+        next(e);
     }
 }
 
-export const handleUpdateGroupTest = async (req: Request, res: Response) => {
+export const handleUpdateGroupTest = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const updatedBy = req.userDecode!.user_id;
         const updatedAt = new Date();
 
         const validatedId = Validation.validate(GroupTestValidation.ID, req.params.id);
-        const request = req.body;
-
         const validatedRequest = Validation.validate(GroupTestValidation.UPDATE, req.body);
 
         const grouptestUpdateRequest = {
@@ -92,35 +90,40 @@ export const handleUpdateGroupTest = async (req: Request, res: Response) => {
             updated_at: updatedAt
         }
 
-        const result = await updateGroupTest(validatedId, grouptestUpdateRequest);
+        delete grouptestUpdateRequest.tests;
+
+        const grouptestUpdateDetailRequest = validatedRequest.tests.map((prev: GroupTestDetailRequest) => ({
+            ...prev,
+            id: uuidv4(),
+            grouptest_id: validatedId,
+            added_by: updatedBy,
+            added_at: updatedAt
+        }))
+
+        const result = await updateGroupTest(validatedId, grouptestUpdateRequest, grouptestUpdateDetailRequest);
 
         res.status(200).send({
-           message: `Success update Group Test`,
+           message: `Group Test with code ${result} is updated successfully!`,
         });
-    } catch (error: any) {
-        res.status(500).send({
-            message: error.message
-        });
+    } catch (e) {
+        next(e);
     }
 }
 
-export const handleDeleteGroupTest = async (req: Request, res: Response) => {
+export const handleDeleteGroupTest = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const validatedId = Validation.validate(GroupTestValidation.ID, req.params.id);
-
         const result = await deleteGroupTest(validatedId);
 
         res.status(200).send({
-            message: `Success Delete Group Test`,
+            message: `Group Test with code ${result} is deleted successfully!`,
         });
-    } catch (error: any) {
-        res.status(500).send({
-            message: error.message
-        });
+    } catch (e) {
+        next(e);
     }
 }
 
-export const handleGetGroupTestDetail = async (req: Request, res: Response) => {
+export const handleGetGroupTestDetail = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const validatedId = Validation.validate(GroupTestValidation.ID, req.params.id);
         const result = await getGroupTestDetail(validatedId);
@@ -128,50 +131,14 @@ export const handleGetGroupTestDetail = async (req: Request, res: Response) => {
             message: `Success!`,
             data: result,
         })
-    } catch (error: any) {
-        res.status(500).send({
-            message: error.message,
-        });
+    } catch (e) {
+        next(e);
     }
 }
 
-export const handleAddSubTestToGroupTest = async (req: Request, res: Response) => {
+export const handleDeleteSubTestFromGroupTest = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const validatedId = Validation.validate(GroupTestValidation.ID, req.params.id);
-        const validatedRequest = Validation.validate(GroupTestValidation.ADDSUBTEST, req.body);
-        const updatedBy = req.userDecode!.user_id;
-        const updatedAt = new Date();
-        const addedBy = updatedBy;
-        const addedAt = updatedAt;
-
-        const updatePayload = {
-            updated_by: updatedBy,
-            updated_at: updatedAt,
-        }
-
-        const grouptestDetailRequest = validatedRequest.subtests.map((prev: GroupTestDetailRequest) => ({
-            ...prev,
-            id: uuidv4(),
-            grouptest_id: validatedId,
-            added_by: addedBy,
-            added_at: addedAt,
-        }));
-
-        await addSubTestToGroupTest(validatedId, updatePayload, grouptestDetailRequest);
-
-        res.status(201).send({
-            message: "Success Adding Sub Test",
-        })
-    } catch (error: any) {
-        res.status(500).send({
-            message: error.message
-        });
-    }
-}
-
-export const handleDeleteSubTestFromGroupTest = async (req: Request, res: Response) => {
-    try {
-        const validatedSeriesId = Validation.validate(SubTestValidation.ID, req.params.id);
+        const validatedGroupTestId = Validation.validate(SubTestValidation.ID, req.params.id);
         const validatedDetailId = Validation.validate(SubTestValidation.ID, req.params.detailId);
         const updatedBy = req.userDecode!.user_id;
         const updatedAt = new Date();
@@ -181,14 +148,12 @@ export const handleDeleteSubTestFromGroupTest = async (req: Request, res: Respon
             updated_at: updatedAt,
         }
 
-        await deleteSubTestFromGroupTest(validatedDetailId, validatedSeriesId, updatePayload);
+        await deleteTestFromGroupTest(validatedDetailId, validatedGroupTestId, updatePayload);
 
         res.status(200).send({
-            message: "Success Delete Series!",
+            message: "Success deleted Test from Group Test!",
         });
-    } catch (error: any) {
-        res.status(500).send({
-            message: error.message
-        });
+    } catch (e) {
+        next(e);
     }
 }
