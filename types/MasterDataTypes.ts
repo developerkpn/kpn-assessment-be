@@ -221,7 +221,6 @@ export type GroupTestHeaderRequest = {
   id: string;
   grouptest_name: string;
   grouptest_code: string;
-  is_active: boolean;
   created_by: string;
   created_at: Date;
 }
