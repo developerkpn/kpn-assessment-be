@@ -253,7 +253,7 @@ export const deleteSubTestFromTest = async (testId: string, detailId: string, up
         );
 
         if (result.rowCount === 0) {
-            throw new ResponseError(404, `Sub Test with detail ID ${detailId} is not exist on existing Test`);
+            throw new ResponseError(404, `Test with detail ID ${detailId} is not exist on existing Test`);
         }
         await client.query(TRANS.COMMIT);
     } catch (error){

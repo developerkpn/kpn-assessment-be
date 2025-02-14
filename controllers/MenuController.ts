@@ -1,10 +1,10 @@
 import { getAdminMenu, getAllMenu } from "#dep/models/MenuModel";
-import { Request, Response } from "express";
+import {NextFunction, Request, Response} from "express";
 import { Secret, verify } from "jsonwebtoken";
 import {Validation} from "#dep/validation/Validation";
 import {MenuValidation} from "#dep/validation/MenuValidation";
 
-export const handleGetAdminMenu = async (req: Request, res: Response) => {
+export const handleGetAdminMenu = async (req: Request, res: Response, next: NextFunction) => {
   const roleId = String(req.userDecode?.role_id);
 
   try {
@@ -52,14 +52,12 @@ export const handleGetAdminMenu = async (req: Request, res: Response) => {
       message: `Success get menu`,
       data: formattedResult,
     });
-  } catch (error: any) {
-    res.status(500).send({
-      message: error.message,
-    });
+  } catch (e) {
+    next(e);
   }
 };
 
-export const handleGetAllMenu = async (req: Request, res: Response) => {
+export const handleGetAllMenu = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const result = await getAllMenu();
 
@@ -67,9 +65,7 @@ export const handleGetAllMenu = async (req: Request, res: Response) => {
       message: `Success get all menu`,
       data: result,
     });
-  } catch (error: any) {
-    res.status(500).send({
-      message: error.message,
-    });
+  } catch (e) {
+    next(e);
   }
 };

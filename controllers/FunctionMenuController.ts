@@ -5,26 +5,24 @@ import {
   updateFunctionMenu,
 } from "#dep/models/FunctionMenuModel";
 import { FunctionMenuRequest } from "#dep/types/MasterDataTypes";
-import { Request, Response } from "express";
+import {NextFunction, Request, Response} from "express";
 import { v4 as uuidv4 } from "uuid";
 import {Validation} from "#dep/validation/Validation";
 import {FunctionMenuValidation} from "#dep/validation/FunctionMenuValidation";
 
-export const handleGetFunctionMenu = async (_req: Request, res: Response) => {
+export const handleGetFunctionMenu = async (req: Request, res: Response, next: NextFunction) => {
   try {
     let result = await getFunctionMenu();
     res.status(200).send({
       message: `Success get function menu`,
       data: result,
     });
-  } catch (error: any) {
-    res.status(500).send({
-      message: error.message,
-    });
+  } catch (e) {
+    next(e);
   }
 };
 
-export const handleCreateFunctionMenu = async (req: Request, res: Response) => {
+export const handleCreateFunctionMenu = async (req: Request, res: Response, next: NextFunction) => {
   const today = new Date();
   const payload: FunctionMenuRequest = {
     id: uuidv4(),
@@ -42,28 +40,24 @@ export const handleCreateFunctionMenu = async (req: Request, res: Response) => {
       message: `Success create function menu`,
       fm_code: result,
     });
-  } catch (error: any) {
-    res.status(500).send({
-      message: error.message,
-    });
+  } catch (e) {
+    next(e);
   }
 };
 
-export const handleDeleteFunctionMenu = async (req: Request, res: Response) => {
+export const handleDeleteFunctionMenu = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const validatedId = Validation.validate(FunctionMenuValidation.ID, req.params.id);
     await deleteFunctionMenu(validatedId);
     res.status(200).send({
       message: `Success delete function menu`,
     });
-  } catch (error: any) {
-    res.status(500).send({
-      message: error.message,
-    });
+  } catch (e) {
+    next(e);
   }
 };
 
-export const handleUpdateFunctionMenu = async (req: Request, res: Response) => {
+export const handleUpdateFunctionMenu = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const validatedRequest = Validation.validate(FunctionMenuValidation.UPDATE, req.body);
     const validatedId = Validation.validate(FunctionMenuValidation.ID, req.params.id);
@@ -72,9 +66,7 @@ export const handleUpdateFunctionMenu = async (req: Request, res: Response) => {
       message: `Success update function menu`,
       fm_code: result,
     });
-  } catch (error: any) {
-    res.status(500).send({
-      message: error.message,
-    });
+  } catch (e) {
+    next(e);
   }
 };
