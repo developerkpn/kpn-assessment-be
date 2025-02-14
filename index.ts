@@ -38,7 +38,7 @@ app.use((req, res, next) => {
   }
   next();
 });
-console.log("halo")
+
 app.use(cors(corsOption));
 app.use(credentials);
 app.use(express.json());

@@ -1,5 +1,8 @@
 node_modules
+<<<<<<< HEAD
 .env
+=======
+>>>>>>> 43025e87a1846db236a804d8615e74b34e99ce29
 .env.development
 .env.production
 ssl
