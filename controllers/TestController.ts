@@ -3,21 +3,9 @@ import {Validation} from "#dep/validation/Validation";
 import {TestValidation} from "#dep/validation/TestValidation";
 import {v4 as uuid} from "uuid";
 import {
-    SubTestDetailRequest,
-    SubTestHeaderRequest,
     TestDetailRequest,
-    TestHeaderRequest, TestHeaderUpdateRequest
+    TestHeaderRequest
 } from "#dep/types/MasterDataTypes";
-import {
-    createSubTest, deleteSeriesFromSubTest,
-    deleteSubTest,
-    getAvailableSeriesForSubTest,
-    getSubTest,
-    getSubTestDetail,
-    updateSubTest
-} from "#dep/models/SubTestModel";
-import {SubTestValidation} from "#dep/validation/SubTestValidation";
-import {SeriesDetailRequest} from "#dep/types/SeriesTypes";
 import {
     createTest, deleteSubTestFromTest,
     deleteTest,
@@ -26,8 +14,6 @@ import {
     getTestDetail,
     updateTest
 } from "#dep/models/TestModel";
-import {deleteSubTestFromGroupTest} from "#dep/models/GroupTestModel";
-
 
 export const handleCreateTest = async(req: Request, res: Response, next: NextFunction) => {
     try {
