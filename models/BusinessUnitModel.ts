@@ -66,7 +66,6 @@ export const deleteBusinessUnit = async (id: string) => {
     const result = await client.query(q, v);
     if (result.rowCount === 0) throw new Error(`ID ${id} not exist`);
     await client.query(TRANS.COMMIT);
-    console.log(result);
     return id;
   } catch (error) {
     console.error(error);
