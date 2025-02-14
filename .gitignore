@@ -4,6 +4,7 @@ node_modules
 .env.production
 ssl
 public
+uploads
 /dist
 development.env
 production.env
