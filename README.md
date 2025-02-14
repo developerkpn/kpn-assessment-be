@@ -123,7 +123,7 @@ docker buildx build --platform linux/arm64 -t faizbyp/kpn-assessment:x.x.x -f Do
 - Development
 
 ```bash
-docker run -p 5000:5000 -p 4430:443 -p 8080:80 --env-file .env.development faizbyp/kpn-assessment:x.x.x
+docker run -p 5000:5000 -p 4430:443 -p 8080:80 --env-file .env.development.development faizbyp/kpn-assessment:x.x.x
 ```
 
 6. Push the image to Docker Hub.
