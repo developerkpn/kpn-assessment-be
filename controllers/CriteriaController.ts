@@ -5,13 +5,13 @@ import {
   updateCriteria,
 } from "#dep/models/CriteriaModel";
 import { Criteria, CriteriaGroup, CriteriaRequest } from "#dep/types/MasterDataTypes";
-import { Request, Response } from "express";
+import {NextFunction, Request, Response} from "express";
 import { v4 as uuidv4 } from "uuid";
 import {Validation} from "#dep/validation/Validation";
 import {CriteriaValidation} from "#dep/validation/CriteriaValidation";
 import {FunctionMenuValidation} from "#dep/validation/FunctionMenuValidation";
 
-export const handleCreateCriteria = async (req: Request, res: Response) => {
+export const handleCreateCriteria = async (req: Request, res: Response, next: NextFunction) => {
   const payload = req.body;
   const today = new Date();
   const groupId = uuidv4();
@@ -42,14 +42,12 @@ export const handleCreateCriteria = async (req: Request, res: Response) => {
       message: `Success create criteria`,
       category_name: result,
     });
-  } catch (error: any) {
-    res.status(500).send({
-      message: error.message,
-    });
+  } catch (e) {
+    next(e);
   }
 };
 
-export const handleGetCriteria = async (_req: Request, res: Response) => {
+export const handleGetCriteria = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const result = await getCriteria();
     const newResult = Object.values(
@@ -74,14 +72,12 @@ export const handleGetCriteria = async (_req: Request, res: Response) => {
       message: `Success get criteria`,
       data: newResult,
     });
-  } catch (error: any) {
-    res.status(500).send({
-      message: error.message,
-    });
+  } catch (e) {
+    next(e);
   }
 };
 
-export const handleDeleteCriteria = async (req: Request, res: Response) => {
+export const handleDeleteCriteria = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const validatedId = Validation.validate(FunctionMenuValidation.ID, req.params.id);
     let result = await deleteCriteria(validatedId);
@@ -89,14 +85,12 @@ export const handleDeleteCriteria = async (req: Request, res: Response) => {
       message: `Success delete criteria`,
       name: result,
     });
-  } catch (error: any) {
-    res.status(500).send({
-      message: error.message,
-    });
+  } catch (e) {
+    next(e);
   }
 };
 
-export const handleUpdateCriteria = async (req: Request, res: Response) => {
+export const handleUpdateCriteria = async (req: Request, res: Response, next: NextFunction) => {
   const today = new Date();
   const validatedId = Validation.validate(CriteriaValidation.ID, req.params.id)
   const payload = req.body;
@@ -124,9 +118,7 @@ export const handleUpdateCriteria = async (req: Request, res: Response) => {
       message: `Success update criteria`,
       value_name: result,
     });
-  } catch (error: any) {
-    res.status(500).send({
-      message: error.message,
-    });
+  } catch (e) {
+    next(e);
   }
 };
