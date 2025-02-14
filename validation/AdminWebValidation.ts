@@ -2,7 +2,7 @@ import {z, ZodType} from "zod";
 
 export class AdminWebValidation {
     static readonly LOGIN: ZodType = z.object({
-        emailOrUname: z.string().trim().min(1),
+        username: z.string().trim().min(1),
         password: z.string().trim().min(6)
     });
 
