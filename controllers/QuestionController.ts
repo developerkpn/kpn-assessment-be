@@ -39,6 +39,7 @@ const parseQuestionForm = async (
 
   return new Promise((resolve, reject) => {
     form.parse(req, async (error, fields, files) => {
+      console.log(files) ;
       if (error) {
         reject(new Error("Form parse error"));
         return;
@@ -141,7 +142,6 @@ export const handleCreateQuestion = async (req: Request, res: Response): Promise
 
   try {
     const { fields, answers, QAFields } = await parseQuestionForm(req, dir, id);
-
     const answersPayload: any = {};
     answers.forEach((answer, index) => {
       const letter = String.fromCharCode(97 + index);
