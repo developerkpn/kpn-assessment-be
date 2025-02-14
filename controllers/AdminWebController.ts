@@ -20,16 +20,13 @@ import { Secret, sign, verify } from "jsonwebtoken";
 import { v4 as uuidv4 } from "uuid";
 import {Validation} from "#dep/validation/Validation";
 import {AdminWebValidation} from "#dep/validation/AdminWebValidation";
+import {ResponseError} from "#dep/error/response-error";
 
 export const handleLoginAdmin = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
-    const payload = {
-      emailOrUname: req.body.username,
-      password: req.body.password
-    }
-    const validatedRequest = Validation.validate(AdminWebValidation.LOGIN, payload);
-    const { data, accessToken } = await loginAdmin(validatedRequest.emailOrUname, validatedRequest.password);
-    return res.status(200).send({
+    const validatedRequest = Validation.validate(AdminWebValidation.LOGIN, req.body);
+    const { data, accessToken } = await loginAdmin(validatedRequest.username, validatedRequest.password);
+    res.status(200).send({
       message: `Success sign in, welcome ${data.fullname}`,
       data: {
         fullname: data.fullname,
@@ -46,7 +43,7 @@ export const handleLoginAdmin = async (req: Request, res: Response, next: NextFu
   }
 };
 
-export const refreshAccessToken = async (req: Request, res: Response): Promise<any> => {
+export const refreshAccessToken = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   const authHeaders = req.headers.Authorization || req.headers.authorization;
   if (!authHeaders) {
     res.status(403).send({
@@ -64,48 +61,43 @@ export const refreshAccessToken = async (req: Request, res: Response): Promise<a
 
   try {
     const token = await getNewToken(payload);
-    return res.status(200).send({
+    res.status(200).send({
       access_token: token,
     });
   } catch (error: any) {
     if (error.name === "TokenExpiredError") {
-      return res.status(403).send({ message: "Refresh Token Expired. Logging out." });
+      res.status(403).send({ message: "Refresh Token Expired. Logging out." });
+    } else {
+      next(error);
     }
-    return res.status(500).send({
-      message: error.message,
-    });
   }
 };
 
-export const handleGetAllAdmin = async (_req: Request, res: Response) => {
+export const handleGetAllAdmin = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const result = await getAllAdmin();
     res.status(200).send({
       message: `Success get admin accounts`,
       data: result,
     });
-  } catch (error: any) {
-    res.status(500).send({
-      message: error.message,
-    });
+  } catch (e) {
+    next(e);
   }
 };
 
-export const handleGetRole = async (_req: Request, res: Response) => {
+export const handleGetRole = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const result = await getRole();
     res.status(200).send({
       message: `Success get role`,
       data: result,
     });
-  } catch (error: any) {
-    res.status(500).send({
-      message: error.message,
-    });
+  } catch (e) {
+    next(e);
   }
 };
 
-export const handleGetRoleById = async (req: Request, res: Response) => {
+export const handleGetRoleById = async (req: Request, res: Response, next: NextFunction) => {
   const validatedId = Validation.validate(AdminWebValidation.ID, req.params.id);
   try {
     let result = await getPermission(validatedId);
@@ -130,14 +122,12 @@ export const handleGetRoleById = async (req: Request, res: Response) => {
       message: `Success get role ${result[0].role_name}`,
       data: formattedResult[0],
     });
-  } catch (error: any) {
-    res.status(500).send({
-      message: error.message,
-    });
+  } catch (e) {
+    next(e);
   }
 };
 
-export const handleCreateAdmin = async (req: Request, res: Response) => {
+export const handleCreateAdmin = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const today = new Date();
     const data = req.body;
@@ -175,37 +165,31 @@ export const handleCreateAdmin = async (req: Request, res: Response) => {
       message: `Success create admin`,
       id: result,
     });
-  } catch (error: any) {
-    res.status(500).send({
-      message: error.message,
-    });
+  } catch (e) {
+    next(e);
   }
 };
 
-export const handleReqResetPassword = async (req: Request, res: Response): Promise<any> => {
-  const validatedEmail = Validation.validate(AdminWebValidation.EMAIL, req.body.email);
-  if (!validatedEmail) {
-    return res.status(400).send({
-      message: "Email is required",
-    });
-  }
-
+export const handleReqResetPassword = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
+    const validatedEmail = Validation.validate(AdminWebValidation.EMAIL, req.body.email);
+
+    if (!validatedEmail) {
+      throw new ResponseError(400, "Email is required");
+    }
+
     await reqResetPassword(validatedEmail);
 
-    return res.status(200).send({
+    res.status(200).send({
       message: "OTP sent, please check your email address",
     });
 
-  } catch (error: any) {
-    console.log(error);
-    return res.status(500).send({
-      message: error.message,
-    });
+  } catch (e) {
+    next(e);
   }
 };
 
-export const handleVerifyResetPassword = async (req: Request, res: Response): Promise<any> => {
+export const handleVerifyResetPassword = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   const email = req.body.email;
   const otpInput = req.body.otpInput;
   if (!email || !otpInput) {
@@ -228,20 +212,16 @@ export const handleVerifyResetPassword = async (req: Request, res: Response): Pr
     return res.status(200).send({
       message: "OTP Verified",
     });
-  } catch (error: any) {
-    console.error(error);
-    return res.status(500).send({
-      message: error.message,
-    });
+  } catch (e) {
+    next(e);
   }
 };
 
-export const handleResetPassword = async (req: Request, res: Response): Promise<any> => {
-  const session = req.cookies.resetpwdSess;
-  const newPass = req.body.newPass;
-  const email = req.body.email;
-
+export const handleResetPassword = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
+    const session = req.cookies.resetpwdSess;
+    const newPass = req.body.newPass;
+    const email = req.body.email;
     verify(session, process.env.SECRETJWT as Secret);
     await resetPassword(newPass, email);
 
@@ -259,7 +239,7 @@ export const handleResetPassword = async (req: Request, res: Response): Promise<
   }
 };
 
-export const handleGetAdminById = async (req: Request, res: Response) => {
+export const handleGetAdminById = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const validatedId = Validation.validate(AdminWebValidation.ID, req.params.id);
     const result = await getAdminById(validatedId);
@@ -274,7 +254,7 @@ export const handleGetAdminById = async (req: Request, res: Response) => {
   }
 };
 
-export const handleGetPermission = async (_req: Request, res: Response) => {
+export const handleGetPermission = async (req: Request, res: Response, next: NextFunction) => {
   try {
     let result = await getPermission();
 
@@ -305,7 +285,7 @@ export const handleGetPermission = async (_req: Request, res: Response) => {
   }
 };
 
-export const handleCreateRole = async (req: Request, res: Response) => {
+export const handleCreateRole = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const id = uuidv4();
     const validatedRequest = Validation.validate(AdminWebValidation.CREATEROLE, req.body);
@@ -329,14 +309,12 @@ export const handleCreateRole = async (req: Request, res: Response) => {
       message: `Success create role`,
       id: result,
     });
-  } catch (error: any) {
-    res.status(500).send({
-      message: error.message,
-    });
+  } catch (e) {
+    next(e);
   }
 };
 
-export const handleUpdateRole = async (req: Request, res: Response) => {
+export const handleUpdateRole = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const validatedId = Validation.validate(AdminWebValidation.ID, req.params.id);
     const validatedRequest = Validation.validate(AdminWebValidation.UPDATEROLE, req.body);
@@ -362,9 +340,7 @@ export const handleUpdateRole = async (req: Request, res: Response) => {
       message: `Success update role`,
       id: result,
     });
-  } catch (error: any) {
-    res.status(500).send({
-      message: error.message,
-    });
+  } catch (e) {
+    next(e);
   }
 };
