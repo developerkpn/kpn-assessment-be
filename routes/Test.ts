@@ -6,7 +6,7 @@ import {
     handleGetTest,
     handleGetTestDetail,
     handleUpdateTest
-} from "#dep/controllers/Test";
+} from "#dep/controllers/TestController";
 const Test = Router();
 
 Test.post("/", checkPermission("fcreate", 14), handleCreateTest);
