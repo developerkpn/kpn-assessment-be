@@ -3,7 +3,11 @@ import { TRANSACTION as TRANS } from "#dep/config/transaction";
 import { accessExpiry, refreshExpiry } from "#dep/constant";
 import { createOTP } from "#dep/helper/auth/OTP";
 import { hashPassword, validatePassword } from "#dep/helper/auth/password";
-import { deleteQuery, insertQuery, updateQuery } from "#dep/helper/queryBuilder";
+import {
+  deleteQuery,
+  insertQuery,
+  updateQuery,
+} from "#dep/helper/queryBuilder";
 import { Emailer } from "#dep/services/mail/Emailer";
 import { User } from "#dep/types/AdminTypes";
 import { Secret, sign, verify } from "jsonwebtoken";
@@ -61,7 +65,7 @@ export const loginAdmin = async (emailOrUname: string, password: string) => {
     await client.query(insertToken, valueToken);
 
     await client.query(TRANS.COMMIT);
-
+    console.log(data);
     if (data) {
       const valid = await validatePassword(password, data.password);
       if (!valid) {
@@ -268,7 +272,10 @@ export const reqResetPassword = async (email: string) => {
 
   try {
     await client.query(TRANS.BEGIN);
-    const checkRegis = await client.query("SELECT * FROM mst_admin_web where email = $1", [email]);
+    const checkRegis = await client.query(
+      "SELECT * FROM mst_admin_web where email = $1",
+      [email]
+    );
     if (checkRegis.rows.length === 0) {
       throw new Error("User not registered yet");
     }
@@ -302,7 +309,10 @@ export const resetPassword = async (newPass: string, email: string) => {
 
   try {
     await client.query(TRANS.BEGIN);
-    const checkUser = await client.query("SELECT * FROM mst_admin_web WHERE email = $1", [email]);
+    const checkUser = await client.query(
+      "SELECT * FROM mst_admin_web WHERE email = $1",
+      [email]
+    );
     if (checkUser.rows.length == 0) {
       throw new Error("User not found");
     }
@@ -382,19 +392,34 @@ export const createRole = async (payload: any, accessPayload: any) => {
   }
 };
 
-export const updateRole = async (id: string, payload: any, permPayload: any) => {
+export const updateRole = async (
+  id: string,
+  payload: any,
+  permPayload: any
+) => {
   const client = await db.connect();
 
   try {
     await client.query(TRANS.BEGIN);
 
-    const [queryInsertRole, valueInsertRole] = updateQuery("mst_role", payload, { id }, "id");
+    const [queryInsertRole, valueInsertRole] = updateQuery(
+      "mst_role",
+      payload,
+      { id },
+      "id"
+    );
     const { rows } = await client.query(queryInsertRole, valueInsertRole);
 
-    const [queryDeleteAccess, valueDeleteAccess] = deleteQuery("mst_menu_access", { role_id: id });
+    const [queryDeleteAccess, valueDeleteAccess] = deleteQuery(
+      "mst_menu_access",
+      { role_id: id }
+    );
     await client.query(queryDeleteAccess, valueDeleteAccess);
 
-    const [queryInsertAccess, valueInsertAccess] = insertQuery("mst_menu_access", permPayload);
+    const [queryInsertAccess, valueInsertAccess] = insertQuery(
+      "mst_menu_access",
+      permPayload
+    );
     await client.query(queryInsertAccess, valueInsertAccess);
 
     await client.query(TRANS.COMMIT);

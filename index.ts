@@ -9,8 +9,8 @@ import path from "path";
 import cors, { CorsOptions } from "cors";
 import cookieParser from "cookie-parser";
 import fs from "fs";
-import { origins as whitelist } from "#dep/config/allowedOrigins";
-import { credentials } from "./middleware/credential";
+import whitelist from "#dep/config/allowedOrigins";
+import credentials from "./middleware/credential";
 import router from "./routes";
 const app = express();
 // const servOption = {
@@ -34,7 +34,9 @@ const corsOption: CorsOptions = {
 app.use("/api/static", express.static("uploads"));
 app.use((req, res, next) => {
   if (req.path.startsWith("/api/static")) {
-    return res.status(404).sendFile(path.join(__dirname, "uploads", "404.html"));
+    return res
+      .status(404)
+      .sendFile(path.join(__dirname, "uploads", "404.html"));
   }
   next();
 });
@@ -46,10 +48,9 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(router);
 app.use(express.static(path.join(__dirname, "public/build")));
-app.get("/*$", (req, res) => {
+app.get(/^\/(?!api).*/, (req, res) => {
   res.sendFile(path.join(__dirname, "public/build", "index.html"));
 });
-
 app.listen(process.env.PORT as unknown as number, "0.0.0.0", () => {
   console.log(`App running on ${process.env.PORT}`);
 });
