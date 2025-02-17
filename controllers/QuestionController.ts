@@ -137,11 +137,15 @@ const removeImageFile = (dir: string, baseFileName: string) => {
 
 export const handleCreateQuestion = async (req: Request, res: Response): Promise<any> => {
   const id = uuidv4();
-  const dir = "./uploads";
+  const baseDir =  "./uploads";
+  const dir =  path.join(baseDir, id);
   const today = new Date();
 
   try {
     const { fields, answers, QAFields } = await parseQuestionForm(req, dir, id);
+    console.log(fields)
+    console.log(answers)
+    console.log(QAFields)
     const answersPayload: any = {};
     answers.forEach((answer, index) => {
       const letter = String.fromCharCode(97 + index);
