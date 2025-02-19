@@ -211,7 +211,7 @@ export const getBatchAssesses = async (id: string) => {
                 batch_id = $1
             `, [id]
         );
-
+        console.log(result.rows)
         return result.rows;
     } catch (error) {
         console.log(error);
@@ -235,6 +235,29 @@ export const deleteBatchAssessee = async (batchId: string, assesseeId: string) =
 
         console.log(batchId, assesseeId);
         await client.query(TRANS.COMMIT);
+    } catch (error) {
+        console.error(error);
+        await client.query(TRANS.ROLLBACK);
+        throw error;
+    } finally {
+        client.release();
+    }
+}
+
+export const publishBatch = async (id: string, status: string) => {
+    const client = await db.connect();
+    try {
+        await client.query(TRANS.BEGIN);
+        console.log("masuk query")
+
+        const [Q, V] = updateQuery("t_batch_head", {status: status}, {id:id}, "template_email_id");
+        console.log("keluar query")
+        const updateStatus = await client.query(Q, V)
+        console.log("keluar query 2")
+        await client.query(TRANS.COMMIT);
+        console.log("disini")
+        console.log(updateStatus.rows[0].template_email_id);
+        return updateStatus.rows[0].template_email_id;
     } catch (error) {
         console.error(error);
         await client.query(TRANS.ROLLBACK);

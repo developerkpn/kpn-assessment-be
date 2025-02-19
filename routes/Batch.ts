@@ -4,7 +4,12 @@ import {
     handleAddAssesseeByFile,
     handleAddAssesseeManually,
     handleCreateBatch,
-    handleDeleteBatch, handleDeleteBatchAssessee, handleGetBatch, handleGetBatchAssessees, handleGetBatchDetail,
+    handleDeleteBatch,
+    handleDeleteBatchAssessee,
+    handleGetBatch,
+    handleGetBatchAssessees,
+    handleGetBatchDetail,
+    handlePublishBatch,
     handleUpdateBatch
 } from "#dep/controllers/BatchController";
 import {handleGetTest} from "#dep/controllers/TestController";
@@ -22,3 +27,5 @@ Batch.post("/:id", checkPermission("fcreate", 15), uploadSingleFile, handleAddAs
 Batch.post("/:id/assessee", checkPermission("fcreate", 15), handleAddAssesseeManually);
 Batch.get("/:id/assessee", checkPermission("fread", 15), handleGetBatchAssessees);
 Batch.delete("/:id/assessee/:assesseeId", checkPermission("fdelete", 15), handleDeleteBatchAssessee);
+
+Batch.post("/:id/published", checkPermission("fupdate", 15), handlePublishBatch);
