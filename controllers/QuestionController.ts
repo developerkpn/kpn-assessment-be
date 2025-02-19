@@ -34,61 +34,31 @@ const parseQuestionForm = async (
   });
 
   if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
+    fs.mkdirSync(dir);
   }
 
   return new Promise((resolve, reject) => {
     form.parse(req, async (error, fields, files) => {
-      console.log(files);
+      console.log("ini files: ", files);
+      console.log("ini fields: ", fields);
+
       if (error) {
         reject(new Error("Form parse error"));
         return;
       }
 
-      console.log("Recieved Fields: ", fields);
-      console.log("Recieved Files: ", files);
       let q_input_image_url = "";
       const answers: any[] = [];
-
-      console.log("ini answers", answers);
-
-      if (files.q_input_image) {
-        const file = files.q_input_image[0];
-        const extension = path.extname(file.originalFilename || "default.png");
-        const newFilename = `question${extension}`;
-        const newFilePath = path.join(dir, newFilename);
-
-        if (fs.existsSync(newFilePath)) {
-          await fs.promises.unlink(newFilePath);
-        }
-
-        await fs.promises.rename(file.filepath, newFilePath);
-        q_input_image_url = `${id}/${newFilename}`;
-      }
-
-      Object.keys(files).forEach(async (key) => {
-        const match = key.match(/^answers\[(\d+)\]\[image\]$/);
+      for (let key in fields) {
+        const match = key.match(/^answer\[(\d+)\]\[(.+)\]$/);
         if (match) {
           const index = parseInt(match[1], 10);
-          const file = files[key]?.[0];
-          const extension = path.extname(
-            file?.originalFilename || "default.png"
-          );
-          const newFilename = `answer_${String.fromCharCode(
-            97 + index
-          )}${extension}`;
-          const newFilePath = path.join(dir, newFilename);
+          const fieldName = match[2];
 
-          if (fs.existsSync(newFilePath)) {
-            await fs.promises.unlink(newFilePath);
-          }
-          if (file) {
-            await fs.promises.rename(file.filepath, newFilePath);
-          }
           answers[index] = answers[index] || {};
-          answers[index].image = `${id}/${newFilename}`;
+          answers[index][fieldName] = fields[key] ? fields[key][0] : undefined;
         }
-      });
+      }
 
       // Rename answers file name
       for (let key in files) {
@@ -136,31 +106,14 @@ const parseQuestionForm = async (
         }
       }
 
-      Object.keys(fields).forEach((key) => {
-        const matchText = key.match(/^answers\[(\d+)\]\[text\]$/);
-        const matchPoint = key.match(/^answers\[(\d+)\]\[point\]$/);
-        if (matchText) {
-          const index = parseInt(matchText[1], 10);
-          answers[index] = answers[index] || {};
-          if (fields[key]) {
-            answers[index].text = fields[key][0];
-          }
-        }
-        if (matchPoint) {
-          const index = parseInt(matchPoint[1], 10);
-          answers[index] = answers[index] || {};
-          answers[index].point = fields[key] ? fields[key][0] : undefined;
-        }
-      });
-
       const QAFields = {
         q_input_text: fields.q_input_text ? fields.q_input_text[0] : undefined,
         q_input_image_url: files.q_input_image ? q_input_image_url : undefined,
-        answer_type: fields.answer_type ? fields.answer_type[0] : undefined,
         category_id: fields.category_id ? fields.category_id[0] : undefined,
-        // answers: answers,
       };
 
+      console.log("QAFields: ", QAFields);
+      console.log("answersPromise: ", answers);
       resolve({ fields, files, answers, QAFields });
     });
   });
@@ -195,13 +148,12 @@ export const handleCreateQuestion = async (
   res: Response
 ): Promise<any> => {
   const id = uuidv4();
-  const dir = "./uploads";
+  const dir = path.join(__dirname, `../uploads/question/${id}`);
   const today = new Date();
 
   try {
     const { fields, answers, QAFields } = await parseQuestionForm(req, dir, id);
     const answersPayload: Record<string, any> = {};
-    console.log('answers', answersPayload);
     answers.forEach((answer, index) => {
       const letter = String.fromCharCode(97 + index);
       if (answer.text) {
@@ -212,6 +164,8 @@ export const handleCreateQuestion = async (
       }
       answersPayload[`key_answer_point_${letter}`] = answer.point;
     });
+
+    console.log("ini answersPayload", answersPayload);
 
     const payload = {
       id,
