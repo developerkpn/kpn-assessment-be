@@ -8,11 +8,12 @@ import {
     createBatch,
     deleteBatch, deleteBatchAssessee,
     getBatch, getBatchAssesses,
-    getBatchDetail,
+    getBatchDetail, publishBatch,
     updateBatch
 } from "#dep/models/BatchModel";
 import {AdminWebValidation} from "#dep/validation/AdminWebValidation";
 import {BatchAssessee, BatchHeader, BatchHeadUpdate} from "#dep/types/BatchTypes";
+import {handleGenerateEmail} from "#dep/controllers/EmailTemplateController";
 
 export const handleCreateBatch = async(req: Request, res: Response, next: NextFunction) => {
     try {
@@ -189,3 +190,33 @@ export const handleAddAssesseeByFile = async (req: Request, res: Response, next:
         next(e);
     }
 }
+
+export const handlePublishBatch = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const validatedId = Validation.validate(BatchValidation.ID, req.params.id);
+
+        const status = "Published";
+        console.log("sebelum publish")
+        const update = await publishBatch(validatedId, status);
+        console.log("setelah publish")
+        // res.status(200).send({
+        //     message: "Batch is published"
+        // })
+        //
+        console.log("Mulai Generate Email")
+        console.log(update);
+        console.log("pisah")
+        console.log(update.template_email_id)
+        console.log(validatedId)
+        await handleGenerateEmail(update, validatedId)
+
+        console.log("Selesai")
+
+        res.status(200).send({
+            message: "Email's sent successfully"
+        })
+    } catch (e) {
+        next(e);
+    }
+}
+
