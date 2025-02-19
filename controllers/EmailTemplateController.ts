@@ -4,10 +4,15 @@ import {EmailTemplateValidation} from "#dep/validation/EmailTemplateValidation";
 import {
     createEmailTemplate,
     deleteEmailTemplate,
-    getEmailTemplate,
+    getEmailTemplate, getEmailTemplateDetail,
     updateEmailTemplate
-} from "#dep/models/EmailTemplate";
+} from "#dep/models/EmailTemplateModel";
 import { v7 as uuid } from "uuid";
+import {getBatchAssesses, getBatchDetail} from "#dep/models/BatchModel";
+import fs from "fs";
+const mustache = require("mustache");
+import {createTransport} from "nodemailer";
+import {Emailer} from "#dep/services/mail/Emailer";
 
 export const handleCreateEmailTemplate = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -70,10 +75,66 @@ export const handleGetEmailTemplate = async (req: Request, res: Response, next: 
         const result = await getEmailTemplate();
 
         res.status(200).send({
-            message: `Success!`,
+            message: "Success!",
             data: result
-        });
+        })
     } catch (e) {
         next(e);
+    }
+}
+
+export const handleGenerateEmail = async (emailTemplateId: string, batchDetailId: string) => {
+    try {
+        console.log("email id");
+        console.log(emailTemplateId);
+        console.log("batch id");
+        console.log(batchDetailId);
+        const emailTemplate: any = await getEmailTemplateDetail(emailTemplateId);
+        console.log("email template");
+        console.log(emailTemplate)
+        const batchDetail = await getBatchDetail(batchDetailId)
+        const payload: any = {
+            title: emailTemplate.title,
+            header: emailTemplate.header,
+            footer: emailTemplate.footer,
+            batch_name: batchDetail.batch_name,
+            start_period: batchDetail.start_period,
+            end_period: batchDetail.end_period,
+            link: batchDetail.link || `www.google.com`
+        }
+        const assessee = await getBatchAssesses(batchDetailId);
+
+        const template = fs.readFileSync(`./helper/email/emailnotifmgrprc.html`, "utf8");
+
+        const email = mustache.render(template, payload);
+
+        const recipients = [...new Set(assessee.map((r) => r.assessee_email))].join(", ")
+
+        const transporter = createTransport({
+            name: "kpndomain.com",
+            host: process.env.SMTP_HOST,
+            secure: true,
+            port: Number(process.env.SMPT_PORT) || 0,
+            tls: {
+                ciphers: "SSLv3",
+                rejectUnauthorized: false,
+            },
+            auth: {
+                user: `${process.env.SMTP_USERNAME}`,
+                pass: `${process.env.SMTP_PASSWORD}`,
+            },
+            pool: true,
+        });
+
+        const mailOptions = {
+            from: process.env.SMTP_USERNAME,
+            to: recipients,
+            subject: emailTemplate.subject,
+            html: email
+        }
+
+        await transporter.sendMail(mailOptions);
+    } catch (e) {
+        throw e;
     }
 }

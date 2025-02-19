@@ -71,3 +71,24 @@ export const deleteEmailTemplate = async (id: string) => {
         client.release();
     }
 }
+
+export const getEmailTemplateDetail = async (emailTemplateId: string) => {
+    const client = await db.connect();
+    try {
+        await client.query(TRANS.BEGIN);
+        const  result = await client.query(
+            `
+            SELECT subject, title, header, footer FROM mst_email_template WHERE id = $1;
+            `, [emailTemplateId]
+        )
+        await client.query(TRANS.COMMIT);
+        console.log(result.rows[0])
+        return result.rows[0];
+    } catch (error) {
+        console.error(error);
+        await client.query(TRANS.ROLLBACK);
+        throw error;
+    } finally {
+        client.release();
+    }
+}
