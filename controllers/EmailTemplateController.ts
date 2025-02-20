@@ -13,6 +13,10 @@ import fs from "fs";
 const mustache = require("mustache");
 import {createTransport} from "nodemailer";
 import {Emailer} from "#dep/services/mail/Emailer";
+import {getFunctionMenuDetail} from "#dep/models/FunctionMenuModel";
+import {getBusinessUnitDetail} from "#dep/models/BusinessUnitModel";
+import dotenv from "dotenv";
+dotenv.config();
 
 export const handleCreateEmailTemplate = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -83,33 +87,51 @@ export const handleGetEmailTemplate = async (req: Request, res: Response, next: 
     }
 }
 
-export const handleGenerateEmail = async (emailTemplateId: string, batchDetailId: string) => {
+
+export const handleGenerateEmailTemplate = async (batchDetailId: string, token?: string) => {
     try {
-        console.log("email id");
-        console.log(emailTemplateId);
-        console.log("batch id");
-        console.log(batchDetailId);
-        const emailTemplate: any = await getEmailTemplateDetail(emailTemplateId);
-        console.log("email template");
-        console.log(emailTemplate)
+        console.log("masuk batch")
         const batchDetail = await getBatchDetail(batchDetailId)
+        console.log("masuk email template")
+        console.log(batchDetail.template_email_id)
+        const emailTemplate = await getEmailTemplateDetail(batchDetail.template_email_id);
+        console.log(emailTemplate)
+        console.log("function menu")
+        const functionMenuDetail = await getFunctionMenuDetail(batchDetail.function_id);
+        console.log("masuk bu")
+        const businessUnitDetail = await getBusinessUnitDetail(batchDetail.bu_id!);
+        console.log("masuk template")
+        const template = fs.readFileSync(`./helper/email/emailnotifmgrprc.html`, "utf8");
+
         const payload: any = {
             title: emailTemplate.title,
             header: emailTemplate.header,
             footer: emailTemplate.footer,
             batch_name: batchDetail.batch_name,
+            batch_code: batchDetail.batch_code,
+            bu_name: businessUnitDetail.bu_name,
+            fm_name: functionMenuDetail.fm_name,
             start_period: batchDetail.start_period,
             end_period: batchDetail.end_period,
-            link: batchDetail.link || `www.google.com`
+            batch_link: `${process.env.API_URL}/batch/${token ? token : 'token'}`
         }
-        const assessee = await getBatchAssesses(batchDetailId);
 
-        const template = fs.readFileSync(`./helper/email/emailnotifmgrprc.html`, "utf8");
+        const email = {
+            subject: emailTemplate.subject,
+            template: mustache.render(template, payload)
+        }
 
-        const email = mustache.render(template, payload);
+        return email;
+    } catch (e) {
+        throw e;
+    }
+}
 
-        const recipients = [...new Set(assessee.map((r) => r.assessee_email))].join(", ")
-
+export const handleSendEmail = async (batchDetailId: string, token: string, assessee_email: string) => {
+    try {
+        console.log("masuk send email 2")
+        const email = await handleGenerateEmailTemplate(batchDetailId, token);
+        console.log("masuk send email 3")
         const transporter = createTransport({
             name: "kpndomain.com",
             host: process.env.SMTP_HOST,
@@ -128,9 +150,9 @@ export const handleGenerateEmail = async (emailTemplateId: string, batchDetailId
 
         const mailOptions = {
             from: process.env.SMTP_USERNAME,
-            to: recipients,
-            subject: emailTemplate.subject,
-            html: email
+            to: assessee_email,
+            subject: email.subject,
+            html: email.template
         }
 
         await transporter.sendMail(mailOptions);
