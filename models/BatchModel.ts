@@ -157,6 +157,7 @@ export const getBatchDetail = async (id: string) => {
                 h.is_camera,
                 h.is_mic,
                 h.is_screenshot,
+                h.description,
                 COUNT(d.id) AS assessee_count
                 FROM 
                     t_batch_head h 
@@ -179,7 +180,8 @@ export const getBatchDetail = async (id: string) => {
                     h.email_invitation,
                     h.is_camera,
                     h.is_mic,
-                    h.is_screenshot      
+                    h.is_screenshot,
+                    h.description      
            `, [id]
        );
        await client.query(TRANS.COMMIT);
