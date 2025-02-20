@@ -266,3 +266,19 @@ export const publishBatch = async (id: string, status: string) => {
         client.release();
     }
 }
+
+export const startProgress = async (headProgressPayload: any) => {
+    const client = await db.connect();
+    try {
+        await client.query(TRANS.BEGIN);
+        const [headerQ, headerV] = insertQuery("t_progress_batch_head", headProgressPayload);
+        await client.query(headerQ, headerV);
+        await client.query(TRANS.COMMIT);
+    } catch (error) {
+        console.error(error);
+        await client.query(TRANS.ROLLBACK);
+        throw error;
+    } finally {
+        client.release();
+    }
+}
