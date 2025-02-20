@@ -75,3 +75,22 @@ export const deleteBusinessUnit = async (id: string) => {
     client.release();
   }
 };
+
+export const getBusinessUnitDetail = async (id: string)  => {
+  const client = await db.connect();
+  try {
+    await client.query(TRANS.BEGIN);
+    const result = await client.query(
+        `
+        SELECT * FROM mst_business_unit WHERE id = $1
+        `, [id]
+    );
+    return result.rows[0];
+  } catch (error) {
+    console.error(error);
+    await client.query(TRANS.ROLLBACK);
+    throw error;
+  } finally {
+    client.release();
+  }
+}
