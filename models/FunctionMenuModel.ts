@@ -76,3 +76,24 @@ export const updateFunctionMenu = async (payload: any, id: string) => {
     client.release();
   }
 };
+
+export const getFunctionMenuDetail = async (id: string) => {
+  const client = await db.connect();
+  try {
+    await client.query(TRANS.BEGIN);
+    const result = await client.query(
+        `
+        SELECT * FROM mst_function_menu WHERE id = $1
+        `, [id]
+    );
+
+    return result.rows[0];
+  } catch (error) {
+    console.error(error);
+    await client.query(TRANS.ROLLBACK);
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+

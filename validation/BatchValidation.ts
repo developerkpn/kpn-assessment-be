@@ -13,6 +13,7 @@ export class BatchValidation {
         is_mic: z.boolean(),
         is_screenshot: z.boolean(),
         note: z.string().trim().min(1),
+        description: z.string().trim().min(1)
     });
 
     static readonly UPDATE: ZodType = z.object({
@@ -27,6 +28,7 @@ export class BatchValidation {
         is_mic: z.boolean().optional(),
         is_screenshot: z.boolean().optional(),
         note: z.string().trim().min(1).optional(),
+        description: z.string().trim().min(1).optional()
     })
 
     static readonly ADDASSESSEEMANUALLY: z.ZodSchema = z.object({

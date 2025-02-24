@@ -157,6 +157,7 @@ export const getBatchDetail = async (id: string) => {
                 h.is_camera,
                 h.is_mic,
                 h.is_screenshot,
+                h.description,
                 COUNT(d.id) AS assessee_count
                 FROM 
                     t_batch_head h 
@@ -179,7 +180,8 @@ export const getBatchDetail = async (id: string) => {
                     h.email_invitation,
                     h.is_camera,
                     h.is_mic,
-                    h.is_screenshot      
+                    h.is_screenshot,
+                    h.description      
            `, [id]
        );
        await client.query(TRANS.COMMIT);
@@ -258,6 +260,22 @@ export const publishBatch = async (id: string, status: string) => {
         console.log("disini")
         console.log(updateStatus.rows[0].template_email_id);
         return updateStatus.rows[0].template_email_id;
+    } catch (error) {
+        console.error(error);
+        await client.query(TRANS.ROLLBACK);
+        throw error;
+    } finally {
+        client.release();
+    }
+}
+
+export const startProgress = async (headProgressPayload: any) => {
+    const client = await db.connect();
+    try {
+        await client.query(TRANS.BEGIN);
+        const [headerQ, headerV] = insertQuery("t_progress_batch_head", headProgressPayload);
+        await client.query(headerQ, headerV);
+        await client.query(TRANS.COMMIT);
     } catch (error) {
         console.error(error);
         await client.query(TRANS.ROLLBACK);

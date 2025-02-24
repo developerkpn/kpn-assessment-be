@@ -8,7 +8,7 @@ import {
     handleDeleteBatchAssessee,
     handleGetBatch,
     handleGetBatchAssessees,
-    handleGetBatchDetail,
+    handleGetBatchDetail, handlePreviewBatchTemplateEmail,
     handlePublishBatch,
     handleUpdateBatch
 } from "#dep/controllers/BatchController";
@@ -29,3 +29,5 @@ Batch.get("/:id/assessee", checkPermission("fread", 15), handleGetBatchAssessees
 Batch.delete("/:id/assessee/:assesseeId", checkPermission("fdelete", 15), handleDeleteBatchAssessee);
 
 Batch.post("/:id/published", checkPermission("fupdate", 15), handlePublishBatch);
+
+Batch.get("/:id/preview", checkPermission("fread", 15), handlePreviewBatchTemplateEmail);

@@ -8,12 +8,15 @@ import {
     createBatch,
     deleteBatch, deleteBatchAssessee,
     getBatch, getBatchAssesses,
-    getBatchDetail, publishBatch,
+    getBatchDetail, publishBatch, startProgress,
     updateBatch
 } from "#dep/models/BatchModel";
 import {AdminWebValidation} from "#dep/validation/AdminWebValidation";
 import {BatchAssessee, BatchHeader, BatchHeadUpdate} from "#dep/types/BatchTypes";
-import {handleGenerateEmail} from "#dep/controllers/EmailTemplateController";
+import {handleGenerateEmailTemplate, handleSendEmail} from "#dep/controllers/EmailTemplateController";
+import {ResponseError} from "#dep/error/response-error";
+import {Secret, sign} from "jsonwebtoken";
+import { getTestFromChoosenGroupTest} from "#dep/models/GroupTestModel";
 
 export const handleCreateBatch = async(req: Request, res: Response, next: NextFunction) => {
     try {
@@ -191,32 +194,73 @@ export const handleAddAssesseeByFile = async (req: Request, res: Response, next:
     }
 }
 
-export const handlePublishBatch = async (req: Request, res: Response, next: NextFunction) => {
+export const handlePreviewBatchTemplateEmail = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const validatedId = Validation.validate(BatchValidation.ID, req.params.id);
 
-        const status = "Published";
-        console.log("sebelum publish")
-        const update = await publishBatch(validatedId, status);
-        console.log("setelah publish")
-        // res.status(200).send({
-        //     message: "Batch is published"
-        // })
-        //
-        console.log("Mulai Generate Email")
-        console.log(update);
-        console.log("pisah")
-        console.log(update.template_email_id)
-        console.log(validatedId)
-        await handleGenerateEmail(update, validatedId)
-
-        console.log("Selesai")
+        const previewEmail = await handleGenerateEmailTemplate(validatedId);
 
         res.status(200).send({
-            message: "Email's sent successfully"
+            message: "Success!",
+            preview: previewEmail
         })
     } catch (e) {
         next(e);
     }
 }
 
+export const handleCreateBatchToken  = async (batchId: string, startPeriod: any, endPeriod: any,  userId: string) => {
+    try {
+        const batchTokenPayload = {
+            user_id: userId,
+            batch_id: batchId,
+            start_period: startPeriod,
+            end_period: endPeriod,
+        }
+
+        const token = sign(batchTokenPayload, process.env.SECRETJWT as Secret)
+
+        return token;
+
+    } catch (e) {
+        throw e;
+    }
+}
+
+export const handlePublishBatch = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const validatedId = Validation.validate(BatchValidation.ID, req.params.id);
+        const batchDetail = await getBatchDetail(validatedId);
+        const assesseeList = await getBatchAssesses(validatedId);
+
+
+        if (batchDetail.status !== "Draft") {
+            throw new ResponseError(400, "Batch's already submitted")
+        }
+
+        const progressHead = await Promise.all(assesseeList.map(async (assessee) => {
+            const token = await handleCreateBatchToken(
+                validatedId,
+                batchDetail.start_period,
+                batchDetail.end_period,
+                assessee.assessee_nik
+            );
+
+            await handleSendEmail(validatedId, token, assessee.assessee_email);
+            return {
+                id: uuid(),
+                assessee_id: assessee.assessee_nik,
+                batch_id: batchDetail.id,
+                token: token,
+            };
+        }));
+
+        await startProgress(progressHead);
+
+        res.status(200).send({
+            message: "Batch is successfully published and email's sent to assessee"
+        })
+    } catch (e) {
+        next(e);
+    }
+}
