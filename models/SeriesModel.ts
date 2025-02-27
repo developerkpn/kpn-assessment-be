@@ -303,3 +303,5 @@ export const getAvailableQuestionsForSeries = async (seriesId: string) => {
     client.release();
   }
 };
+
+// const getQuestionBySerie
