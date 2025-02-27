@@ -11,6 +11,7 @@ import {
     getBatchDetail, publishBatch, startProgress,
     updateBatch
 } from "#dep/models/BatchModel";
+import fs from "fs";
 import {AdminWebValidation} from "#dep/validation/AdminWebValidation";
 import {BatchAssessee, BatchHeader, BatchHeadUpdate} from "#dep/types/BatchTypes";
 import {handleGenerateEmailTemplate, handleSendEmail} from "#dep/controllers/EmailTemplateController";
@@ -196,13 +197,11 @@ export const handleAddAssesseeByFile = async (req: Request, res: Response, next:
 
 export const handlePreviewBatchTemplateEmail = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const validatedId = Validation.validate(BatchValidation.ID, req.params.id);
-
-        const previewEmail = await handleGenerateEmailTemplate(validatedId);
+        const template = fs.readFileSync(`./helper/email/emailnotifmgrprc.html`, "utf8");
 
         res.status(200).send({
             message: "Success!",
-            preview: previewEmail
+            template: template
         })
     } catch (e) {
         next(e);
