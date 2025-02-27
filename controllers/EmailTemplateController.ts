@@ -81,44 +81,83 @@ export const handleGetEmailTemplate = async (req: Request, res: Response, next: 
         res.status(200).send({
             message: "Success!",
             data: result
-        })
+        });
     } catch (e) {
         next(e);
     }
 }
 
-
-export const handleGenerateEmailTemplate = async (batchDetailId: string, token?: string) => {
+export const handleGetEmailTemplatePreview = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        console.log("masuk batch")
-        const batchDetail = await getBatchDetail(batchDetailId)
-        console.log("masuk email template")
-        console.log(batchDetail.template_email_id)
-        const emailTemplate = await getEmailTemplateDetail(batchDetail.template_email_id);
-        console.log(emailTemplate)
-        console.log("function menu")
-        const functionMenuDetail = await getFunctionMenuDetail(batchDetail.function_id);
-        console.log("masuk bu")
-        const businessUnitDetail = await getBusinessUnitDetail(batchDetail.bu_id!);
-        console.log("masuk template")
-        const template = fs.readFileSync(`./helper/email/emailnotifmgrprc.html`, "utf8");
+        const emailTemplateId = req.params.id as string;
+        const result = await handleGenerateEmailTemplate(undefined, undefined, emailTemplateId);
 
-        const payload: any = {
-            title: emailTemplate.title,
-            header: emailTemplate.header,
-            footer: emailTemplate.footer,
-            batch_name: batchDetail.batch_name,
-            batch_code: batchDetail.batch_code,
-            bu_name: businessUnitDetail.bu_name,
-            fm_name: functionMenuDetail.fm_name,
-            start_period: batchDetail.start_period,
-            end_period: batchDetail.end_period,
-            batch_link: `${process.env.API_URL}/batch/${token ? token : 'token'}`
-        }
+        res.status(200).send({
+            message:"Success!",
+            data: result
+        });
+    } catch (e) {
+        next(e);
+    }
+}
 
-        const email = {
-            subject: emailTemplate.subject,
-            template: mustache.render(template, payload)
+export const handleGenerateEmailTemplate = async (batchDetailId?: string, token?: string, emailTemplateId?: string) => {
+    try {
+        let email;
+        if (batchDetailId && token) {
+            console.log("masuk batch")
+            const batchDetail = await getBatchDetail(batchDetailId!)
+            console.log("masuk email template")
+            console.log(batchDetail.template_email_id)
+            const emailTemplate = await getEmailTemplateDetail(batchDetail.template_email_id);
+            console.log(emailTemplate)
+            console.log("function menu")
+            const functionMenuDetail = await getFunctionMenuDetail(batchDetail.function_id);
+            console.log("masuk bu")
+            const businessUnitDetail = await getBusinessUnitDetail(batchDetail.bu_id!);
+            console.log("masuk template")
+
+            const template = fs.readFileSync(`./helper/email/emailnotifmgrprc.html`, "utf8");
+
+            const payload: any = {
+                title: emailTemplate.title,
+                header: emailTemplate.header,
+                footer: emailTemplate.footer,
+                batch_name: batchDetail.batch_name? batchDetail.batch_name : `Filling in Batch Section`,
+                batch_code: batchDetail.batch_code? batchDetail.batch_code : `Filling in Batch Section`,
+                bu_name: businessUnitDetail.bu_name? businessUnitDetail.bu_name : `Filling in Batch Section`,
+                fm_name: functionMenuDetail.fm_name? batchDetail.fm_name : `Filling in Batch Section`,
+                start_period: batchDetail.start_period? batchDetail.start_period : `Filling in Batch Section`,
+                end_period: batchDetail.end_period? batchDetail.end_period : `Filling in Batch Section`,
+                batch_link: `${process.env.API_URL}/batch/${token ? token : 'token'}`
+            }
+
+            email = {
+                subject: emailTemplate.subject,
+                template: mustache.render(template, payload)
+            }
+        } else {
+            const emailTemplate = await getEmailTemplateDetail(emailTemplateId!);
+
+            const template = fs.readFileSync(`./helper/email/emailnotifmgrprc.html`, "utf8");
+
+            const payload: any = {
+                title: emailTemplate.title,
+                header: emailTemplate.header,
+                footer: emailTemplate.footer,
+                batch_name: `Filling in Batch Section`,
+                batch_code: `Filling in Batch Section`,
+                bu_name: `Filling in Batch Section`,
+                fm_name: `Filling in Batch Section`,
+                start_period: `Filling in Batch Section`,
+                end_period: `Filling in Batch Section`,
+                batch_link: `${process.env.API_URL}/batch/${token ? token : 'token'}`
+            }
+
+            email = {
+                subject: emailTemplate.subject,
+                template: mustache.render(template, payload)
+            }
         }
 
         return email;
