@@ -30,4 +30,4 @@ Batch.delete("/:id/assessee/:assesseeId", checkPermission("fdelete", 15), handle
 
 Batch.post("/:id/published", checkPermission("fupdate", 15), handlePublishBatch);
 
-Batch.get("/:id/preview", checkPermission("fread", 15), handlePreviewBatchTemplateEmail);
+Batch.get("/preview", checkPermission("fread", 15), handlePreviewBatchTemplateEmail);
