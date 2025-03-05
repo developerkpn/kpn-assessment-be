@@ -1,7 +1,7 @@
 import {
   createCriteria,
   deleteCriteria,
-  getCriteria,
+  getCriteria, getCriteriaDetail,
   updateCriteria,
 } from "#dep/models/CriteriaModel";
 import { Criteria, CriteriaGroup, CriteriaRequest } from "#dep/types/MasterDataTypes";
@@ -120,5 +120,40 @@ export const handleUpdateCriteria = async (req: Request, res: Response, next: Ne
     });
   } catch (e) {
     next(e);
+  }
+};
+
+export const handleGetCriteriaDetail = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const criteriaId = Validation.validate(CriteriaValidation.ID, req.params.id);
+
+    const rawData = await getCriteriaDetail(criteriaId);
+
+    if (rawData.length === 0) {
+      res.status(404).json({ message: "Criteria not found" });
+      return;
+    }
+
+    const groupedData = {
+      value_name: rawData[0].value_name,
+      value_code: rawData[0].value_code,
+      criterias: rawData.reduce((acc, row) => {
+        if (row.criteria_name) {
+          acc.push({
+            criteria_name: row.criteria_name,
+            minimum_score: row.minimum_score,
+            maximum_score: row.maximum_score,
+          });
+        }
+        return acc;
+      }, [] as Array<{ criteria_name: string; minimum_score: number; maximum_score: number }>)
+    };
+
+    res.status(200).json({
+      message: "Success!",
+      data: groupedData
+    });
+  } catch (error) {
+    next(error);
   }
 };
