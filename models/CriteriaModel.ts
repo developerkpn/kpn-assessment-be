@@ -117,6 +117,31 @@ export const updateCriteria = async (
   }
 };
 
+export const getCriteriaDetail = async (id: string) => {
+  const client = await db.connect();
+  try {
+    await client.query(TRANS.BEGIN);
+    const result = await client.query(
+        `
+      SELECT v.id AS value_id, v.value_name, v.value_code, cr.criteria_name, cr.minimum_score, cr.maximum_score
+      FROM mst_value v
+      LEFT JOIN mst_criteria cr ON v.id = cr.category_fk
+      WHERE v.id = $1
+      ORDER BY cr.minimum_score ASC
+      `,
+        [id]
+    );
+    await client.query(TRANS.COMMIT);
+    return result.rows;
+  } catch (error) {
+    console.error(error);
+    await client.query(TRANS.ROLLBACK);
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
 // export const updateCriteria1 = async (
 //   payload: CriteriaGroup,
 //   addedCriteria: Criteria[],
