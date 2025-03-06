@@ -104,7 +104,7 @@ export const deleteTest = async (id: string) => {
             [id]
         );
 
-        if (detailResult.rowCount === 0 || headerResult.rowCount === 0) {
+        if (headerResult.rowCount === 0) {
             throw new ResponseError(404, `Test with ID ${id} is not found.`);
         }
 
@@ -131,6 +131,7 @@ export const getTestDetail = async (id: string) => {
                 h.test_name,
                 h.test_code,
                 h.is_active,
+                h.description,
                 a.fullname AS created_by,
                 h.created_at,
                 h.updated_by,
@@ -140,7 +141,12 @@ export const getTestDetail = async (id: string) => {
                 s.subtest_code,
                 d.id AS detail_id,
                 ad.fullname AS added_by,
-                d.added_at
+                d.added_at,
+                (
+                    SELECT COUNT(sd.series_id)
+                    FROM mst_subtest_det sd
+                    WHERE sd.subtest_id = s.id
+                ) AS series_count
             FROM
                 mst_test_head h
             LEFT JOIN
@@ -161,6 +167,7 @@ export const getTestDetail = async (id: string) => {
             id: result.rows[0].test_id,
             test_name: result.rows[0].test_name,
             test_code: result.rows[0].test_code,
+            description: result.rows[0].description,
             is_active: result.rows[0].is_active,
             created_by: result.rows[0].created_by,
             created_at: result.rows[0].created_at,
@@ -172,7 +179,8 @@ export const getTestDetail = async (id: string) => {
                 subtest_name: row.subtest_name,
                 subtest_code: row.subtest_code,
                 added_by: row.added_by,
-                added_at: row.added_at
+                added_at: row.added_at,
+                series_count: row.series_count
             }))
         };
 
@@ -265,4 +273,24 @@ export const deleteSubTestFromTest = async (testId: string, detailId: string, up
     }
 }
 
+
+export const getSubTestIdByTestId = async (testId: string) => {
+    const client = await db.connect();
+    try {
+        await client.query(TRANS.BEGIN);
+        const result = await client.query(
+            `
+            SELECT subtest_id FROM mst_test_det WHERE test_id = $1
+            `,[testId]
+        );
+
+        return result.rows;
+    } catch (e) {
+        console.error(e);
+        await client.query(TRANS.ROLLBACK);
+        throw e;
+    } finally {
+        client.release();
+    }
+}
 
