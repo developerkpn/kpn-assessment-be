@@ -192,7 +192,12 @@ export const getGroupTestDetail = async (id: string) => {
                 s.test_code,
                 d.id AS detail_id,
                 ad.fullname AS added_by,
-                d.added_at
+                d.added_at,
+                (
+                    SELECT COUNT(sd.subtest_id)
+                    FROM mst_test_det sd
+                    WHERE sd.test_id = s.id
+                ) AS subtest_count
             FROM
                 mst_grouptest_head h
             LEFT JOIN
@@ -223,12 +228,13 @@ export const getGroupTestDetail = async (id: string) => {
             tests: result.rows
                 .filter(row => row.test_id !== null)
                 .map(row => ({
-                id: row.detail_id,
-                test_id: row.test_id,
-                test_name: row.test_name,
-                test_code: row.test_code,
-                added_by: row.added_by,
-                added_at: row.added_at
+                    id: row.detail_id,
+                    test_id: row.test_id,
+                    test_name: row.test_name,
+                    test_code: row.test_code,
+                    added_by: row.added_by,
+                    added_at: row.added_at,
+                    subtest_count: row.subtest_count
             }))
         };
 
@@ -263,6 +269,53 @@ export const deleteTestFromGroupTest = async (detailId: string, grouptestId: str
 
         await client.query(TRANS.COMMIT);
     } catch (error){
+        console.error(error);
+        await client.query(TRANS.ROLLBACK);
+        throw error;
+    } finally {
+        client.release();
+    }
+}
+
+export const getTestFromChoosenGroupTest = async (grouptestId: string) => {
+    const client = await db.connect();
+    try {
+        await client.query(TRANS.BEGIN);
+        console.log(grouptestId);
+        const result = await client.query(
+            `SELECT 
+             test_id
+             FROM 
+             mst_grouptest_det
+             WHERE 
+             grouptest_id = $1`,
+            [grouptestId]
+        );
+        await client.query(TRANS.COMMIT);
+        return result.rows;
+    } catch (error) {
+        console.error(error);
+        await client.query(TRANS.ROLLBACK);
+        throw error;
+    } finally {
+        client.release();
+    }
+}
+
+export const getTestIdByGroupTestId = async (grouptestId: string) => {
+    const client = await db.connect();
+    try {
+        await client.query(TRANS.BEGIN);
+        const result = await client.query(
+            `
+            SELECT test_id 
+            FROM mst_grouptest_det
+            WHERE grouptest_id = $1
+            `, [grouptestId]
+        );
+
+        return result.rows;
+    } catch (error) {
         console.error(error);
         await client.query(TRANS.ROLLBACK);
         throw error;
