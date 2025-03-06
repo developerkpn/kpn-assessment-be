@@ -1,0 +1,337 @@
+import { db } from "#dep/config/connection";
+import {TRANSACTION, TRANSACTION as TRANS} from "#dep/config/transaction";
+import { deleteQuery, insertQuery, updateQuery } from "#dep/helper/queryBuilder";
+import {ResponseError} from "#dep/error/response-error";
+import {async} from "rxjs";
+import {getGroupTestDetail, getTestIdByGroupTestId} from "#dep/models/GroupTestModel";
+import {format} from "logform";
+import cli = format.cli;
+
+export const getBatchByAssessment = async (batchId: string) => {
+    const client = await db.connect();
+    try {
+        await client.query(TRANSACTION.BEGIN);
+        const result = await client.query(
+            `
+                SELECT
+                    batch_name,
+                    batch_code,
+                    grouptest_id,
+                    start_period,
+                    end_period,
+                    is_camera,
+                    is_mic,
+                    is_screenshot
+                FROM 
+                    t_batch_head 
+                WHERE
+                    id = $1
+            `, [batchId]
+        );
+
+        await client.query(TRANS.COMMIT);
+        return result.rows[0];
+    } catch (error) {
+        console.error(error);
+        await client.query(TRANS.ROLLBACK);
+        throw error;
+    } finally {
+        client.release();
+    }
+}
+
+export const getProgressHead = async(userId: string, batchId: string) => {
+    const client = await db.connect();
+    try {
+        await client.query(TRANS.BEGIN);
+        console.log(userId, batchId);
+        const result = await client.query(
+            `
+            SELECT 
+                id 
+            FROM
+                t_progress_batch_head
+            WHERE 
+                assessee_id = $1 AND batch_id = $2 
+            `, [userId, batchId]
+        );
+        return result.rows[0];
+    } catch (error) {
+        console.error(error);
+        await client.query(TRANS.ROLLBACK);
+        throw error;
+    } finally {
+        client.release();
+    }
+}
+
+export const getProgressDetail = async(progressHeadId: string) => {
+    const client = await db.connect();
+    try {
+        await client.query(TRANS.BEGIN);
+        const result = await client.query(
+            `
+             SELECT
+                 id
+             FROM
+                 t_progress_batch_det
+             WHERE
+                 head_id = $1
+             `, [progressHeadId]
+        );
+
+        return result.rows[0];
+    } catch (error) {
+        console.error(error);
+        await client.query(TRANS.ROLLBACK);
+        throw error;
+    } finally {
+        client.release();
+    }
+}
+
+export const createAssessmentProgressDetail = async(payload: any) => {
+    const client = await db.connect();
+    try {
+        await client.query(TRANS.BEGIN);
+        const [Q, V] = insertQuery("t_progress_batch_det", payload);
+        await client.query(Q, V);
+        await client.query(TRANS.COMMIT)
+    } catch (error) {
+        console.error(error);
+        await client.query(TRANS.ROLLBACK);
+        throw error;
+    } finally {
+        client.release();
+    }
+}
+
+export const updateAssessmentStart = async(progressDetailId: any, payload: any) => {
+    const client = await db.connect();
+    try {
+        await client.query(TRANS.BEGIN);
+        const [Q, V] = updateQuery("t_progress_batch_det", payload, {id: progressDetailId});
+        await client.query(Q, V)
+        await client.query(TRANS.COMMIT);
+    } catch (error) {
+        console.error(error);
+        await client.query(TRANS.ROLLBACK);
+        throw error;
+    } finally {
+        client.release();
+    }
+}
+
+export const getSubtestIdbyProgressId = async (progressDetailId: string) => {
+    const client = await db.connect();
+    try {
+        await client.query(TRANS.BEGIN);
+        const result = await client.query(
+            `
+            SELECT subtest_id 
+            FROM t_progress_batch_det
+            WHERE id = $1
+            `, [progressDetailId]
+        );
+        await client.query(TRANS.COMMIT);
+        return result.rows[0];
+    } catch (error) {
+        console.error(error);
+        await client.query(TRANS.ROLLBACK);
+        throw error;
+    } finally {
+        client.release();
+    }
+}
+
+export const getSeriesBySubtestId = async (subtestId: string) => {
+    const client = await db.connect();
+    try {
+        await client.query(TRANS.BEGIN);
+        const result = await client.query(
+            `
+            SELECT series_id 
+            FROM mst_subtest_det
+            WHERE subtest_id = $1
+            `, [subtestId]
+        );
+        await client.query(TRANS.COMMIT);
+        return result.rows;
+    } catch (error) {
+        console.error(error);
+        await client.query(TRANS.ROLLBACK);
+        throw error;
+    } finally {
+        client.release();
+    }
+}
+
+export const getQuestionsBySeriesId = async (seriesId: string) => {
+    const client = await db.connect();
+    try {
+        await client.query(TRANS.BEGIN);
+        const result = await client.query(
+            `
+            SELECT question_id FROM mst_series_det
+            WHERE series_id = $1
+            `, [seriesId]
+        );
+
+        return result.rows;
+    } catch (error) {
+        console.error(error);
+        await client.query(TRANS.ROLLBACK);
+        throw error;
+    } finally {
+        client.release();
+    }
+}
+
+export const getQuestionAssessment = async (questionIds: string[]) => {
+    const client = await db.connect();
+    try {
+        await client.query(TRANS.BEGIN);
+
+        // Use parameterized query with array
+        const result = await client.query(
+            `
+            SELECT
+                id,
+                q_input_text,
+                q_input_image_url,
+                answer_type,
+                answer_choice_a_text,
+                answer_choice_a_image_url,
+                answer_choice_b_text,
+                answer_choice_b_image_url,
+                answer_choice_c_text,
+                answer_choice_c_image_url,
+                answer_choice_d_text,
+                answer_choice_d_image_url,
+                answer_choice_e_text,
+                answer_choice_e_image_url
+            FROM mst_question_answer
+            WHERE id = ANY($1)
+            `,
+            [questionIds]
+        );
+
+        await client.query(TRANS.COMMIT);
+        return result.rows;
+    } catch (error) {
+        await client.query(TRANS.ROLLBACK);
+        throw error;
+    } finally {
+        client.release();
+    }
+};
+
+export const storeAnswer = async (payload: any) => {
+    const client = await db.connect();
+    try {
+        await client.query(TRANS.BEGIN);
+        const [Q, V] = insertQuery("t_store_answer", payload);
+        await client.query(Q, V);
+        await client.query(TRANS.COMMIT);
+    } catch (e) {
+        await client.query(TRANS.ROLLBACK);
+        throw e;
+    } finally {
+        client.release();
+    }
+}
+
+export const getAssessmentSubTest = async (progressHeadId: string, testId: string) => {
+    const client = await db.connect();
+    try {
+        await client.query(TRANS.BEGIN);
+        const testResult = await client.query(`
+            SELECT 
+                test_name,
+                description
+            FROM 
+                mst_test_head
+            WHERE id = $1
+        `, [testId]);
+        const result = await client.query(`
+            SELECT
+                td.id,
+                td.subtest_id,
+                sh.subtest_name,
+                sh.subtest_duration,
+                td.status
+             FROM t_progress_batch_det td
+             LEFT JOIN
+                mst_subtest_head sh ON td.subtest_id = sh.id
+             WHERE td.head_id = $1 AND td.test_id = $2
+        `, [progressHeadId, testId]
+        );
+
+        return {test: testResult.rows[0], subtests: result.rows};
+    } catch (e) {
+        await client.query(TRANS.ROLLBACK);
+        throw e;
+    } finally {
+        client.release()
+    }
+}
+
+export const getAssessmentTest = async (headId: string) => {
+    const client = await db.connect();
+    try {
+        await client.query(TRANS.BEGIN);
+        // Updated query to return only distinct test_ids with their corresponding test_name
+        const result = await client.query(`
+            SELECT DISTINCT
+                td.test_id,
+                th.test_name
+            FROM
+                t_progress_batch_det td
+            LEFT JOIN
+                mst_test_head th ON td.test_id = th.id
+            WHERE
+                td.head_id = $1
+        `, [headId]
+        );
+        await client.query(TRANS.COMMIT);
+        return result.rows;
+    } catch (e) {
+        await client.query(TRANS.ROLLBACK);
+        throw e;
+    } finally {
+        client.release();
+    }
+}
+
+export const getTestStatus = async (headId: string, testId: string) => {
+    const client = await db.connect();
+    try {
+        await client.query(TRANS.BEGIN);
+
+        // First, get all subtests for this test_id
+        const subtestsResult = await client.query(`
+            SELECT
+                td.id,
+                td.status,
+                td.subtest_id
+            FROM
+                t_progress_batch_det td
+            WHERE
+                td.head_id = $1 AND td.test_id = $2
+        `, [headId, testId]
+        );
+
+        await client.query(TRANS.COMMIT);
+
+        // If any subtest is not "Completed", the entire test is considered incomplete
+        const allSubtests = subtestsResult.rows;
+        const hasIncompleteSubtests = allSubtests.some(subtest => subtest.status !== 'Completed');
+
+        return hasIncompleteSubtests ? "Not Completed" : "Completed";
+    } catch (e) {
+        await client.query(TRANS.ROLLBACK);
+        throw e;
+    } finally {
+        client.release();
+    }
+}
