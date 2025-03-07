@@ -33,16 +33,17 @@ const corsOption: CorsOptions = {
   exposedHeaders: ["set-cookie"],
 };
 
-app.use(cors(corsOption));
-
 app.use("/api/static", express.static("uploads"));
 app.use((req, res, next) => {
   if (req.path.startsWith("/api/static")) {
-    return res.status(404).sendFile(path.join(__dirname, "uploads", "404.html"));
+    return res
+      .status(404)
+      .sendFile(path.join(__dirname, "uploads", "404.html"));
   }
   next();
 });
 
+app.use(cors(corsOption));
 app.use(credentials);
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -54,11 +55,7 @@ app.get("/*$", (req, res) => {
   res.sendFile(path.join(__dirname, "public/build", "index.html"));
 });
 //
-app.listen(process.env.PORT as unknown as number, "0.0.0.0", () => {
-  console.log(`App running on ${process.env.PORT}`);
-});
-
-// const server = https.createServer(servOption, app).listen(process.env.PORT, () => {
+// app.listen(process.env.PORT as unknown as number, "0.0.0.0", () => {
 //   console.log(`App running on ${process.env.PORT}`);
 // });
 
