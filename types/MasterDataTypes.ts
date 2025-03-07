@@ -125,8 +125,8 @@ export type QuestionResult = {
   total_points: number;
   category_id: string;
   question: {
-    seq: string;
-    layout_type: string;
+    seq?: string;
+    layout_type?: string;
     input_text: string;
     input_image_url: string;
   };
