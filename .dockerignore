@@ -1,5 +1,7 @@
 node_modules
 /dist/node_modules
+/dist/.env.development
+/dist/development.env
 .git
 .env.wb
 .env.development

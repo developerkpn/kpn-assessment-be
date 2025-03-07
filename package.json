@@ -9,7 +9,8 @@
     "dev": "nodemon index.ts",
     "server_dev": "set NODE_ENV=development&& nodemon index.ts",
     "server_prod": "set NODE_ENV=production&& nodemon index.ts",
-    "server": "set NODE_ENV=development&& node index.ts"
+    "server": "set NODE_ENV=development&& node index.ts",
+    "stage_dev": "set NODE_ENV=development&& node dist/index.js"
   },
   "author": "",
   "license": "ISC",

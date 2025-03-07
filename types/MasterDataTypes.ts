@@ -1,5 +1,5 @@
 // BUSINESS UNIT
-import {string} from "zod";
+import { string } from "zod";
 
 export type BURequest = {
   id: string;
@@ -65,7 +65,6 @@ export type SeriesRequest = {
   is_active: boolean;
   created_by: string;
   created_date: Date;
-
 };
 
 // QUESTION
@@ -129,8 +128,8 @@ export type QuestionResult = {
   updated_date: Date;
   total_points: number;
   question: {
-    seq: string;
-    layout_type: string;
+    seq?: string;
+    layout_type?: string;
     input_text: string;
     input_image_url: string;
   };
@@ -139,15 +138,15 @@ export type QuestionResult = {
 
 // Category
 export type CategoryRequest = {
-  category_name: string,
-  category_code: string,
+  category_name: string;
+  category_code: string;
   is_active: boolean;
-}
+};
 
 export type CategoryUpdateRequest = {
   category_name: string;
   is_active: boolean;
-}
+};
 
 // SubTest
 export type SubTestRequest = {
@@ -160,7 +159,7 @@ export type SubTestRequest = {
   series: {
     series_id: string;
   }[];
-}
+};
 
 export type SubTestHeaderRequest = {
   id?: string;
@@ -171,13 +170,13 @@ export type SubTestHeaderRequest = {
   is_active?: boolean;
   created_by?: string;
   created_at?: Date;
-  updated_by?: string,
+  updated_by?: string;
   updated_at?: Date;
 };
 
 export type SubTestDetailRequest = {
   series_id: string;
-}
+};
 
 // Test
 export type TestHeaderRequest = {
@@ -187,25 +186,24 @@ export type TestHeaderRequest = {
   is_active?: boolean;
   created_by?: string;
   created_at?: Date;
-  updated_by?: string,
+  updated_by?: string;
   updated_at?: Date;
   subtests?: {
     subtest_id: string;
-  }[]
+  }[];
 };
 
 export type TestHeaderUpdateRequest = {
   test_name: string;
   test_code: string;
   is_active: boolean;
-  updated_by: string,
+  updated_by: string;
   updated_at: Date;
-}
+};
 
 export type TestDetailRequest = {
   subtest_id: string;
-}
-
+};
 
 // Group Test
 export type GroupTestRequest = {
@@ -215,7 +213,7 @@ export type GroupTestRequest = {
   subtests: {
     subtest_id: string;
   }[];
-}
+};
 
 export type GroupTestHeaderRequest = {
   id: string;
@@ -223,10 +221,8 @@ export type GroupTestHeaderRequest = {
   grouptest_code: string;
   created_by: string;
   created_at: Date;
-}
+};
 
 export type GroupTestDetailRequest = {
   subtest_id: string;
-}
-
-
+};
