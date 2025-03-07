@@ -1,10 +1,12 @@
 import express from "express";
 import dotenv from "dotenv";
-dotenv.config();
-
 import os from "os";
 import https from "https";
 import path from "path";
+dotenv.config({
+  path: path.resolve(__dirname, `./${process.env.NODE_ENV}.env`),
+});
+
 import cors, { CorsOptions } from "cors";
 import cookieParser from "cookie-parser";
 import fs from "fs";
