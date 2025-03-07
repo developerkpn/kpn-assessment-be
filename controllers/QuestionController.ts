@@ -101,8 +101,6 @@ const parseQuestionForm = async (
       }
 
       const QAFields = {
-        q_seq: fields.q_seq ? fields.q_seq[0] : undefined,
-        q_layout_type: fields.q_layout_type ? fields.q_layout_type[0] : undefined,
         q_input_text: fields.q_input_text ? fields.q_input_text[0] : undefined,
         q_input_image_url: files.q_input_image ? q_input_image_url : undefined,
         answer_type: fields.answer_type ? fields.answer_type[0] : undefined,
@@ -245,8 +243,6 @@ export const handleGetQuestion = async (_req: Request, res: Response) => {
         question_code: item.question_code,
         category_id: item.category_id,
         category_name: item.category_name,
-        q_seq: item.q_seq,
-        q_layout_type: item.q_layout_type,
         q_input_text: item.q_input_text,
         q_input_image_url: item.q_input_image_url,
         answer_type: item.answer_type,
@@ -297,8 +293,6 @@ export const handleGetQuestionById = async (req: Request, res: Response) => {
       updated_date: result.updated_date,
       total_points: totalPoints,
       question: {
-        seq: result.q_seq,
-        layout_type: result.q_layout_type,
         input_text: result.q_input_text,
         input_image_url: result.q_input_image_url,
       },
