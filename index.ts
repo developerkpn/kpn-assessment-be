@@ -58,10 +58,12 @@ app.get("/*$", (req, res) => {
 //   console.log(`App running on ${process.env.PORT}`);
 // });
 
-const server = https.createServer(servOption, app).listen(process.env.PORT, () => {
-  console.log(`App running on ${process.env.PORT}`);
-});
+// const server = https
+//   .createServer(servOption, app)
+//   .listen(process.env.PORT, () => {
+//     console.log(`App running on ${process.env.PORT}`);
+//   });
 
-// app.listen(process.env.PORT as unknown as number, "0.0.0.0", () => {
-//   console.log(`App running on http://localhost:${process.env.PORT}`);
-// });
+app.listen(process.env.PORT as unknown as number, "0.0.0.0", () => {
+  console.log(`App running on http://localhost:${process.env.PORT}`);
+});
