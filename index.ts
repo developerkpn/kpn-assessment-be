@@ -38,7 +38,9 @@ app.use(cors(corsOption));
 app.use("/api/static", express.static("uploads"));
 app.use((req, res, next) => {
   if (req.path.startsWith("/api/static")) {
-    return res.status(404).sendFile(path.join(__dirname, "uploads", "404.html"));
+    return res
+      .status(404)
+      .sendFile(path.join(__dirname, "uploads", "404.html"));
   }
   next();
 });
