@@ -1,10 +1,12 @@
 import express from "express";
 import dotenv from "dotenv";
-dotenv.config();
-
 import os from "os";
 import https from "https";
 import path from "path";
+dotenv.config({
+  path: path.resolve(__dirname, `./${process.env.NODE_ENV}.env`),
+});
+
 import cors, { CorsOptions } from "cors";
 import cookieParser from "cookie-parser";
 import fs from "fs";
@@ -31,8 +33,6 @@ const corsOption: CorsOptions = {
   exposedHeaders: ["set-cookie"],
 };
 
-app.use(cors(corsOption));
-
 app.use("/api/static", express.static("uploads"));
 app.use((req, res, next) => {
   if (req.path.startsWith("/api/static")) {
@@ -43,6 +43,7 @@ app.use((req, res, next) => {
   next();
 });
 
+app.use(cors(corsOption));
 app.use(credentials);
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -54,14 +55,16 @@ app.get("/*$", (req, res) => {
   res.sendFile(path.join(__dirname, "public/build", "index.html"));
 });
 //
-app.listen(process.env.PORT as unknown as number, "0.0.0.0", () => {
-  console.log(`App running on ${process.env.PORT}`);
-});
-
-// const server = https.createServer(servOption, app).listen(process.env.PORT, () => {
+// app.listen(process.env.PORT as unknown as number, "0.0.0.0", () => {
 //   console.log(`App running on ${process.env.PORT}`);
 // });
 
-// app.listen(process.env.PORT as unknown as number, "0.0.0.0", () => {
-//   console.log(`App running on http://localhost:${process.env.PORT}`);
-// });
+// const server = https
+//   .createServer(servOption, app)
+//   .listen(process.env.PORT, () => {
+//     console.log(`App running on ${process.env.PORT}`);
+//   });
+
+app.listen(process.env.PORT as unknown as number, "0.0.0.0", () => {
+  console.log(`App running on http://localhost:${process.env.PORT}`);
+});
