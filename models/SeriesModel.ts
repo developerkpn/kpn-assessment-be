@@ -131,8 +131,6 @@ export const getSeriesDetail = async (id: string) => {
         
         q_selected.id AS detail_id,
         q.id AS question_id,
-        q.q_seq,
-        q.q_layout_type,
         q.q_input_text,
         q.q_input_image_url,
         q.answer_type,
@@ -201,8 +199,6 @@ export const getSeriesDetail = async (id: string) => {
       questions: result.rows.map(row => ({
         id: row.detail_id,
         question_id: row.question_id,
-        sequence: row.q_seq,
-        layout_type: row.q_layout_type,
         input_text: row.q_input_text,
         input_image_url: row.q_input_image_url,
         answer_type: row.answer_type,
