@@ -16,6 +16,7 @@ import {Emailer} from "#dep/services/mail/Emailer";
 import {getFunctionMenuDetail} from "#dep/models/FunctionMenuModel";
 import {getBusinessUnitDetail} from "#dep/models/BusinessUnitModel";
 import dotenv from "dotenv";
+import {emailTemplateHTML} from "#dep/helper/email/emailnotifmgrprc";
 dotenv.config();
 
 export const handleCreateEmailTemplate = async (req: Request, res: Response, next: NextFunction) => {
@@ -118,7 +119,7 @@ export const handleGenerateEmailTemplate = async (batchDetailId?: string, token?
             console.log("masuk template")
 
             console.log(functionMenuDetail)
-            const template = fs.readFileSync(`./helper/email/emailnotifmgrprc.html`, "utf8");
+            const template = emailTemplateHTML;
 
             const payload: any = {
                 title: emailTemplate.title,
@@ -140,7 +141,7 @@ export const handleGenerateEmailTemplate = async (batchDetailId?: string, token?
         } else {
             const emailTemplate = await getEmailTemplateDetail(emailTemplateId!);
 
-            const template = fs.readFileSync(`./helper/email/emailnotifmgrprc.html`, "utf8");
+            const template = emailTemplateHTML;
 
             const payload: any = {
                 title: emailTemplate.title,
