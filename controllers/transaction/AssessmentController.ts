@@ -46,7 +46,7 @@ export const handleGetBatchDetail = async (req: Request, res: Response, next: Ne
         const progressDet = await getProgressDetail(progressHead.id);
         console.log("test")
         console.log(progressDet)
-        if (progressDet || progressDet.length > 0) {
+        if (progressDet) {
             res.status(200).send({
                 message: "Assessment progress already exists!",
                 data: batch
