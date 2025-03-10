@@ -27,6 +27,7 @@ export const handleCreateTest = async(req: Request, res: Response, next: NextFun
             id: testId,
             test_name: validatedRequest.test_name,
             test_code: validatedRequest.test_code,
+            description: validatedRequest.description,
             created_by: creator,
             created_at: date
         }
@@ -82,15 +83,17 @@ export const handleUpdateTest = async (req: Request, res: Response, next: NextFu
         delete testHeaderUpdateRequest.subtests;
         console.log(testHeaderUpdateRequest)
 
-        const testDetailRequest = validatedRequest.subtests.map((prev: TestDetailRequest) => ({
-            ...prev,
-            id: uuid(),
-            test_id: validatedId,
-            added_by: updatedBy,
-            added_at: updatedAt,
-        }));
+        let testDetailRequest;
+        if(validatedRequest.subtests) {
+            testDetailRequest = validatedRequest.subtests.map((prev: TestDetailRequest) => ({
+                ...prev,
+                id: uuid(),
+                test_id: validatedId,
+                added_by: updatedBy,
+                added_at: updatedAt,
+            }));
+        }
 
-        console.log(testDetailRequest)
 
         const result = await updateTest(validatedId, testHeaderUpdateRequest, testDetailRequest);
 

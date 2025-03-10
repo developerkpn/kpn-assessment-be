@@ -83,8 +83,6 @@ export type AnswerResponse = {
 
 export type QuestionRequest = {
   id: string;
-  q_seq: number;
-  q_layout_type: string;
   q_input_text: string;
   q_input_image_url: string;
   answer_type: string;
@@ -112,8 +110,6 @@ export type QuestionRequest = {
 };
 
 export type QuestionFields = {
-  q_seq?: number;
-  q_layout_type?: string;
   q_input_text?: string;
   q_input_image?: File;
   answer_type?: string;
@@ -129,8 +125,6 @@ export type QuestionResult = {
   updated_date: Date;
   total_points: number;
   question: {
-    seq: string;
-    layout_type: string;
     input_text: string;
     input_image_url: string;
   };
@@ -184,6 +178,7 @@ export type TestHeaderRequest = {
   id?: string;
   test_name?: string;
   test_code?: string;
+  description?: string;
   is_active?: boolean;
   created_by?: string;
   created_at?: Date;
