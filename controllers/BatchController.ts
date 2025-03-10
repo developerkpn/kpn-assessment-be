@@ -232,7 +232,8 @@ export const handlePublishBatch = async (req: Request, res: Response, next: Next
         const batchDetail = await getBatchDetail(validatedId);
         const assesseeList = await getBatchAssesses(validatedId);
 
-
+        console.log(assesseeList);
+        console.log(batchDetail.status)
         if (batchDetail.status !== "Draft") {
             throw new ResponseError(400, "Batch's already submitted")
         }
