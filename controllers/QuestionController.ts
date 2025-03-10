@@ -110,6 +110,7 @@ const parseQuestionForm = async (
         q_input_text: fields.q_input_text ? fields.q_input_text[0] : undefined,
         q_input_image_url: files.q_input_image ? q_input_image_url : undefined,
         category_id: fields.category_id ? fields.category_id[0] : undefined,
+        answer_type: fields.answer_type ? fields.answer_type[0] : undefined,  
       };
 
       console.log("QAFields: ", QAFields);
@@ -309,6 +310,7 @@ export const handleGetQuestionById = async (req: Request, res: Response) => {
       updated_by: result.updated_by,
       updated_date: result.updated_date,
       total_points: totalPoints,
+      category_id: result.category_id,
       question: {
         seq: result.q_seq,
         layout_type: result.q_layout_type,

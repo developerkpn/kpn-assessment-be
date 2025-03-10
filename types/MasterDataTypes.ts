@@ -124,6 +124,7 @@ export type QuestionResult = {
   updated_by: string;
   updated_date: Date;
   total_points: number;
+  category_id: number;
   question: {
     input_text: string;
     input_image_url: string;
