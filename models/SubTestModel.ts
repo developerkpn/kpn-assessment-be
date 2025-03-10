@@ -37,6 +37,7 @@ export const getSubTest = async () => {
                 h.id,
                 h.subtest_name,
                 h.subtest_code,
+                h.subtest_duration,
                 h.is_active,
                 a.fullname AS created_by,
                 h.created_at,
@@ -44,7 +45,7 @@ export const getSubTest = async () => {
             FROM mst_subtest_head h
             LEFT JOIN mst_subtest_det d ON h.id = d.subtest_id
             LEFT JOIN mst_admin_web a ON h.created_by = a.id
-            GROUP BY h.id, h.subtest_name, h.subtest_code, h.is_active, a.fullname, h.created_at
+            GROUP BY h.id, h.subtest_name, h.subtest_code, h.is_active, h.subtest_duration, a.fullname, h.created_at
             ORDER BY h.created_at DESC
             `
         );
@@ -59,15 +60,29 @@ export const getSubTest = async () => {
     }
 }
 
-export const updateSubTest = async (subtestId: string, headerPayload: SubTestHeaderRequest, detailPayload: any) => {
+export const updateSubTest = async (
+    subtestId: string,
+    headerPayload: SubTestHeaderRequest,
+    detailPayload: any[]
+) => {
     const client = await db.connect();
     try {
         await client.query(TRANS.BEGIN);
-        const [headerQ, headerV] = updateQuery("mst_subtest_head", headerPayload, {id: subtestId});
+        const [headerQ, headerV] = updateQuery("mst_subtest_head", headerPayload, { id: subtestId }, "subtest_code");
         const headerResult = await client.query(headerQ, headerV);
-        if (!headerResult.rows[0].subtest_code) throw new ResponseError(404, `Sub Test with ID ${subtestId} is not found`)
-        const [detailQ, detailV] = insertQuery("mst_subtest_det", detailPayload);
-        await client.query(detailQ, detailV);
+
+        // Periksa apakah ada baris yang dikembalikan
+        if (!headerResult.rows || headerResult.rows.length === 0 || !headerResult.rows[0].subtest_code) {
+            throw new ResponseError(404, `Sub Test with ID ${subtestId} is not found`);
+        }
+
+        console.log(detailPayload)
+        // Update detail hanya jika detailPayload memiliki data
+        if (detailPayload.length > 0) {
+            const [detailQ, detailV] = insertQuery("mst_subtest_det", detailPayload);
+            await client.query(detailQ, detailV);
+        }
+
         await client.query(TRANS.COMMIT);
     } catch (error) {
         console.error(error);
@@ -76,7 +91,7 @@ export const updateSubTest = async (subtestId: string, headerPayload: SubTestHea
     } finally {
         client.release();
     }
-}
+};
 
 export const deleteSubTest = async (id: string) => {
     const client = await db.connect();
@@ -97,10 +112,6 @@ export const deleteSubTest = async (id: string) => {
             [id]
         );
 
-        if (detailResult.rowCount === 0 || headerResult.rowCount === 0) {
-            throw new ResponseError(404, `Sub Test with ID ${id} is not found.`);
-        }
-
         await client.query(TRANS.COMMIT);
         console.log(headerResult);
         return headerResult.rows[0].subtest_code;
@@ -119,64 +130,73 @@ export const getSubTestDetail = async (id: string) => {
         await client.query(TRANS.BEGIN);
         const result = await client.query(
             `
-            SELECT
-                h.id AS subtest_id,
-                h.subtest_name,
-                h.subtest_code,
-                h.subtest_duration,
-                h.is_active,
-                h.created_by,
-                h.created_at,
-                h.updated_by,
-                h.updated_at,
-                s.id AS series_id,
-                s.series_name,
-                s.series_code,
-                d.id AS detail_id,
-                d.added_by,
-                d.added_at,
-                c.id AS value_id,
-                c.value_code,
-                c.value_name
-            FROM
-                mst_subtest_head h
-            LEFT JOIN
-                mst_subtest_det d ON h.id = d.subtest_id
-            LEFT JOIN 
-                mst_series s ON d.series_id = s.id
-            LEFT JOIN
-                mst_value c ON h.criteria_id = c.id
-            WHERE
-                h.id = $1 
-            `, [id]
+      SELECT
+        h.id AS subtest_id,
+        h.subtest_name,
+        h.subtest_code,
+        h.subtest_duration,
+        h.is_active,
+        h.created_by,
+        h.created_at,
+        h.updated_by,
+        h.updated_at,
+        s.id AS series_id,
+        s.series_name,
+        s.series_code,
+        d.id AS detail_id,
+        d.added_by,
+        d.added_at,
+        c.id AS value_id,
+        c.value_code,
+        c.value_name,
+        (
+          SELECT COUNT(sd.question_id)
+          FROM mst_series_det sd
+          WHERE sd.series_id = s.id
+        ) AS question_count
+      FROM
+        mst_subtest_head h
+      LEFT JOIN
+        mst_subtest_det d ON h.id = d.subtest_id
+      LEFT JOIN 
+        mst_series s ON d.series_id = s.id
+      LEFT JOIN
+        mst_value c ON h.criteria_id = c.id
+      WHERE
+        h.id = $1 
+      `,
+            [id]
         );
 
         await client.query(TRANS.COMMIT);
+
+        if (result.rows.length === 0) {
+            return null;
+        }
+
         const subtestDetail = {
             id: result.rows[0].subtest_id,
             subtest_name: result.rows[0].subtest_name,
             subtest_code: result.rows[0].subtest_code,
             subtest_duration: result.rows[0].subtest_duration,
             is_active: result.rows[0].is_active,
-            category_name: result.rows[0].category_name,
             created_by: result.rows[0].created_by,
-            created_at: result.rows[0].created_date,
+            created_at: result.rows[0].created_at,
             updated_by: result.rows[0].updated_by,
             updated_at: result.rows[0].updated_at,
-            criteria: {
-                id: result.rows[0].value_id,
-                criteria_name: result.rows[0].value_name,
-                criteria_code: result.rows[0].value_code,
-            },
+            // Hapus properti criteria dan langsung gunakan criteria_id
+            criteria_id: result.rows[0].value_id,
             series: result.rows.map(row => ({
                 id: row.detail_id,
                 series_id: row.series_id,
                 series_name: row.series_name,
                 series_code: row.series_code,
                 added_by: row.added_by,
-                added_at: row.added_at
+                added_at: row.added_at,
+                question_count: row.question_count
             }))
         };
+
         return subtestDetail;
     } catch (error) {
         console.error(error);
@@ -185,7 +205,8 @@ export const getSubTestDetail = async (id: string) => {
     } finally {
         client.release();
     }
-}
+};
+
 
 export const getAvailableSeriesForSubTest = async (subtestId: string) => {
     const client = await db.connect();
