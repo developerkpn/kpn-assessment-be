@@ -1,3 +1,4 @@
+export const emailTemplateHTML = `
 <!doctype html>
 <html lang="en">
     <head>
@@ -552,3 +553,4 @@
         </center>
     </body>
 </html>
+`;
