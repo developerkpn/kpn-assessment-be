@@ -158,6 +158,7 @@ export const getBatchDetail = async (id: string) => {
                 h.is_mic,
                 h.is_screenshot,
                 h.description,
+                h.status,
                 COUNT(d.id) AS assessee_count
                 FROM 
                     t_batch_head h 

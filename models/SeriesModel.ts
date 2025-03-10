@@ -38,7 +38,6 @@ export const getSeries = async () => {
         h.is_active,
         a.fullname AS created_by,
         h.created_date AS created_at,
-        c.category_name,
         COUNT(d.question_id) AS question_count
       FROM mst_series h
       LEFT JOIN mst_series_det d ON h.id = d.series_id
@@ -132,8 +131,6 @@ export const getSeriesDetail = async (id: string) => {
         
         q_selected.id AS detail_id,
         q.id AS question_id,
-        q.q_seq,
-        q.q_layout_type,
         q.q_input_text,
         q.q_input_image_url,
         q.answer_type,
@@ -158,7 +155,6 @@ export const getSeriesDetail = async (id: string) => {
         q.key_answer_point_e,
 
         q.category_id,
-        q.question_code,
         
         a.fullname AS added_by,
         q_selected.added_at
