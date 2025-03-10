@@ -117,6 +117,7 @@ export const handleGenerateEmailTemplate = async (batchDetailId?: string, token?
             const businessUnitDetail = await getBusinessUnitDetail(batchDetail.bu_id!);
             console.log("masuk template")
 
+            console.log(functionMenuDetail)
             const template = fs.readFileSync(`./helper/email/emailnotifmgrprc.html`, "utf8");
 
             const payload: any = {
@@ -126,7 +127,7 @@ export const handleGenerateEmailTemplate = async (batchDetailId?: string, token?
                 batch_name: batchDetail.batch_name? batchDetail.batch_name : `Filling in Batch Section`,
                 batch_code: batchDetail.batch_code? batchDetail.batch_code : `Filling in Batch Section`,
                 bu_name: businessUnitDetail.bu_name? businessUnitDetail.bu_name : `Filling in Batch Section`,
-                fm_name: functionMenuDetail.fm_name? batchDetail.fm_name : `Filling in Batch Section`,
+                fm_name: functionMenuDetail.fm_name? functionMenuDetail.fm_name : `Filling in Batch Section`,
                 start_period: batchDetail.start_period? batchDetail.start_period : `Filling in Batch Section`,
                 end_period: batchDetail.end_period? batchDetail.end_period : `Filling in Batch Section`,
                 batch_link: `${process.env.API_URL}/batch/${token ? token : 'token'}`
