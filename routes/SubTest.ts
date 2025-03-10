@@ -10,7 +10,7 @@ const SubTest = Router();
 
 SubTest.post("/", checkPermission("fcreate", 12), handleCreateSubTest);
 SubTest.get("/", checkPermission("fread", 12), handleGetSubTest);
-SubTest.delete("/:id", checkPermission("fread", 12), handleDeleteSubTest);
+SubTest.delete("/:id", checkPermission("fdelete", 12), handleDeleteSubTest);
 SubTest.patch("/:id", checkPermission("fupdate", 12), handleUpdateSubTest);
 SubTest.get("/:id", checkPermission("fupdate", 12), handleGetSubTestDetail);
 SubTest.get("/:id/series-available", checkPermission("fread", 12), handleGetAvailableSeriesForSubTest);
