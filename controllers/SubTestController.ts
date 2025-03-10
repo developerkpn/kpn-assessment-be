@@ -74,9 +74,9 @@ export const handleUpdateSubTest = async (req: Request, res: Response, next: Nex
         const updatedAt = new Date();
 
         const validatedId = Validation.validate(SubTestValidation.ID, req.params.id);
-        const validatedRequest = Validation.validate(SubTestValidation.UPDATE, req.body)
-
-        const subtestHeaderRequest: SubTestHeaderRequest= {
+        const validatedRequest = Validation.validate(SubTestValidation.UPDATE, req.body);
+        console.log(validatedRequest);
+        const subtestHeaderRequest: SubTestHeaderRequest = {
             subtest_name: validatedRequest.subtest_name,
             subtest_code: validatedRequest.subtest_code,
             subtest_duration: validatedRequest.subtest_duration,
@@ -84,26 +84,28 @@ export const handleUpdateSubTest = async (req: Request, res: Response, next: Nex
             is_active: validatedRequest.is_active,
             updated_by: updatedBy,
             updated_at: updatedAt,
-        }
-
-        const subtestDetailRequest = validatedRequest.questions.map((prev: SeriesDetailRequest) => ({
-            ...prev,
-            id: uuid(),
-            series_id: validatedId,
-            added_by: updatedBy,
-            added_at: updatedAt,
-        }));
+        };
+        console.log(subtestHeaderRequest);
+        // Jika series tidak ada atau array kosong, maka detail request menjadi array kosong
+        const subtestDetailRequest = (validatedRequest.series && validatedRequest.series.length > 0)
+            ? validatedRequest.series.map((prev: SeriesDetailRequest) => ({
+                ...prev,
+                id: uuid(),
+                subtest_id: validatedId,
+                added_by: updatedBy,
+                added_at: updatedAt,
+            }))
+            : [];
 
         const result = await updateSubTest(validatedId, subtestHeaderRequest, subtestDetailRequest);
 
         res.status(200).send({
             message: `Sub Test with code ${result} is updated successfully!`,
         });
-
     } catch (e) {
-        next(e)
+        next(e);
     }
-}
+};
 
 export const handleDeleteSubTest = async (req: Request, res: Response, next: NextFunction) => {
     try {

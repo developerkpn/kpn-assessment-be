@@ -315,15 +315,11 @@ export const handleCreateBatchToken = async (
   }
 };
 
-export const handlePublishBatch = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const validatedId = Validation.validate(BatchValidation.ID, req.params.id);
-    const batchDetail = await getBatchDetail(validatedId);
-    const assesseeList = await getBatchAssesses(validatedId);
+export const handlePublishBatch = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const validatedId = Validation.validate(BatchValidation.ID, req.params.id);
+        const batchDetail = await getBatchDetail(validatedId);
+        const assesseeList = await getBatchAssesses(validatedId);
 
     if (batchDetail.status !== "Draft") {
       throw new ResponseError(400, "Batch's already submitted");
@@ -348,7 +344,8 @@ export const handlePublishBatch = async (
       })
     );
 
-    await startProgress(progressHead);
+        await startProgress(progressHead);
+        await publishBatch(validatedId, "Published");
 
     res.status(200).send({
       message: "Batch is successfully published and email's sent to assessee",
