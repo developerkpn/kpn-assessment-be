@@ -8,7 +8,8 @@ import {
     handleDeleteBatchAssessee,
     handleGetBatch,
     handleGetBatchAssessees,
-    handleGetBatchDetail, handlePreviewBatchTemplateEmail,
+    handleGetBatchDetail, 
+    handlePreviewBatchTemplateEmail,
     handlePublishBatch,
     handleUpdateBatch
 } from "#dep/controllers/BatchController";
@@ -18,6 +19,7 @@ import {uploadSingleFile} from "#dep/middleware/fileMiddleware";
 export const Batch = Router();
 
 Batch.post("/", checkPermission("fcreate", 15), handleCreateBatch);
+Batch.get("/preview", checkPermission("fread", 15), handlePreviewBatchTemplateEmail);
 Batch.get("/", checkPermission("fread", 15), handleGetBatch);
 Batch.patch("/:id", checkPermission("fupdate", 15), handleUpdateBatch);
 Batch.delete("/:id", checkPermission("fdelete", 15), handleDeleteBatch);
@@ -29,5 +31,3 @@ Batch.get("/:id/assessee", checkPermission("fread", 15), handleGetBatchAssessees
 Batch.delete("/:id/assessee/:assesseeId", checkPermission("fdelete", 15), handleDeleteBatchAssessee);
 
 Batch.post("/:id/published", checkPermission("fupdate", 15), handlePublishBatch);
-
-Batch.get("/preview", checkPermission("fread", 15), handlePreviewBatchTemplateEmail);

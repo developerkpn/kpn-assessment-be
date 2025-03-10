@@ -16,6 +16,7 @@ export const getBatchByAssessment = async (batchId: string) => {
                 SELECT
                     batch_name,
                     batch_code,
+                    description,
                     grouptest_id,
                     start_period,
                     end_period,
