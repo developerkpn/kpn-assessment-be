@@ -130,7 +130,7 @@ export const handleGenerateEmailTemplate = async (batchDetailId?: string, token?
                 fm_name: functionMenuDetail.fm_name? functionMenuDetail.fm_name : `Filling in Batch Section`,
                 start_period: batchDetail.start_period? batchDetail.start_period : `Filling in Batch Section`,
                 end_period: batchDetail.end_period? batchDetail.end_period : `Filling in Batch Section`,
-                batch_link: `${process.env.API_URL}/batch/${token ? token : 'token'}`
+                batch_link: `${process.env.APP_URL}/client/${token ? token : 'token'}`
             }
 
             email = {
@@ -152,7 +152,7 @@ export const handleGenerateEmailTemplate = async (batchDetailId?: string, token?
                 fm_name: `Filling in Batch Section`,
                 start_period: `Filling in Batch Section`,
                 end_period: `Filling in Batch Section`,
-                batch_link: `${process.env.API_URL}/batch/${token ? token : 'token'}`
+                batch_link: `${process.env.APP_URL}/client/${token ? token : 'token'}`
             }
 
             email = {
