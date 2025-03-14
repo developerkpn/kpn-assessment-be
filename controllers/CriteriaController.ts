@@ -1,15 +1,16 @@
 import {
   createCriteria,
   deleteCriteria,
-  getCriteria, getCriteriaDetail,
+  getCriteria,
+  getCriteriaDetail,
   updateCriteria,
 } from "#dep/models/CriteriaModel";
 import { Criteria, CriteriaGroup, CriteriaRequest } from "#dep/types/MasterDataTypes";
-import {NextFunction, Request, Response} from "express";
+import { NextFunction, Request, Response } from "express";
 import { v4 as uuidv4 } from "uuid";
-import {Validation} from "#dep/validation/Validation";
-import {CriteriaValidation} from "#dep/validation/CriteriaValidation";
-import {FunctionMenuValidation} from "#dep/validation/FunctionMenuValidation";
+import { Validation } from "#dep/validation/Validation";
+import { CriteriaValidation } from "#dep/validation/CriteriaValidation";
+import { FunctionMenuValidation } from "#dep/validation/FunctionMenuValidation";
 
 export const handleCreateCriteria = async (req: Request, res: Response, next: NextFunction) => {
   const payload = req.body;
@@ -92,7 +93,7 @@ export const handleDeleteCriteria = async (req: Request, res: Response, next: Ne
 
 export const handleUpdateCriteria = async (req: Request, res: Response, next: NextFunction) => {
   const today = new Date();
-  const validatedId = Validation.validate(CriteriaValidation.ID, req.params.id)
+  const validatedId = Validation.validate(CriteriaValidation.ID, req.params.id);
   const payload = req.body;
   const criteria = payload.criteria.map((prev: Partial<Criteria>) => {
     if (!prev.hasOwnProperty("id") || !prev.hasOwnProperty("category_fk")) {
@@ -137,21 +138,24 @@ export const handleGetCriteriaDetail = async (req: Request, res: Response, next:
     const groupedData = {
       value_name: rawData[0].value_name,
       value_code: rawData[0].value_code,
-      criterias: rawData.reduce((acc, row) => {
-        if (row.criteria_name) {
-          acc.push({
-            criteria_name: row.criteria_name,
-            minimum_score: row.minimum_score,
-            maximum_score: row.maximum_score,
-          });
-        }
-        return acc;
-      }, [] as Array<{ criteria_name: string; minimum_score: number; maximum_score: number }>)
+      criterias: rawData.reduce(
+        (acc, row) => {
+          if (row.criteria_name) {
+            acc.push({
+              criteria_name: row.criteria_name,
+              minimum_score: row.minimum_score,
+              maximum_score: row.maximum_score,
+            });
+          }
+          return acc;
+        },
+        [] as Array<{ criteria_name: string; minimum_score: number; maximum_score: number }>
+      ),
     };
 
     res.status(200).json({
       message: "Success!",
-      data: groupedData
+      data: groupedData,
     });
   } catch (error) {
     next(error);

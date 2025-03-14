@@ -1,10 +1,10 @@
 import { checkPermission } from "#dep/middleware/auth";
 import { Router } from "express";
 import {
-    handleCreateCategory,
-    handleDeleteCategory,
-    handleGetCategory,
-    handleUpdateCategory
+  handleCreateCategory,
+  handleDeleteCategory,
+  handleGetCategory,
+  handleUpdateCategory,
 } from "#dep/controllers/CategoryController";
 export const Category = Router();
 

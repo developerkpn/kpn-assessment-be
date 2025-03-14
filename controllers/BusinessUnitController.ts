@@ -4,10 +4,10 @@ import {
   getBusinessUnit,
   updateBusinessUnit,
 } from "#dep/models/BusinessUnitModel";
-import {NextFunction, Request, Response} from "express";
+import { NextFunction, Request, Response } from "express";
 import { v4 as uuidv4 } from "uuid";
-import {Validation} from "#dep/validation/Validation";
-import {BusinessUnitValidation} from "#dep/validation/BusinessUnitValidation";
+import { Validation } from "#dep/validation/Validation";
+import { BusinessUnitValidation } from "#dep/validation/BusinessUnitValidation";
 
 export const handleCreateBusinessUnit = async (req: Request, res: Response, next: NextFunction) => {
   try {

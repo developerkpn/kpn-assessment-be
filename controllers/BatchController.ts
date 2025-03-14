@@ -17,44 +17,29 @@ import {
 } from "#dep/models/BatchModel";
 import fs from "fs";
 import { AdminWebValidation } from "#dep/validation/AdminWebValidation";
-import {
-  BatchAssessee,
-  BatchHeader,
-  BatchHeadUpdate,
-} from "#dep/types/BatchTypes";
-import {
-  handleGenerateEmailTemplate,
-  handleSendEmail,
-} from "#dep/controllers/EmailTemplateController";
+import { BatchAssessee, BatchHeader, BatchHeadUpdate } from "#dep/types/BatchTypes";
+import { handleGenerateEmailTemplate, handleSendEmail } from "#dep/controllers/EmailTemplateController";
 import { ResponseError } from "#dep/error/response-error";
 import { Secret, sign } from "jsonwebtoken";
-import {emailTemplateHTML} from "#dep/helper/email/emailnotifmgrprc";
+import { emailTemplateHTML } from "#dep/helper/email/emailnotifmgrprc";
 // import { getTestFromChoosenGroupTest} from "#dep/models/GroupTestModel";
 import moment from "moment";
 
-export const handleCreateBatch = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const handleCreateBatch = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    const validatedRequest = Validation.validate(BatchValidation.CREATE, req.body);
 
-    const validatedRequest = Validation.validate(
-      BatchValidation.CREATE,
-      req.body
-    );
+    console.log("date");
+    console.log(validatedRequest.end_period);
+    console.log(moment(validatedRequest.end_period).toISOString());
 
-    console.log("date")
-    console.log(validatedRequest.end_period)
-    console.log(moment(validatedRequest.end_period).toISOString())
-
-    const payload : any = {
+    const payload: any = {
       ...validatedRequest,
       start_period: moment(validatedRequest.start_period).toISOString(),
-      end_period: moment(validatedRequest.end_period).toISOString()
-    }
+      end_period: moment(validatedRequest.end_period).toISOString(),
+    };
 
-    console.log(payload)
+    console.log(payload);
 
     const batch: BatchHeader = {
       id: uuid(),
@@ -62,7 +47,6 @@ export const handleCreateBatch = async (
       created_at: new Date(),
       ...payload,
     };
-
 
     const result = await createBatch(batch);
 
@@ -77,11 +61,7 @@ export const handleCreateBatch = async (
   }
 };
 
-export const handleGetBatch = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const handleGetBatch = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const result = await getBatch();
 
@@ -94,17 +74,10 @@ export const handleGetBatch = async (
   }
 };
 
-export const handleUpdateBatch = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const handleUpdateBatch = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const validatedId = Validation.validate(BatchValidation.ID, req.params.id);
-    const validatedRequest = Validation.validate(
-      BatchValidation.UPDATE,
-      req.body
-    );
+    const validatedRequest = Validation.validate(BatchValidation.UPDATE, req.body);
     const batchUpdate: BatchHeadUpdate = {
       id: validatedId,
       updated_by: req.userDecode?.user_id,
@@ -121,11 +94,7 @@ export const handleUpdateBatch = async (
   }
 };
 
-export const handleDeleteBatch = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const handleDeleteBatch = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const validatedId = Validation.validate(BatchValidation.ID, req.params.id);
 
@@ -139,17 +108,10 @@ export const handleDeleteBatch = async (
   }
 };
 
-export const handleAddAssesseeManually = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const handleAddAssesseeManually = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const validatedId = Validation.validate(BatchValidation.ID, req.params.id);
-    const validatedRequest = Validation.validate(
-      BatchValidation.ADDASSESSEEMANUALLY,
-      req.body
-    );
+    const validatedRequest = Validation.validate(BatchValidation.ADDASSESSEEMANUALLY, req.body);
 
     const assessee = validatedRequest.map((row: any) => {
       const result = {
@@ -174,11 +136,7 @@ export const handleAddAssesseeManually = async (
   }
 };
 
-export const handleGetBatchDetail = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const handleGetBatchDetail = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const validatedId = Validation.validate(BatchValidation.ID, req.params.id);
 
@@ -193,11 +151,7 @@ export const handleGetBatchDetail = async (
   }
 };
 
-export const handleGetBatchAssessees = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const handleGetBatchAssessees = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const validatedId = Validation.validate(BatchValidation.ID, req.params.id);
 
@@ -212,20 +166,10 @@ export const handleGetBatchAssessees = async (
   }
 };
 
-export const handleDeleteBatchAssessee = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const handleDeleteBatchAssessee = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const validatedBatchId = Validation.validate(
-      BatchValidation.ID,
-      req.params.id
-    );
-    const validateAssesseeId = Validation.validate(
-      BatchValidation.ID,
-      req.params.assesseeId
-    );
+    const validatedBatchId = Validation.validate(BatchValidation.ID, req.params.id);
+    const validateAssesseeId = Validation.validate(BatchValidation.ID, req.params.assesseeId);
     console.log("halo");
     await deleteBatchAssessee(validatedBatchId, validateAssesseeId);
     console.log("halo 2");
@@ -237,11 +181,7 @@ export const handleDeleteBatchAssessee = async (
   }
 };
 
-export const handleAddAssesseeByFile = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const handleAddAssesseeByFile = async (req: Request, res: Response, next: NextFunction) => {
   if (!req.file) {
     res.status(400).send("File tidak ditemukan.");
     return;
@@ -270,10 +210,7 @@ export const handleAddAssesseeByFile = async (
     });
 
     console.log(filteredData);
-    const validatedAssessee = Validation.validate(
-      BatchValidation.ASSESSEE,
-      filteredData
-    );
+    const validatedAssessee = Validation.validate(BatchValidation.ASSESSEE, filteredData);
 
     await addAssessee(validatedAssessee);
 
@@ -285,11 +222,7 @@ export const handleAddAssesseeByFile = async (
   }
 };
 
-export const handlePreviewBatchTemplateEmail = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const handlePreviewBatchTemplateEmail = async (req: Request, res: Response, next: NextFunction) => {
   console.log("ini dia");
   console.log(req.body);
   try {
@@ -304,12 +237,7 @@ export const handlePreviewBatchTemplateEmail = async (
   }
 };
 
-export const handleCreateBatchToken = async (
-  batchId: string,
-  startPeriod: any,
-  endPeriod: any,
-  userId: string
-) => {
+export const handleCreateBatchToken = async (batchId: string, startPeriod: any, endPeriod: any, userId: string) => {
   try {
     const batchTokenPayload = {
       user_id: userId,
@@ -326,11 +254,7 @@ export const handleCreateBatchToken = async (
   }
 };
 
-export const handlePublishBatch = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const handlePublishBatch = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const validatedId = Validation.validate(BatchValidation.ID, req.params.id);
     const batchDetail = await getBatchDetail(validatedId);

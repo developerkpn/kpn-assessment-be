@@ -5,10 +5,10 @@ import {
   updateFunctionMenu,
 } from "#dep/models/FunctionMenuModel";
 import { FunctionMenuRequest } from "#dep/types/MasterDataTypes";
-import {NextFunction, Request, Response} from "express";
+import { NextFunction, Request, Response } from "express";
 import { v4 as uuidv4 } from "uuid";
-import {Validation} from "#dep/validation/Validation";
-import {FunctionMenuValidation} from "#dep/validation/FunctionMenuValidation";
+import { Validation } from "#dep/validation/Validation";
+import { FunctionMenuValidation } from "#dep/validation/FunctionMenuValidation";
 
 export const handleGetFunctionMenu = async (req: Request, res: Response, next: NextFunction) => {
   try {

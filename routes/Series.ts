@@ -1,8 +1,10 @@
 import {
   // handleAddQuestionToSeries,
-  handleCreateSeries, handleDeleteQuestionFromSeries,
+  handleCreateSeries,
+  handleDeleteQuestionFromSeries,
   // handleDeleteQuestionFromSeries,
-  handleDeleteSeries, handleGetAvailableQuestionForSeries,
+  handleDeleteSeries,
+  handleGetAvailableQuestionForSeries,
   // handleGetAvailableQuestionForSeries,
   handleGetDetailSeries,
   // handleGetListSeriesByCategory,
@@ -12,7 +14,7 @@ import {
 } from "#dep/controllers/SeriesController";
 import { checkPermission } from "#dep/middleware/auth";
 import { Router } from "express";
-import {handleGetCategory} from "#dep/controllers/CategoryController";
+import { handleGetCategory } from "#dep/controllers/CategoryController";
 const Series = Router();
 
 Series.post("/", checkPermission("fcreate", 4), handleCreateSeries);
@@ -21,7 +23,7 @@ Series.delete("/:id", checkPermission("fdelete", 4), handleDeleteSeries);
 Series.patch("/:id", checkPermission("fupdate", 4), handleUpdateSeries);
 
 Series.get("/:id", checkPermission("fread", 4), handleGetDetailSeries);
-Series.get("/:id/questions-available", checkPermission("fread", 4), handleGetAvailableQuestionForSeries)
+Series.get("/:id/questions-available", checkPermission("fread", 4), handleGetAvailableQuestionForSeries);
 Series.delete("/:id/questions/:questionId", checkPermission("fdelete", 4), handleDeleteQuestionFromSeries);
 
 export default Series;

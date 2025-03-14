@@ -15,6 +15,7 @@ export const getAdminMenu = async (roleId: string) => {
     `,
       [roleId]
     );
+
     await client.query(TRANS.COMMIT);
     return result.rows;
   } catch (error) {

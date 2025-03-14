@@ -1,10 +1,13 @@
 import { Router } from "express";
-import {checkPermission} from "#dep/middleware/auth";
+import { checkPermission } from "#dep/middleware/auth";
 import {
-    handleCreateGroupTest,
-    handleDeleteGroupTest, handleDeleteSubTestFromGroupTest, handleGetAvailableSubTestForGroupTest,
-    handleGetGroupTest, handleGetGroupTestDetail,
-    handleUpdateGroupTest
+  handleCreateGroupTest,
+  handleDeleteGroupTest,
+  handleDeleteSubTestFromGroupTest,
+  handleGetAvailableSubTestForGroupTest,
+  handleGetGroupTest,
+  handleGetGroupTestDetail,
+  handleUpdateGroupTest,
 } from "#dep/controllers/GroupTestController";
 
 const GroupTest = Router();

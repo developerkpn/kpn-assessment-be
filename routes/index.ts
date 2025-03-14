@@ -12,11 +12,11 @@ import FunctionMenu from "./FunctionMenu";
 import { isAuth } from "#dep/middleware/auth";
 import Question from "./Question";
 import Menu from "./Menu";
-import {Category} from "#dep/routes/Category";
+import { Category } from "#dep/routes/Category";
 import SubTest from "#dep/routes/SubTest";
 import GroupTest from "#dep/routes/GroupTest";
 import Test from "#dep/routes/Test";
-import {Batch} from "#dep/routes/Batch";
+import { Batch } from "#dep/routes/Batch";
 import EmailTemplate from "#dep/routes/EmailTemplate";
 import Assessment from "#dep/routes/transactions/Assessment";
 
@@ -34,7 +34,7 @@ router.use("/api/question", isAuth, Question);
 router.use("/api/menu", isAuth, Menu);
 router.use("/api/category", isAuth, Category);
 router.use("/api/subtest", isAuth, SubTest);
-router.use("/api/test", isAuth, Test)
+router.use("/api/test", isAuth, Test);
 router.use("/api/grouptest", isAuth, GroupTest);
 router.use("/api/batch", isAuth, Batch);
 router.use("/api/email-template", isAuth, EmailTemplate);

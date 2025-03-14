@@ -1,19 +1,20 @@
 import { Router } from "express";
-import {checkPermission} from "#dep/middleware/auth";
+import { checkPermission } from "#dep/middleware/auth";
 import {
-    handleAddAssesseeByFile,
-    handleAddAssesseeManually,
-    handleCreateBatch,
-    handleDeleteBatch,
-    handleDeleteBatchAssessee,
-    handleGetBatch,
-    handleGetBatchAssessees,
-    handleGetBatchDetail, handlePreviewBatchTemplateEmail,
-    handlePublishBatch,
-    handleUpdateBatch
+  handleAddAssesseeByFile,
+  handleAddAssesseeManually,
+  handleCreateBatch,
+  handleDeleteBatch,
+  handleDeleteBatchAssessee,
+  handleGetBatch,
+  handleGetBatchAssessees,
+  handleGetBatchDetail,
+  handlePreviewBatchTemplateEmail,
+  handlePublishBatch,
+  handleUpdateBatch,
 } from "#dep/controllers/BatchController";
-import {handleGetTest} from "#dep/controllers/TestController";
-import {uploadSingleFile} from "#dep/middleware/fileMiddleware";
+import { handleGetTest } from "#dep/controllers/TestController";
+import { uploadSingleFile } from "#dep/middleware/fileMiddleware";
 
 export const Batch = Router();
 
@@ -30,4 +31,3 @@ Batch.get("/:id/assessee", checkPermission("fread", 15), handleGetBatchAssessees
 Batch.delete("/:id/assessee/:assesseeId", checkPermission("fdelete", 15), handleDeleteBatchAssessee);
 
 Batch.post("/:id/published", checkPermission("fupdate", 15), handlePublishBatch);
-

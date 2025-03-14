@@ -1,10 +1,13 @@
-import {Router} from "express";
+import { Router } from "express";
 import {
-    handleGetAssessmentSubTest, handleGetAssessmentTest,
-    handleGetAsssessmentQuestion,
-    handleGetBatchDetail, handleStoreAnswer, handleVideoProctoring
+  handleGetAssessmentSubTest,
+  handleGetAssessmentTest,
+  handleGetAsssessmentQuestion,
+  handleGetBatchDetail,
+  handleStoreAnswer,
+  handleVideoProctoring,
 } from "#dep/controllers/transaction/AssessmentController";
-import {handleGetQuestion} from "#dep/controllers/QuestionController";
+import { handleGetQuestion } from "#dep/controllers/QuestionController";
 
 const Assessment = Router();
 

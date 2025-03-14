@@ -1,11 +1,11 @@
 import { db } from "#dep/config/connection";
 import { TRANSACTION as TRANS } from "#dep/config/transaction";
 import { deleteQuery, insertQuery, updateQuery } from "#dep/helper/queryBuilder";
-import {SeriesDetailRequest, SeriesHeaderRequest } from "#dep/types/SeriesTypes";
-import {ResponseError} from "#dep/error/response-error";
+import { SeriesDetailRequest, SeriesHeaderRequest } from "#dep/types/SeriesTypes";
+import { ResponseError } from "#dep/error/response-error";
 
-
-export const createSeries = async (headerPayload: SeriesHeaderRequest, detailPayload: SeriesDetailRequest[]) => { // (headerPayload: SeriesHeaderRequest, detailPayload: SeriesDetailRequest[])
+export const createSeries = async (headerPayload: SeriesHeaderRequest, detailPayload: SeriesDetailRequest[]) => {
+  // (headerPayload: SeriesHeaderRequest, detailPayload: SeriesDetailRequest[])
   const client = await db.connect();
   try {
     await client.query(TRANS.BEGIN);
@@ -58,23 +58,22 @@ export const getSeries = async () => {
   }
 };
 
-
 export const deleteSeries = async (id: string) => {
   const client = await db.connect();
   try {
     await client.query(TRANS.BEGIN);
     const detailResult = await client.query(
-        `
+      `
             DELETE FROM mst_series_det WHERE series_id = $1
             `,
-        [id]
+      [id]
     );
 
     const headerResult = await client.query(
-        `
+      `
             DELETE FROM mst_series WHERE id = $1 RETURNING series_code
             `,
-        [id]
+      [id]
     );
 
     if (detailResult.rowCount === 0 || headerResult.rowCount === 0) {
@@ -118,7 +117,7 @@ export const getSeriesDetail = async (id: string) => {
     await client.query(TRANS.BEGIN);
 
     const result = await client.query(
-        `
+      `
       SELECT 
         s.id AS series_id,
         s.series_name,
@@ -177,7 +176,7 @@ export const getSeriesDetail = async (id: string) => {
         s.id = $1
       ORDER BY q_selected.added_at DESC
       `,
-        [id]
+      [id]
     );
 
     await client.query(TRANS.COMMIT);
@@ -195,7 +194,7 @@ export const getSeriesDetail = async (id: string) => {
       created_at: result.rows[0].created_date,
       updated_by: result.rows[0].updated_by,
       updated_date: result.rows[0].updated_date,
-      questions: result.rows.map(row => ({
+      questions: result.rows.map((row) => ({
         id: row.detail_id,
         question_id: row.question_id,
         sequence: row.q_seq,
@@ -206,17 +205,17 @@ export const getSeriesDetail = async (id: string) => {
         category_name: row.category_name,
         category_code: row.category_code,
         answers: [
-          { text: row.answer_choice_a_text, image: row.answer_choice_a_image_url, point: row.key_answer_point_a},
-          { text: row.answer_choice_b_text, image: row.answer_choice_b_image_url, point: row.key_answer_point_b},
-          { text: row.answer_choice_c_text, image: row.answer_choice_c_image_url, point: row.key_answer_point_c},
-          { text: row.answer_choice_d_text, image: row.answer_choice_d_image_url, point: row.key_answer_point_d},
-          { text: row.answer_choice_e_text, image: row.answer_choice_e_image_url, point: row.key_answer_point_a},
+          { text: row.answer_choice_a_text, image: row.answer_choice_a_image_url, point: row.key_answer_point_a },
+          { text: row.answer_choice_b_text, image: row.answer_choice_b_image_url, point: row.key_answer_point_b },
+          { text: row.answer_choice_c_text, image: row.answer_choice_c_image_url, point: row.key_answer_point_c },
+          { text: row.answer_choice_d_text, image: row.answer_choice_d_image_url, point: row.key_answer_point_d },
+          { text: row.answer_choice_e_text, image: row.answer_choice_e_image_url, point: row.key_answer_point_a },
         ],
         category_id: row.category_id,
         question_code: row.question_code,
         added_by: row.added_by,
         added_at: row.added_at,
-      }))
+      })),
     };
 
     return seriesDetail;
@@ -239,10 +238,10 @@ export const deleteQuestionFromSeries = async (seriesId: string, questionId: str
     const headerResult = await client.query(headerQ, headerV);
 
     const result = await client.query(
-        `
+      `
         DELETE FROM mst_series_det WHERE series_id = $1 AND question_id = $2
         `,
-        [seriesId, questionId]
+      [seriesId, questionId]
     );
 
     if (result.rowCount === 0) {
@@ -257,30 +256,29 @@ export const deleteQuestionFromSeries = async (seriesId: string, questionId: str
   } finally {
     client.release();
   }
-}
+};
 
 export const getAvailableQuestionsForSeries = async (seriesId: string) => {
   const client = await db.connect();
   try {
-    await client.query('BEGIN');
+    await client.query("BEGIN");
 
-    const existingQuestions = await client.query(
-        `SELECT question_id FROM mst_series_det WHERE series_id = $1`,
-        [seriesId]
-    );
+    const existingQuestions = await client.query(`SELECT question_id FROM mst_series_det WHERE series_id = $1`, [
+      seriesId,
+    ]);
 
-    const existingIds = existingQuestions.rows.map(r => r.question_id);
+    const existingIds = existingQuestions.rows.map((r) => r.question_id);
 
-    let exclusionClause = '';
+    let exclusionClause = "";
     let queryParams: any[] = [];
 
     if (existingIds.length > 0) {
       queryParams.push(existingIds);
-      exclusionClause = 'WHERE id != ALL($1)';
+      exclusionClause = "WHERE id != ALL($1)";
     }
 
     const result = await client.query(
-        `
+      `
       SELECT 
         id, 
         question_code
@@ -288,15 +286,14 @@ export const getAvailableQuestionsForSeries = async (seriesId: string) => {
       ${exclusionClause}
       ORDER BY question_code
       `,
-        queryParams
+      queryParams
     );
 
-    await client.query('COMMIT');
+    await client.query("COMMIT");
 
     return result.rows;
-
   } catch (error) {
-    await client.query('ROLLBACK');
+    await client.query("ROLLBACK");
     throw error;
   } finally {
     client.release();
