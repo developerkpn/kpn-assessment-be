@@ -1,7 +1,8 @@
 import {
   handleCreateCriteria,
   handleDeleteCriteria,
-  handleGetCriteria, handleGetCriteriaDetail,
+  handleGetCriteria,
+  handleGetCriteriaDetail,
   handleUpdateCriteria,
 } from "#dep/controllers/CriteriaController";
 import { checkPermission } from "#dep/middleware/auth";

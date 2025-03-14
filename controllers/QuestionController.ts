@@ -1,9 +1,4 @@
-import {
-  AnswerResponse,
-  QuestionFields,
-  QuestionRequest,
-  QuestionResult,
-} from "#dep/types/MasterDataTypes";
+import { AnswerResponse, QuestionFields, QuestionRequest, QuestionResult } from "#dep/types/MasterDataTypes";
 import { Request, Response } from "express";
 import { v4 as uuidv4 } from "uuid";
 import path from "path";
@@ -64,8 +59,7 @@ const parseQuestionForm = async (
       for (let key in files) {
         if (key === "q_input_image" && files[key]) {
           const oldFilePath = files[key][0].filepath;
-          const originalFilename =
-            files[key][0].originalFilename || "default_filename";
+          const originalFilename = files[key][0].originalFilename || "default_filename";
           const extension = path.extname(originalFilename);
 
           const newFilename = `question${extension}`;
@@ -86,13 +80,10 @@ const parseQuestionForm = async (
         if (match && files[key]) {
           const index = parseInt(match[1], 10);
           const oldFilePath = files[key][0].filepath;
-          const originalFilename =
-            files[key][0].originalFilename || "default_filename";
+          const originalFilename = files[key][0].originalFilename || "default_filename";
           const extension = path.extname(originalFilename);
 
-          const newFilename = `answer_${String.fromCharCode(
-            97 + index
-          )}${extension}`;
+          const newFilename = `answer_${String.fromCharCode(97 + index)}${extension}`;
           const newFilePath = path.join(dir, newFilename);
 
           if (fs.existsSync(newFilePath)) {
@@ -110,7 +101,7 @@ const parseQuestionForm = async (
         q_input_text: fields.q_input_text ? fields.q_input_text[0] : undefined,
         q_input_image_url: files.q_input_image ? q_input_image_url : undefined,
         category_id: fields.category_id ? fields.category_id[0] : undefined,
-        answer_type: fields.answer_type ? fields.answer_type[0] : undefined,  
+        answer_type: fields.answer_type ? fields.answer_type[0] : undefined,
       };
 
       console.log("QAFields: ", QAFields);
@@ -127,9 +118,7 @@ const removeImageFile = (dir: string, baseFileName: string) => {
       return;
     }
 
-    const matchingFile = files.find(
-      (file) => path.parse(file).name === baseFileName
-    );
+    const matchingFile = files.find((file) => path.parse(file).name === baseFileName);
 
     if (matchingFile) {
       const filePath = path.join(dir, matchingFile);
@@ -144,10 +133,7 @@ const removeImageFile = (dir: string, baseFileName: string) => {
   });
 };
 
-export const handleCreateQuestion = async (
-  req: Request,
-  res: Response
-): Promise<any> => {
+export const handleCreateQuestion = async (req: Request, res: Response): Promise<any> => {
   const id = uuidv4();
   const dir = path.join(__dirname, `../uploads/question/${id}`);
   const today = new Date();
@@ -190,10 +176,7 @@ export const handleCreateQuestion = async (
   }
 };
 
-export const handleUpdateQuestion = async (
-  req: Request,
-  res: Response
-): Promise<any> => {
+export const handleUpdateQuestion = async (req: Request, res: Response): Promise<any> => {
   const id = req.params.id;
   const dir = path.join(__dirname, `../uploads/question/${id}`);
   const today = new Date();
@@ -297,10 +280,7 @@ export const handleGetQuestionById = async (req: Request, res: Response) => {
       }
     });
 
-    const totalPoints = answers.reduce(
-      (acc, answer) => acc + Number(answer.point),
-      0
-    );
+    const totalPoints = answers.reduce((acc, answer) => acc + Number(answer.point), 0);
 
     const formattedResult: QuestionResult = {
       id: result.id,

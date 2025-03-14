@@ -82,9 +82,10 @@ export const getFunctionMenuDetail = async (id: string) => {
   try {
     await client.query(TRANS.BEGIN);
     const result = await client.query(
-        `
+      `
         SELECT * FROM mst_function_menu WHERE id = $1
-        `, [id]
+        `,
+      [id]
     );
 
     return result.rows[0];
@@ -95,5 +96,4 @@ export const getFunctionMenuDetail = async (id: string) => {
   } finally {
     client.release();
   }
-}
-
+};

@@ -14,6 +14,7 @@ const AuthController = {
       email = em;
       token_auth = token;
     }
+
     try {
       console.log(token_auth);
       const { data } = await axiosDarwin.post(

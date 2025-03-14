@@ -36,7 +36,6 @@ const devSettings = {
 
 export const db = new Pool(process.env.NODE_ENV === "production" ? prodSettings : devSettings);
 
-
 // import pg from "pg";
 // const { Pool, types } = pg;
 // import dotenv from "dotenv";

@@ -15,22 +15,14 @@ import { NextFunction, Request, Response } from "express";
 import { v4 as uuidv4 } from "uuid";
 import { Validation } from "#dep/validation/Validation";
 import { SeriesValidation } from "#dep/validation/SeriesValidation";
-import {
-  SeriesDetailRequest,
-  SeriesHeaderRequest,
-  SeriesQuery,
-  SeriesRequests,
-} from "#dep/types/SeriesTypes";
+import { SeriesDetailRequest, SeriesHeaderRequest, SeriesQuery, SeriesRequests } from "#dep/types/SeriesTypes";
 import { deleteQuestion } from "#dep/models/QuestionModel";
 import { async } from "rxjs";
 import { boolean, number } from "zod";
 
 export const handleGetQuestionsList = async (req: Request, res: Response) => {
   try {
-    const validatedQuery: SeriesQuery = Validation.validate(
-      SeriesValidation.QUERY,
-      req.query
-    );
+    const validatedQuery: SeriesQuery = Validation.validate(SeriesValidation.QUERY, req.query);
     const result = await getListQuestionForSeries(
       validatedQuery.page!,
       validatedQuery.search!,
@@ -47,23 +39,12 @@ export const handleGetQuestionsList = async (req: Request, res: Response) => {
   }
 };
 
-export const handleGetAvailableQuestionForSeries = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const handleGetAvailableQuestionForSeries = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const validatedQuery: SeriesQuery = Validation.validate(
-      SeriesValidation.QUERY,
-      req.query
-    );
+    const validatedQuery: SeriesQuery = Validation.validate(SeriesValidation.QUERY, req.query);
     const validatedId = Validation.validate(SeriesValidation.ID, req.params.id);
 
-    const result = await getAvailableQuestionsForSeries(
-      validatedQuery.page!,
-      validatedQuery.search!,
-      validatedId
-    );
+    const result = await getAvailableQuestionsForSeries(validatedQuery.page!, validatedQuery.search!, validatedId);
 
     res.status(200).send({
       message: "Success!",
@@ -79,10 +60,7 @@ export const handleCreateSeries = async (req: Request, res: Response) => {
     const seriesId = uuidv4();
     const creator = req.userDecode!.user_id;
 
-    const validatedRequest = Validation.validate(
-      SeriesValidation.CREATE,
-      request
-    );
+    const validatedRequest = Validation.validate(SeriesValidation.CREATE, request);
 
     const seriesHeaderRequest: SeriesHeaderRequest = {
       id: seriesId,
@@ -94,15 +72,13 @@ export const handleCreateSeries = async (req: Request, res: Response) => {
       created_date: date,
     };
 
-    const seriesDetailRequest = validatedRequest.detail.map(
-      (prev: SeriesDetailRequest) => ({
-        ...prev,
-        id: uuidv4(),
-        series_id: seriesId,
-        added_by: creator,
-        added_at: date,
-      })
-    );
+    const seriesDetailRequest = validatedRequest.detail.map((prev: SeriesDetailRequest) => ({
+      ...prev,
+      id: uuidv4(),
+      series_id: seriesId,
+      added_by: creator,
+      added_at: date,
+    }));
 
     const result = await createSeries(seriesHeaderRequest, seriesDetailRequest); //(seriesHeaderRequest, seriesDetailRequest)
     res.status(200).send({
@@ -118,10 +94,7 @@ export const handleCreateSeries = async (req: Request, res: Response) => {
 
 export const handleGetSeries = async (req: Request, res: Response) => {
   try {
-    const validatedQuery: SeriesQuery = Validation.validate(
-      SeriesValidation.QUERY,
-      req.query
-    );
+    const validatedQuery: SeriesQuery = Validation.validate(SeriesValidation.QUERY, req.query);
     const result = await getSeries(
       validatedQuery.page!,
       validatedQuery.search!,
@@ -160,10 +133,7 @@ export const handleUpdateSeries = async (req: Request, res: Response) => {
   const id = req.params.id;
   const payload = { ...req.body, updated_date: today };
   try {
-    const validatedRequest = Validation.validate(
-      SeriesValidation.UPDATE,
-      payload
-    );
+    const validatedRequest = Validation.validate(SeriesValidation.UPDATE, payload);
     const validatedId = Validation.validate(SeriesValidation.ID, id);
     let result = await updateSeries(validatedRequest, validatedId);
     res.status(200).send({
@@ -195,10 +165,7 @@ export const handleGetDetailSeries = async (req: Request, res: Response) => {
 export const handleSeriesListQuestion = async (req: Request, res: Response) => {
   try {
     const validatedId = Validation.validate(SeriesValidation.ID, req.params.id);
-    const validatedQuery: SeriesQuery = Validation.validate(
-      SeriesValidation.QUERY,
-      req.query
-    );
+    const validatedQuery: SeriesQuery = Validation.validate(SeriesValidation.QUERY, req.query);
     const result = await getSeriesListQuestion(
       validatedId,
       validatedQuery.page!,
@@ -216,16 +183,10 @@ export const handleSeriesListQuestion = async (req: Request, res: Response) => {
   }
 };
 
-export const handleAddQuestionToSeries = async (
-  req: Request,
-  res: Response
-) => {
+export const handleAddQuestionToSeries = async (req: Request, res: Response) => {
   try {
     const validatedId = Validation.validate(SeriesValidation.ID, req.params.id);
-    const validatedRequest = Validation.validate(
-      SeriesValidation.ADDQUESTION,
-      req.body
-    );
+    const validatedRequest = Validation.validate(SeriesValidation.ADDQUESTION, req.body);
     const updatedBy = req.userDecode!.user_id;
     const updatedAt = new Date();
     const addedBy = updatedBy;
@@ -236,15 +197,13 @@ export const handleAddQuestionToSeries = async (
       updated_date: updatedAt,
     };
 
-    const seriesDetailRequest = validatedRequest.detail.map(
-      (prev: SeriesDetailRequest) => ({
-        ...prev,
-        id: uuidv4(),
-        series_id: validatedId,
-        added_by: addedBy,
-        added_at: addedAt,
-      })
-    );
+    const seriesDetailRequest = validatedRequest.detail.map((prev: SeriesDetailRequest) => ({
+      ...prev,
+      id: uuidv4(),
+      series_id: validatedId,
+      added_by: addedBy,
+      added_at: addedAt,
+    }));
 
     await addQuestionToSeries(validatedId, updatePayload, seriesDetailRequest);
 
@@ -258,19 +217,10 @@ export const handleAddQuestionToSeries = async (
   }
 };
 
-export const handleDeleteQuestionFromSeries = async (
-  req: Request,
-  res: Response
-) => {
+export const handleDeleteQuestionFromSeries = async (req: Request, res: Response) => {
   try {
-    const validatedSeriesId = Validation.validate(
-      SeriesValidation.ID,
-      req.params.id
-    );
-    const validatedDetailId = Validation.validate(
-      SeriesValidation.ID,
-      req.params.questionId
-    );
+    const validatedSeriesId = Validation.validate(SeriesValidation.ID, req.params.id);
+    const validatedDetailId = Validation.validate(SeriesValidation.ID, req.params.questionId);
     const updatedBy = req.userDecode!.user_id;
     const updatedAt = new Date();
 
@@ -279,11 +229,7 @@ export const handleDeleteQuestionFromSeries = async (
       updated_date: updatedAt,
     };
 
-    await deleteQuestionFromSeries(
-      validatedDetailId,
-      validatedSeriesId,
-      updatePayload
-    );
+    await deleteQuestionFromSeries(validatedDetailId, validatedSeriesId, updatePayload);
 
     res.status(200).send({
       message: "Success Delete Question!",

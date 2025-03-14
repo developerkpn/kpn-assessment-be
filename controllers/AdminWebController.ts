@@ -15,12 +15,12 @@ import {
 } from "#dep/models/AdminWebModel";
 import { Emailer } from "#dep/services/mail/Emailer";
 import { User } from "#dep/types/AdminTypes";
-import {NextFunction, Request, Response} from "express";
+import { NextFunction, Request, Response } from "express";
 import { Secret, sign, verify } from "jsonwebtoken";
 import { v4 as uuidv4 } from "uuid";
-import {Validation} from "#dep/validation/Validation";
-import {AdminWebValidation} from "#dep/validation/AdminWebValidation";
-import {ResponseError} from "#dep/error/response-error";
+import { Validation } from "#dep/validation/Validation";
+import { AdminWebValidation } from "#dep/validation/AdminWebValidation";
+import { ResponseError } from "#dep/error/response-error";
 
 export const handleLoginAdmin = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
@@ -131,8 +131,7 @@ export const handleCreateAdmin = async (req: Request, res: Response, next: NextF
   try {
     const today = new Date();
     const data = req.body;
-    const password =
-        (process.env.DEFAULT_PASS as string) + Math.floor(1000 + Math.random() * 9000).toString();
+    const password = (process.env.DEFAULT_PASS as string) + Math.floor(1000 + Math.random() * 9000).toString();
     const hashed = await hashPassword(password);
 
     const validatedRequest = Validation.validate(AdminWebValidation.CREATEADMIN, req.body);
@@ -183,7 +182,6 @@ export const handleReqResetPassword = async (req: Request, res: Response, next: 
     res.status(200).send({
       message: "OTP sent, please check your email address",
     });
-
   } catch (e) {
     next(e);
   }

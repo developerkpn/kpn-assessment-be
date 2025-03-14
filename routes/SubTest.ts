@@ -1,10 +1,13 @@
 import { Router } from "express";
-import {checkPermission} from "#dep/middleware/auth";
+import { checkPermission } from "#dep/middleware/auth";
 import {
-    handleCreateSubTest, handleDeleteSeriesFromSubTest,
-    handleDeleteSubTest, handleGetAvailableSeriesForSubTest,
-    handleGetSubTest, handleGetSubTestDetail,
-    handleUpdateSubTest
+  handleCreateSubTest,
+  handleDeleteSeriesFromSubTest,
+  handleDeleteSubTest,
+  handleGetAvailableSeriesForSubTest,
+  handleGetSubTest,
+  handleGetSubTestDetail,
+  handleUpdateSubTest,
 } from "#dep/controllers/SubTestController";
 const SubTest = Router();
 
@@ -17,4 +20,3 @@ SubTest.get("/:id/series-available", checkPermission("fread", 12), handleGetAvai
 SubTest.delete("/:id/series/:detailId", checkPermission("fdelete", 12), handleDeleteSeriesFromSubTest);
 
 export default SubTest;
-

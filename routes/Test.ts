@@ -1,11 +1,13 @@
 import { Router } from "express";
-import {checkPermission} from "#dep/middleware/auth";
+import { checkPermission } from "#dep/middleware/auth";
 import {
-    handleCreateTest, handleDeleteSubTestFromTest,
-    handleDeleteTest, handleGetAvailableSubTestForTest,
-    handleGetTest,
-    handleGetTestDetail,
-    handleUpdateTest
+  handleCreateTest,
+  handleDeleteSubTestFromTest,
+  handleDeleteTest,
+  handleGetAvailableSubTestForTest,
+  handleGetTest,
+  handleGetTestDetail,
+  handleUpdateTest,
 } from "#dep/controllers/TestController";
 const Test = Router();
 

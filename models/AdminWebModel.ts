@@ -3,11 +3,7 @@ import { TRANSACTION as TRANS } from "#dep/config/transaction";
 import { accessExpiry, refreshExpiry } from "#dep/constant";
 import { createOTP } from "#dep/helper/auth/OTP";
 import { hashPassword, validatePassword } from "#dep/helper/auth/password";
-import {
-  deleteQuery,
-  insertQuery,
-  updateQuery,
-} from "#dep/helper/queryBuilder";
+import { deleteQuery, insertQuery, updateQuery } from "#dep/helper/queryBuilder";
 import { Emailer } from "#dep/services/mail/Emailer";
 import { User } from "#dep/types/AdminTypes";
 import { Secret, sign, verify } from "jsonwebtoken";
@@ -17,13 +13,13 @@ export const loginAdmin = async (emailOrUname: string, password: string) => {
 
   try {
     await client.query(TRANS.BEGIN);
-    const checkUserData = await client.query(
-      "SELECT * FROM mst_admin_web WHERE username = $1 OR email = $1",
-      [emailOrUname]
-    );
+    const checkUserData = await client.query("SELECT * FROM mst_admin_web WHERE username = $1 OR email = $1", [
+      emailOrUname,
+    ]);
     if (checkUserData.rows.length === 0) {
       throw new Error("User Not Found");
     }
+
     const data = checkUserData.rows[0];
 
     const permission = await client.query(
@@ -57,11 +53,7 @@ export const loginAdmin = async (emailOrUname: string, password: string) => {
       { expiresIn: refreshExpiry }
     );
 
-    const [insertToken, valueToken] = updateQuery(
-      "mst_admin_web",
-      { refresh_token: refreshToken },
-      { id: data.id }
-    );
+    const [insertToken, valueToken] = updateQuery("mst_admin_web", { refresh_token: refreshToken }, { id: data.id });
     await client.query(insertToken, valueToken);
 
     await client.query(TRANS.COMMIT);
@@ -85,19 +77,19 @@ export const loginAdmin = async (emailOrUname: string, password: string) => {
   }
 };
 
-export const verifyPermission = async (roleId:any, menuId:any) => {
+export const verifyPermission = async (roleId: any, menuId: any) => {
   const client = await db.connect();
 
   try {
     await client.query(TRANS.BEGIN);
 
     const checkPermission = await client.query(
-        `
+      `
         SELECT menu_id, fcreate, fread, fupdate, fdelete
         FROM mst_menu_access
         WHERE role_id = $1 AND menu_id = $2
       `,
-        [roleId, menuId]
+      [roleId, menuId]
     );
 
     const permission = checkPermission.rows[0];
@@ -110,7 +102,7 @@ export const verifyPermission = async (roleId:any, menuId:any) => {
   } finally {
     client.release();
   }
-}
+};
 
 export const getNewToken = async (data: User) => {
   const client = await db.connect();
@@ -216,10 +208,10 @@ export const createAdmin = async (payload: any) => {
   try {
     await client.query(TRANS.BEGIN);
 
-    const checkUserExist = await client.query(
-      "SELECT * FROM mst_admin_web WHERE username = $1 OR email = $2",
-      [payload.username, payload.email]
-    );
+    const checkUserExist = await client.query("SELECT * FROM mst_admin_web WHERE username = $1 OR email = $2", [
+      payload.username,
+      payload.email,
+    ]);
     if (checkUserExist.rows.length > 0) {
       throw new Error("User already exist");
     }
@@ -272,10 +264,7 @@ export const reqResetPassword = async (email: string) => {
 
   try {
     await client.query(TRANS.BEGIN);
-    const checkRegis = await client.query(
-      "SELECT * FROM mst_admin_web where email = $1",
-      [email]
-    );
+    const checkRegis = await client.query("SELECT * FROM mst_admin_web where email = $1", [email]);
     if (checkRegis.rows.length === 0) {
       throw new Error("User not registered yet");
     }
@@ -309,10 +298,7 @@ export const resetPassword = async (newPass: string, email: string) => {
 
   try {
     await client.query(TRANS.BEGIN);
-    const checkUser = await client.query(
-      "SELECT * FROM mst_admin_web WHERE email = $1",
-      [email]
-    );
+    const checkUser = await client.query("SELECT * FROM mst_admin_web WHERE email = $1", [email]);
     if (checkUser.rows.length == 0) {
       throw new Error("User not found");
     }
@@ -320,12 +306,7 @@ export const resetPassword = async (newPass: string, email: string) => {
     const payload = {
       password: hashedNewPass,
     };
-    const [updatePassQuery, updatePassValue] = updateQuery(
-      "mst_admin_web",
-      payload,
-      { email: email },
-      "username"
-    );
+    const [updatePassQuery, updatePassValue] = updateQuery("mst_admin_web", payload, { email: email }, "username");
     await client.query(updatePassQuery, updatePassValue);
 
     const [cleanQuery, cleanValue] = deleteQuery("otp_trans", { email: email });
@@ -392,34 +373,19 @@ export const createRole = async (payload: any, accessPayload: any) => {
   }
 };
 
-export const updateRole = async (
-  id: string,
-  payload: any,
-  permPayload: any
-) => {
+export const updateRole = async (id: string, payload: any, permPayload: any) => {
   const client = await db.connect();
 
   try {
     await client.query(TRANS.BEGIN);
 
-    const [queryInsertRole, valueInsertRole] = updateQuery(
-      "mst_role",
-      payload,
-      { id },
-      "id"
-    );
+    const [queryInsertRole, valueInsertRole] = updateQuery("mst_role", payload, { id }, "id");
     const { rows } = await client.query(queryInsertRole, valueInsertRole);
 
-    const [queryDeleteAccess, valueDeleteAccess] = deleteQuery(
-      "mst_menu_access",
-      { role_id: id }
-    );
+    const [queryDeleteAccess, valueDeleteAccess] = deleteQuery("mst_menu_access", { role_id: id });
     await client.query(queryDeleteAccess, valueDeleteAccess);
 
-    const [queryInsertAccess, valueInsertAccess] = insertQuery(
-      "mst_menu_access",
-      permPayload
-    );
+    const [queryInsertAccess, valueInsertAccess] = insertQuery("mst_menu_access", permPayload);
     await client.query(queryInsertAccess, valueInsertAccess);
 
     await client.query(TRANS.COMMIT);

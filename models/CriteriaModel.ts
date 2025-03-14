@@ -1,11 +1,6 @@
 import { db } from "#dep/config/connection";
 import { TRANSACTION as TRANS } from "#dep/config/transaction";
-import {
-  deleteQuery,
-  insertQuery,
-  updateCriteriaQuery,
-  updateQuery,
-} from "#dep/helper/queryBuilder";
+import { deleteQuery, insertQuery, updateCriteriaQuery, updateQuery } from "#dep/helper/queryBuilder";
 import { Criteria, CriteriaGroup } from "#dep/types/MasterDataTypes";
 
 export const createCriteria = async (groupPayload: CriteriaGroup, criteriaPayload: Criteria[]) => {
@@ -83,11 +78,7 @@ export const deleteCriteria = async (id: string) => {
   }
 };
 
-export const updateCriteria = async (
-  payload: CriteriaGroup,
-  newCriteria: Criteria[],
-  id: string
-) => {
+export const updateCriteria = async (payload: CriteriaGroup, newCriteria: Criteria[], id: string) => {
   const client = await db.connect();
   try {
     await client.query(TRANS.BEGIN);
@@ -122,14 +113,14 @@ export const getCriteriaDetail = async (id: string) => {
   try {
     await client.query(TRANS.BEGIN);
     const result = await client.query(
-        `
+      `
       SELECT v.id AS value_id, v.value_name, v.value_code, cr.criteria_name, cr.minimum_score, cr.maximum_score
       FROM mst_value v
       LEFT JOIN mst_criteria cr ON v.id = cr.category_fk
       WHERE v.id = $1
       ORDER BY cr.minimum_score ASC
       `,
-        [id]
+      [id]
     );
     await client.query(TRANS.COMMIT);
     return result.rows;

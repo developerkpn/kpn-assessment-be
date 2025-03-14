@@ -19,9 +19,9 @@ export type TokenPayload = {
 };
 
 export type Permission = {
-    menu_id: number;
-    fcreate: boolean;
-    fread: boolean;
-    fupdate: boolean;
-    fdelete: boolean;
+  menu_id: number;
+  fcreate: boolean;
+  fread: boolean;
+  fupdate: boolean;
+  fdelete: boolean;
 };

@@ -1,14 +1,9 @@
 import { BRIEF_ID, PP_ID, TERMS_ID } from "#dep/constant";
-import {
-  getShortBrief,
-  getTermsPP,
-  updateShortBrief,
-  updateTermsPP,
-} from "#dep/models/TermsPPModel";
+import { getShortBrief, getTermsPP, updateShortBrief, updateTermsPP } from "#dep/models/TermsPPModel";
 import { BriefRequest, TermsPPRequest } from "#dep/types/MasterDataTypes";
 import { Request, Response } from "express";
-import {Validation} from "#dep/validation/Validation";
-import {TermsPPValidation} from "#dep/validation/TermsPPValidation";
+import { Validation } from "#dep/validation/Validation";
+import { TermsPPValidation } from "#dep/validation/TermsPPValidation";
 
 export const handleGetTermsPP = async (_req: Request, res: Response) => {
   let data = { terms: "", pp: "" };
