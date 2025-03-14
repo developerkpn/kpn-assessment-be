@@ -2,6 +2,7 @@
 import { Request, Response, NextFunction} from "express";
 import {getBatchDetail} from "#dep/models/BatchModel";
 import {
+    checkSubTestIsTaken,
     createAssessmentProgressDetail, getAssessmentSubTest, getAssessmentTest,
     getBatchByAssessment,
     getProgressDetail,
@@ -9,7 +10,7 @@ import {
     getQuestionAssessment,
     getQuestionsBySeriesId,
     getSeriesBySubtestId,
-    getSubtestIdbyProgressId, getTestStatus, storeAnswer,
+    getSubtestIdbyProgressId, getTakenQuestions, getTestStatus, storeAnswer, storeTakenQuestions,
     updateAssessmentStart
 } from "#dep/models/transactions/AssessmentModel";
 import {Validation} from "#dep/validation/Validation";
@@ -21,6 +22,8 @@ import {Secret, verify} from "jsonwebtoken";
 import {AssessmentToken} from "#dep/types/Transaction";
 import {getSubTestIdByTestId, getTest} from "#dep/models/TestModel";
 import {getSeriesDetail} from "#dep/models/SeriesModel";
+import fs from "fs";
+import path from "path";
 
 const handleAssessmentToken = async (token: string) => {
     try {
@@ -93,57 +96,170 @@ export const handleGetBatchDetail = async (req: Request, res: Response, next: Ne
     }
 };
 
+const handleUntakenQuestions = async () => {
+
+}
+
+const handleTakenQuestions = async (req: Request, res: Response, next: NextFunction) => {
+
+}
 
 export const handleGetAsssessmentQuestion = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const progressDetailId = req.params.id;
         const subtest = await getSubtestIdbyProgressId(progressDetailId);
 
+
+        console.log("Masuk hey")
         console.log(progressDetailId)
         console.log(subtest)
-        // Get and randomize series
-        const seriesList: any[] = await getSeriesBySubtestId(subtest.subtest_id);
-        const choosenSeriesId = seriesList[Math.floor(Math.random() * seriesList.length)].series_id;
 
-        console.log(seriesList)
-        console.log(choosenSeriesId)
-        // Get and randomize questions
-        const questionList = await getQuestionsBySeriesId(choosenSeriesId);
-        const shuffledQuestions = questionList.sort(() => Math.random() - 0.5);
-        console.log(questionList)
-        console.log(shuffledQuestions)
+        // Cek apakah ada det_id pada t_store_answer
+        const checkQuestionIsAlreadyTaken = await checkSubTestIsTaken(progressDetailId);
+        console.log(checkQuestionIsAlreadyTaken)
+        let response;
+        // Kalo ada dia berarti udah pernah diambil
+        if (checkQuestionIsAlreadyTaken) {
+            console.log("Masuk hey 1")
+            const takenQuestion: any = await getTakenQuestions(progressDetailId);
+            console.log(takenQuestion);
+            // [
+            //     {
+            //         id: '01958973-8ec1-7886-8816-f95c748fef68',
+            //         det_id: '01953628-4eb9-7330-84cf-a02261b913ce',
+            //         question_id: '3c8388e3-de9c-47f5-b371-e0f19a42fb6a',
+            //         answer_a: false,
+            //         answer_b: false,
+            //         answer_c: false,
+            //         answer_d: false,
+            //         answer_e: false
+            //     },
+            //     {
+            //         id: '01958973-8ec1-7886-8817-069627f9c1fe',
+            //         det_id: '01953628-4eb9-7330-84cf-a02261b913ce',
+            //         question_id: '3c8388e3-de9c-47f5-b371-e0f19a42fb6a',
+            //         answer_a: false,
+            //         answer_b: false,
+            //         answer_c: false,
+            //         answer_d: false,
+            //         answer_e: false
+            //     }
+            // ]
+            const questionIds = takenQuestion.map((q: any) => q.question_id);
+            console.log(questionIds);
+            const questions = await getQuestionAssessment(questionIds);
+            console.log(questions);
+            console.log(subtest)
+            // Format response
+            response = {
+                det_id: progressDetailId,
+                duration: subtest.subtest_duration? subtest.subtest_duration : "00:00:60",
+                questions: questions.map((q: any) => {
+                    // Cari taken question yang sesuai berdasarkan question_id
+                    const taken = takenQuestion.find((t: any) => t.question_id === q.id);
 
-        // Get detailed question information
-        const questions = await getQuestionAssessment(shuffledQuestions.map(q => q.question_id));
-        console.log(questions);
+                    return {
+                        question_id: q.id,
+                        input: {
+                            text: q.q_input_text,
+                            image_url: q.q_input_image_url
+                        },
+                        answer_type: q.answer_type,
+                        choices: {
+                            a: { text: q.answer_choice_a_text, image_url: q.answer_choice_a_image_url },
+                            b: { text: q.answer_choice_b_text, image_url: q.answer_choice_b_image_url },
+                            c: { text: q.answer_choice_c_text, image_url: q.answer_choice_c_image_url },
+                            d: { text: q.answer_choice_d_text, image_url: q.answer_choice_d_image_url },
+                            e: { text: q.answer_choice_e_text, image_url: q.answer_choice_e_image_url }
+                        },
+                        choosen_answer:
+                            {
+                                a: taken.answer_a,
+                                b: taken.answer_b,
+                                c: taken.answer_c,
+                                d: taken.answer_d,
+                                e: taken.answer_e
+                            }
+                    };
+                })
+            };
+        } else {
+            console.log("Masuk hey 2")
+            // Get and randomize series
+            const seriesList: any[] = await getSeriesBySubtestId(subtest.subtest_id);
+            const choosenSeriesId = seriesList[Math.floor(Math.random() * seriesList.length)].series_id;
 
-        // Format response
-        const response = {
-            det_id: progressDetailId,
-            duration: subtest.duration || "01:00:00", // Default 1 hour if not specified
-            questions: questions.map((q: any) => ({
-                question_id: q.id,
-                input: {
-                    text: q.q_input_text,
-                    image_url: q.q_input_image_url
-                },
-                answer_type: q.answer_type,
-                choices: {
-                    a: { text: q.answer_choice_a_text, image_url: q.answer_choice_a_image_url },
-                    b: { text: q.answer_choice_b_text, image_url: q.answer_choice_b_image_url },
-                    c: { text: q.answer_choice_c_text, image_url: q.answer_choice_c_image_url },
-                    d: { text: q.answer_choice_d_text, image_url: q.answer_choice_d_image_url },
-                    e: { text: q.answer_choice_e_text, image_url: q.answer_choice_e_image_url }
-                }
-            }))
-        };
+            console.log(seriesList)
+            console.log(choosenSeriesId)
+            // Get and randomize questions
+            const questionList = await getQuestionsBySeriesId(choosenSeriesId);
+            const shuffledQuestions = questionList.sort(() => Math.random() - 0.5);
+            console.log(questionList)
+            // [
+            //     { question_id: 'bf58979f-e72e-47eb-adb7-cbecf1668792' },
+            //     { question_id: 'bf58979f-e72e-47eb-adb7-cbecf1668792' },
+            //     { question_id: 'bf58979f-e72e-47eb-adb7-cbecf1668792' },
+            //     { question_id: '032bd1b3-f1b6-4136-ba3e-1676478580b8' },
+            //     { question_id: 'a83e564e-fae2-47c5-96d4-b01ee40eb647' }
+            // ]
+            console.log(shuffledQuestions)
 
-        // Update assessment status
-        const updatePayload = {
-            taken_at: new Date(),
-            status: "In Progress",
-        };
-        await updateAssessmentStart(progressDetailId, updatePayload);
+            // Get detailed question information
+            const questions = await getQuestionAssessment(shuffledQuestions.map(q => q.question_id));
+            console.log(questions);
+
+            const storeQuestion = questionList.map((question: any) => ({
+                ...question,
+                id: uuid(), // id baru dengan UUID
+                det_id: progressDetailId
+            }));
+            console.log(questionList)
+            console.log("store the question");
+            console.log(storeQuestion);
+            await storeTakenQuestions(storeQuestion);
+
+            // Format response
+            response = {
+                det_id: progressDetailId,
+                duration: subtest.duration, // Default 1 hour if not specified
+                questions: questions.map((q: any) => ({
+                    question_id: q.id,
+                    input: {
+                        text: q.q_input_text,
+                        image_url: q.q_input_image_url
+                    },
+                    answer_type: q.answer_type,
+                    choices: {
+                        a: { text: q.answer_choice_a_text, image_url: q.answer_choice_a_image_url },
+                        b: { text: q.answer_choice_b_text, image_url: q.answer_choice_b_image_url },
+                        c: { text: q.answer_choice_c_text, image_url: q.answer_choice_c_image_url },
+                        d: { text: q.answer_choice_d_text, image_url: q.answer_choice_d_image_url },
+                        e: { text: q.answer_choice_e_text, image_url: q.answer_choice_e_image_url }
+                    },
+                    choosen_answer: {
+                        a: false,
+                        b: false,
+                        c: false,
+                        d: false,
+                        e: false
+                    }
+                }))
+            };
+
+            // Update assessment status
+            const updatePayload = {
+                taken_at: new Date(),
+                status: "In Progress",
+            };
+            await updateAssessmentStart(progressDetailId, updatePayload);
+        }
+            // Jalankan fungsi kalo dia dah pernah diambil
+                // Ambil soal yang udah diambil
+                // Ambil jawaban yang udah dipilih
+                // Cek durasinya sisa durasi
+        // Kalo ga ada berarti dia belum pernah diambil
+            // Jalankan fungsi belum pernah diambil
+            // Store question_id pada t_store_answer
 
         res.status(200).json({
             message: "Success!",
@@ -173,7 +289,7 @@ export const handleStoreAnswer = async (req: Request, res: Response, next: NextF
                     question_id: question_id,
                     answer: answerItem.answer
                 });
-            });
+           0 });
         });
 
         // Store each answer record separately
@@ -189,6 +305,17 @@ export const handleStoreAnswer = async (req: Request, res: Response, next: NextF
         next(e);
     }
 };
+
+export const handleStoringAnswer = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const answer = req.body;
+
+        // Cek tipenya apa
+        //
+    } catch (e) {
+        next(e);
+    }
+}
 
 export const handleGetAssessmentTest = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -240,5 +367,46 @@ export const handleGetAssessmentSubTest = async (req: Request, res: Response, ne
         })
     } catch (e) {
         next(e);
+    }
+}
+
+export const handleVideoProctoring = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        // Pastikan direktori uploads ada
+        const uploadDir = path.join(__dirname, '../uploads');
+        if (!fs.existsSync(uploadDir)) {
+            fs.mkdirSync(uploadDir, { recursive: true });
+        }
+
+        // Generate nama file unik
+        const fileName = `${Date.now()}.mp4`;
+        const filePath = path.join(uploadDir, fileName);
+        const writeStream = fs.createWriteStream(filePath);
+
+        // Tangani upload
+        req.pipe(writeStream);
+
+        // Tangani selesainya upload
+        writeStream.on('finish', () => {
+            res.status(200).json({
+                message: 'Video uploaded successfully',
+                path: `/uploads/${fileName}` // Path relatif untuk akses file
+            });
+        });
+
+        // Tangani error pada stream
+        writeStream.on('error', (err) => {
+            fs.unlinkSync(filePath); // Hapus file gagal
+            next(err);
+        });
+
+        // Tangani error pada request
+        req.on('error', (err) => {
+            fs.unlinkSync(filePath); // Hapus file gagal
+            next(err);
+        });
+
+    } catch (error) {
+        next(error);
     }
 }

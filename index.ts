@@ -8,9 +8,10 @@ import path from "path";
 import cors, { CorsOptions } from "cors";
 import cookieParser from "cookie-parser";
 import fs from "fs";
-import { origins as whitelist } from "#dep/config/allowedOrigins";
-import { credentials } from "./middleware/credential";
+import whitelist from "#dep/config/allowedOrigins";
+import  credentials  from "./middleware/credential";
 import router from "./routes";
+import {errorMiddleware} from "#dep/middleware/errorMiddleware";
 const app = express();
 const servOption = {
   cert: fs.readFileSync("./ssl/cert.pem"),
@@ -30,6 +31,8 @@ const corsOption: CorsOptions = {
   exposedHeaders: ["set-cookie"],
 };
 
+app.use(cors(corsOption));
+
 app.use("/api/static", express.static("uploads"));
 app.use((req, res, next) => {
   if (req.path.startsWith("/api/static")) {
@@ -37,26 +40,27 @@ app.use((req, res, next) => {
   }
   next();
 });
-app.use(cors(corsOption));
+
 
 app.use(credentials);
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(router);
+app.use(errorMiddleware);
 app.use(express.static(path.join(__dirname, "public/build")));
 app.get("/*$", (req, res) => {
   res.sendFile(path.join(__dirname, "public/build", "index.html"));
 });
 
 // app.listen(process.env.PORT as unknown as number, "0.0.0.0", () => {
-//   console.log(App running on ${process.env.PORT});
+//   console.log(`App running on ${process.env.PORT}`);
 // });
 
 const server = https.createServer(servOption, app).listen(process.env.PORT, () => {
-  console.log(`App running on, ${process.env.PORT}`);
+  console.log(`App running on ${process.env.PORT}`);
 });
 
 // app.listen(process.env.PORT as unknown as number, "0.0.0.0", () => {
-//   console.log(App running on http://localhost:${process.env.PORT});
+//   console.log(`App running on http://localhost:${process.env.PORT}`);
 // });

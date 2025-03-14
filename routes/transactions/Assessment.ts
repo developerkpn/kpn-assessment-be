@@ -2,7 +2,7 @@ import {Router} from "express";
 import {
     handleGetAssessmentSubTest, handleGetAssessmentTest,
     handleGetAsssessmentQuestion,
-    handleGetBatchDetail, handleStoreAnswer
+    handleGetBatchDetail, handleStoreAnswer, handleVideoProctoring
 } from "#dep/controllers/transaction/AssessmentController";
 import {handleGetQuestion} from "#dep/controllers/QuestionController";
 
@@ -16,6 +16,7 @@ Assessment.get("/:token/test/subtest/:id", handleGetAsssessmentQuestion);
 Assessment.get("/:token/test/:id", handleGetAssessmentSubTest);
 // Assessment.post("/test/:testId/subtest/:subtestId/start");
 Assessment.post("/:token/subtest/submission", handleStoreAnswer);
+Assessment.post("/video", handleVideoProctoring);
 // Assessment.get("/")
 // Assessment.get("/", );
 

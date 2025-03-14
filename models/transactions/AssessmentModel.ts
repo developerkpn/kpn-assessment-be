@@ -336,3 +336,70 @@ export const getTestStatus = async (headId: string, testId: string) => {
         client.release();
     }
 }
+
+export const checkSubTestIsTaken = async (detId: string) => {
+    const client = await db.connect();
+    try {
+        await client.query(TRANS.BEGIN);
+        const result = await client.query(
+            `
+            SELECT det_id FROM t_store_answer WHERE det_id = $1
+            `, [detId]
+        );
+        return result.rows[0];
+    } catch (e) {
+        await client.query(TRANS.ROLLBACK);
+        throw e;
+    } finally {
+        client.release();
+    }
+}
+
+export const getTakenQuestions = async (detId: string) => {
+    const client = await db.connect();
+    try {
+        await client.query(TRANS.BEGIN);
+        const result = await client.query(
+            `
+            SELECT * FROM t_store_answer WHERE det_id = $1
+            `, [detId]
+        );
+
+        return result.rows;
+    } catch (e) {
+        console.log(e);
+        await client.query(TRANS.ROLLBACK);
+        throw e;
+    } finally {
+        client.release();
+    }
+}
+
+export const storeTakenQuestions = async (payload: any) => {
+    const client = await db.connect();
+    try {
+        await client.query(TRANS.BEGIN);
+        const [Q, V] = insertQuery("t_store_answer", payload);
+        await client.query(Q, V);
+        await client.query(TRANS.COMMIT);
+    } catch (e) {
+        await client.query(TRANS.ROLLBACK);
+        throw e;
+    } finally {
+        client.release();
+    }
+}
+
+export const updateStoreQuestion = async (questionId: string, detId: string) => {
+    const client = await db.connect();
+    try {
+        await client.query(TRANS.BEGIN);
+        const [Q, V]
+        await client.query(TRANS.COMMIT);
+    } catch (e) {
+        await client.query(TRANS.ROLLBACK);
+        throw e;
+    } finally {
+        client.release();
+    }
+}
