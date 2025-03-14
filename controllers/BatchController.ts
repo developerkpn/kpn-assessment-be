@@ -28,7 +28,9 @@ import {
 } from "#dep/controllers/EmailTemplateController";
 import { ResponseError } from "#dep/error/response-error";
 import { Secret, sign } from "jsonwebtoken";
+import {emailTemplateHTML} from "#dep/helper/email/emailnotifmgrprc";
 // import { getTestFromChoosenGroupTest} from "#dep/models/GroupTestModel";
+import moment from "moment";
 
 export const handleCreateBatch = async (
   req: Request,
@@ -36,17 +38,29 @@ export const handleCreateBatch = async (
   next: NextFunction
 ) => {
   try {
-    console.log("masuk");
+
     const validatedRequest = Validation.validate(
       BatchValidation.CREATE,
       req.body
     );
-    console.log("masuk 2");
+
+    console.log("date")
+    console.log(validatedRequest.end_period)
+    console.log(moment(validatedRequest.end_period).toISOString())
+
+    const payload : any = {
+      ...validatedRequest,
+      start_period: moment(validatedRequest.start_period).toISOString(),
+      end_period: moment(validatedRequest.end_period).toISOString()
+    }
+
+    console.log(payload)
+
     const batch: BatchHeader = {
       id: uuid(),
       created_by: req.userDecode!.user_id,
       created_at: new Date(),
-      ...validatedRequest,
+      ...payload,
     };
 
 
@@ -279,10 +293,7 @@ export const handlePreviewBatchTemplateEmail = async (
   console.log("ini dia");
   console.log(req.body);
   try {
-    const template = fs.readFileSync(
-      `./helper/email/emailnotifmgrprc.html`,
-      "utf8"
-    );
+    const template = emailTemplateHTML;
     res.status(200).send({
       message: "Success!",
       template: template,

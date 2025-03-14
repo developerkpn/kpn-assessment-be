@@ -36,7 +36,5 @@ export class CriteriaValidation {
             )
     );
 
-    static readonly ID: ZodType = z.object({
-        id: z.string().uuid()
-    });
+    static readonly ID: ZodType = z.string().uuid();
 }
