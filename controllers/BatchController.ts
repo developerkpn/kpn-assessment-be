@@ -101,6 +101,9 @@ export const handleUpdateBatch = async (
 
     res.status(201).send({
       message: `Batch with code ${result} is updated successfully!`,
+      data: {
+        id: validatedId,
+      }
     });
   } catch (e) {
     next(e);
