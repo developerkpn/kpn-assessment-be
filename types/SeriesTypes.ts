@@ -1,19 +1,23 @@
 export type SeriesRequests = {
   series_name: string;
   series_code: string;
-  is_active: boolean;
+  is_active?: boolean;
   category_id: string;
-  detail: SeriesDetailRequest[]; // Pastikan ini sesuai dengan data yang diterima
+  questions: {
+    question_id: string;
+  }[];
 };
 
 export type SeriesHeaderRequest = {
-  id: string;
-  series_name: string;
-  series_code: string;
-  is_active: boolean;
-  category_id: string;
-  created_by: string;
-  created_date: Date;
+  id?: string;
+  series_name?: string;
+  series_code?: string;
+  is_active?: boolean;
+  category_id?: string;
+  created_by?: string;
+  created_date?: Date;
+  updated_by?: string;
+  updated_date?: Date;
 };
 
 export type SeriesQuery = {
