@@ -43,7 +43,18 @@ export const getEmailTemplate = async () => {
     await client.query(TRANS.BEGIN);
     const result = await client.query(
       `
-            SELECT * FROM mst_email_template ORDER BY created_at DESC;
+            SELECT 
+             e.id,
+             e.subject,
+             e.title,
+             e.header,
+             e.footer,
+             e.body,
+             a.fullname AS created_by,
+             e.created_at
+            FROM mst_email_template e
+            LEFT JOIN mst_admin_web a ON e.created_by = a.id
+            ORDER BY created_at DESC;
             `
     );
     await client.query(TRANS.COMMIT);
@@ -60,8 +71,15 @@ export const getEmailTemplate = async () => {
 export const deleteEmailTemplate = async (id: string) => {
   const client = await db.connect();
   try {
+    console.log(id);
     await client.query(TRANS.BEGIN);
-    deleteQuery("mst_email_template", id);
+    await client.query(
+      `
+        DELETE FROM mst_email_template
+        WHERE id = $1
+        `,
+      [id]
+    );
     await client.query(TRANS.COMMIT);
   } catch (error) {
     console.error(error);
@@ -79,7 +97,7 @@ export const getEmailTemplateDetail = async (emailTemplateId: string) => {
     console.log("test");
     const result = await client.query(
       `
-            SELECT subject, title, header, footer FROM mst_email_template WHERE id = $1;
+            SELECT subject, title, header, body, footer FROM mst_email_template WHERE id = $1;
             `,
       [emailTemplateId]
     );

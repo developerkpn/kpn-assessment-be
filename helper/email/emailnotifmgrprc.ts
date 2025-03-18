@@ -419,6 +419,7 @@ export const emailTemplateHTML = `
                                 >
                                     <h1 class="title">{{title}}</h1>
                                     <p style="word-wrap: break-word; white-space: normal;">{{{header}}}</p>
+                                    <p style="word-wrap: break-word; white-space: normal;">{{{body}}}</p>
                                 </td>
                             </tr>
                         </table>

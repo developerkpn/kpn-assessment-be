@@ -1,13 +1,10 @@
 import express from "express";
 import dotenv from "dotenv";
+dotenv.config();
 
 import os from "os";
 import https from "https";
 import path from "path";
-dotenv.config({
-  path: path.resolve(__dirname, `./${process.env.NODE_ENV}.env`),
-});
-
 import cors, { CorsOptions } from "cors";
 import cookieParser from "cookie-parser";
 import fs from "fs";
@@ -59,10 +56,10 @@ app.get("/*$", (req, res) => {
 //   console.log(`App running on ${process.env.PORT}`);
 // });
 
-// const server = https.createServer(servOption, app).listen(process.env.PORT, () => {
-//   console.log(`App running on ${process.env.PORT}`);
-// });
-
-app.listen(process.env.PORT as unknown as number, "0.0.0.0", () => {
-  console.log(`App running on http://localhost:${process.env.PORT}`);
+const server = https.createServer(servOption, app).listen(process.env.PORT, () => {
+  console.log(`App running on ${process.env.PORT}`);
 });
+
+// app.listen(process.env.PORT as unknown as number, "0.0.0.0", () => {
+//   console.log(`App running on http://localhost:${process.env.PORT}`);
+// });
