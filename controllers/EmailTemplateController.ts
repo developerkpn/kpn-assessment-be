@@ -65,7 +65,7 @@ export const handleUpdateEmailTemplate = async (req: Request, res: Response, nex
 export const handleDeleteEmailTemplate = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const validatedId = Validation.validate(EmailTemplateValidation.ID, req.params.id);
-
+    console.log(validatedId);
     await deleteEmailTemplate(validatedId);
 
     res.status(201).send({
@@ -125,6 +125,7 @@ export const handleGenerateEmailTemplate = async (batchDetailId?: string, token?
       const payload: any = {
         title: emailTemplate.title,
         header: emailTemplate.header,
+        body: emailTemplate.body,
         footer: emailTemplate.footer,
         batch_name: batchDetail.batch_name ? batchDetail.batch_name : `Filling in Batch Section`,
         batch_code: batchDetail.batch_code ? batchDetail.batch_code : `Filling in Batch Section`,
@@ -147,6 +148,7 @@ export const handleGenerateEmailTemplate = async (batchDetailId?: string, token?
       const payload: any = {
         title: emailTemplate.title,
         header: emailTemplate.header,
+        body: emailTemplate.body,
         footer: emailTemplate.footer,
         batch_name: `Filling in Batch Section`,
         batch_code: `Filling in Batch Section`,
