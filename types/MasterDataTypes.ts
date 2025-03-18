@@ -123,7 +123,10 @@ export type QuestionResult = {
   updated_by: string;
   updated_date: Date;
   total_points: number;
+  category_id: string;
   question: {
+    seq: string;
+    layout_type: string;
     input_text: string;
     input_image_url: string;
   };

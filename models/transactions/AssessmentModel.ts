@@ -411,7 +411,7 @@ export const updateStoreQuestion = async (questionId: string, detId: string) => 
   const client = await db.connect();
   try {
     await client.query(TRANS.BEGIN);
-    const [Q, V];
+    // const [Q, V];
     await client.query(TRANS.COMMIT);
   } catch (e) {
     await client.query(TRANS.ROLLBACK);
