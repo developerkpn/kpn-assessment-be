@@ -1,11 +1,15 @@
 import { Request, Response, NextFunction } from "express";
 import { getBatchDetail } from "#dep/models/BatchModel";
 import {
+  assessmentSubmission,
+  checkQuestionType,
+  checkSubmissionStatus,
   checkSubTestIsTaken,
   createAssessmentProgressDetail,
   getAssessmentSubTest,
   getAssessmentTest,
   getBatchByAssessment,
+  getFinishAt,
   getProgressDetail,
   getProgressHead,
   getQuestionAssessment,
@@ -29,6 +33,8 @@ import { getSubTestIdByTestId, getTest } from "#dep/models/TestModel";
 import { getSeriesDetail } from "#dep/models/SeriesModel";
 import fs from "fs";
 import path from "path";
+import moment from "moment";
+import "moment-timezone/index";
 
 const handleAssessmentToken = async (token: string) => {
   try {
@@ -121,39 +127,48 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
     // Kalo ada dia berarti udah pernah diambil
     if (checkQuestionIsAlreadyTaken) {
       console.log("Masuk hey 1");
-      const takenQuestion: any = await getTakenQuestions(progressDetailId);
+
+      // Ambil data pertanyaan yang sudah diambil
+      const takenQuestion: any[] = await getTakenQuestions(progressDetailId);
       console.log(takenQuestion);
-      // [
-      //     {
-      //         id: '01958973-8ec1-7886-8816-f95c748fef68',
-      //         det_id: '01953628-4eb9-7330-84cf-a02261b913ce',
-      //         question_id: '3c8388e3-de9c-47f5-b371-e0f19a42fb6a',
-      //         answer_a: false,
-      //         answer_b: false,
-      //         answer_c: false,
-      //         answer_d: false,
-      //         answer_e: false
-      //     },
-      //     {
-      //         id: '01958973-8ec1-7886-8817-069627f9c1fe',
-      //         det_id: '01953628-4eb9-7330-84cf-a02261b913ce',
-      //         question_id: '3c8388e3-de9c-47f5-b371-e0f19a42fb6a',
-      //         answer_a: false,
-      //         answer_b: false,
-      //         answer_c: false,
-      //         answer_d: false,
-      //         answer_e: false
-      //     }
-      // ]
+
+      // Ambil question_id dari takenQuestion
       const questionIds = takenQuestion.map((q: any) => q.question_id);
       console.log(questionIds);
+
+      // Ambil detail pertanyaan dari daftar question_id
       const questions = await getQuestionAssessment(questionIds);
       console.log(questions);
+
       console.log(subtest);
+
+      // Ambil waktu sekarang
+      const now = moment();
+      console.log("Current time:", now.format());
+
+      // Ambil waktu selesai dari database (sudah dalam zona +07:00)
+      const finishAtFromDB = await getFinishAt(subtest.subtest_id);
+      console.log("Raw finishAt from DB:", finishAtFromDB);
+
+      // Langsung parse tanpa .utc()
+      const shouldBeFinishedAt = moment.utc(finishAtFromDB.should_be_finished_at).tz("Asia/Jakarta");
+      console.log("Parsed shouldBeFinishedAt:", shouldBeFinishedAt.format());
+
+      // Jika waktu sudah habis, lempar error
+      if (now.isAfter(shouldBeFinishedAt)) throw new ResponseError(404, "Time's Out!");
+
+      // Hitung sisa durasi dalam detik
+      const remainingDurationSeconds = shouldBeFinishedAt.diff(now, "seconds");
+      console.log("Remaining seconds:", remainingDurationSeconds);
+
+      // Konversi ke format "hh:mm:ss"
+      const remainingDurationFormatted = moment.utc(remainingDurationSeconds * 1000).format("HH:mm:ss");
+      console.log("Remaining duration formatted:", remainingDurationFormatted);
+
       // Format response
       response = {
         det_id: progressDetailId,
-        duration: subtest.subtest_duration ? subtest.subtest_duration : "00:00:60",
+        duration: remainingDurationFormatted,
         questions: questions.map((q: any) => {
           // Cari taken question yang sesuai berdasarkan question_id
           const taken = takenQuestion.find((t: any) => t.question_id === q.id);
@@ -245,11 +260,20 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
         })),
       };
 
-      // Update assessment status
+      // Menggunakan moment.js untuk menangani tanggal dan waktu
+      const takenAt = moment(); // waktu saat ini
+      // Mengonversi string durasi ("00:30:00") menjadi objek duration
+      const subtestDuration = moment.duration(subtest.subtest_duration);
+      // Menambahkan durasi ke waktu pengambilan
+      const shouldBeFinishedAt = moment(takenAt).add(subtestDuration);
+
+      // Membuat payload untuk update assessment (mengonversi kembali ke objek Date jika diperlukan)
       const updatePayload = {
-        taken_at: new Date(),
+        taken_at: takenAt.toDate(),
+        should_be_finished_at: shouldBeFinishedAt.toDate(),
         status: "In Progress",
       };
+
       await updateAssessmentStart(progressDetailId, updatePayload);
     }
     // Jalankan fungsi kalo dia dah pernah diambil
@@ -269,49 +293,91 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
   }
 };
 
+// export const handleStoreAnswer = async (req: Request, res: Response, next: NextFunction) => {
+//   try {
+//     const { id, questions } = req.body; // Get questions array from request body
+//
+//     // Array to store all answer records to be inserted
+//     const answerRecords: any = [];
+//
+//     // Process each question's answers
+//     questions.forEach((questionItem: any) => {
+//       const { question_id, answers } = questionItem;
+//
+//       // Handle each answer for this question
+//       answers.forEach((answerItem: any) => {
+//         answerRecords.push({
+//           id: uuid(), // Generate unique ID for each answer record
+//           det_id: id, // Use the ID from request params
+//           question_id: question_id,
+//           answer: answerItem.answer,
+//         });
+//         0;
+//       });
+//     });
+//
+//     // Store each answer record separately
+//     for (const payload of answerRecords) {
+//       console.log(payload);
+//       await storeAnswer(payload);
+//     }
+//
+//     res.status(200).send({
+//       message: "Answers stored successfully!",
+//     });
+//   } catch (e) {
+//     next(e);
+//   }
+// };
+
 export const handleStoreAnswer = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { id, questions } = req.body; // Get questions array from request body
+    const { det_id, question_id, answer } = req.body;
 
-    // Array to store all answer records to be inserted
-    const answerRecords: any = [];
-
-    // Process each question's answers
-    questions.forEach((questionItem: any) => {
-      const { question_id, answers } = questionItem;
-
-      // Handle each answer for this question
-      answers.forEach((answerItem: any) => {
-        answerRecords.push({
-          id: uuid(), // Generate unique ID for each answer record
-          det_id: id, // Use the ID from request params
-          question_id: question_id,
-          answer: answerItem.answer,
-        });
-        0;
-      });
-    });
-
-    // Store each answer record separately
-    for (const payload of answerRecords) {
-      console.log(payload);
-      await storeAnswer(payload);
+    const questionType = await checkQuestionType(question_id);
+    console.log(questionType);
+    if (questionType.answer_type === "single") {
+      // Ambil semua nilai jawaban (misal answer_a, answer_b, dll)
+      const answerValues = Object.values(answer);
+      // Hitung jumlah jawaban yang bernilai true
+      const trueCount = answerValues.filter((val) => val === true).length;
+      console.log("total true");
+      console.log(trueCount);
+      if (trueCount !== 1) {
+        throw new ResponseError(400, "Single choice answer");
+      }
     }
+    // Jika tipe soal multi choice, tidak perlu validasi khusus
 
-    res.status(200).send({
-      message: "Answers stored successfully!",
+    // Simpan jawaban ke database (misalnya melalui fungsi storeAnswer)
+    await storeAnswer(det_id, question_id, { ...answer });
+
+    res.status(200).json({
+      message: "Jawaban berhasil disimpan.",
     });
   } catch (e) {
     next(e);
   }
 };
 
-export const handleStoringAnswer = async (req: Request, res: Response, next: NextFunction) => {
+export const handleSubmissionConfirmation = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const answer = req.body;
-
-    // Cek tipenya apa
-    // Kalo misalkan dia single
+    const { det_id } = req.body;
+    const checkSubmission = await checkSubmissionStatus(det_id);
+    console.log(checkSubmission);
+    if (checkSubmission) {
+      // Sebelumnya belum pernah disubmit (ngga ada submit_at)
+      throw new ResponseError(400, "Subtest's already submitted");
+    } else {
+      const payload = {
+        submit_at: new Date(),
+        status: "Completed",
+      };
+      await assessmentSubmission(det_id, payload);
+      res.status(200).json({
+        message: "Success!",
+      });
+    }
   } catch (e) {
     next(e);
   }
@@ -367,45 +433,5 @@ export const handleGetAssessmentSubTest = async (req: Request, res: Response, ne
     });
   } catch (e) {
     next(e);
-  }
-};
-
-export const handleVideoProctoring = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    // Pastikan direktori uploads ada
-    const uploadDir = path.join(__dirname, "../uploads");
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-
-    // Generate nama file unik
-    const fileName = `${Date.now()}.mp4`;
-    const filePath = path.join(uploadDir, fileName);
-    const writeStream = fs.createWriteStream(filePath);
-
-    // Tangani upload
-    req.pipe(writeStream);
-
-    // Tangani selesainya upload
-    writeStream.on("finish", () => {
-      res.status(200).json({
-        message: "Video uploaded successfully",
-        path: `/uploads/${fileName}`, // Path relatif untuk akses file
-      });
-    });
-
-    // Tangani error pada stream
-    writeStream.on("error", (err) => {
-      fs.unlinkSync(filePath); // Hapus file gagal
-      next(err);
-    });
-
-    // Tangani error pada request
-    req.on("error", (err) => {
-      fs.unlinkSync(filePath); // Hapus file gagal
-      next(err);
-    });
-  } catch (error) {
-    next(error);
   }
 };

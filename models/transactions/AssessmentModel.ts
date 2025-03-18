@@ -126,6 +126,22 @@ export const updateAssessmentStart = async (progressDetailId: any, payload: any)
   }
 };
 
+export const assessmentSubmission = async (detId: string, payload: any) => {
+  const client = await db.connect();
+  try {
+    await client.query(TRANS.BEGIN);
+    const [Q, V] = updateQuery("t_progress_batch_det", payload, { id: detId });
+    await client.query(Q, V);
+    await client.query(TRANS.COMMIT);
+  } catch (error) {
+    console.error(error);
+    await client.query(TRANS.ROLLBACK);
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
 export const getSubtestIdbyProgressId = async (progressDetailId: string) => {
   const client = await db.connect();
   try {
@@ -233,11 +249,12 @@ export const getQuestionAssessment = async (questionIds: string[]) => {
   }
 };
 
-export const storeAnswer = async (payload: any) => {
+export const storeAnswer = async (detId: string, questionId: string, payload: any) => {
   const client = await db.connect();
   try {
     await client.query(TRANS.BEGIN);
-    const [Q, V] = insertQuery("t_store_answer", payload);
+    console.log(payload);
+    const [Q, V] = updateQuery("t_store_answer", payload, { det_id: detId, question_id: questionId });
     await client.query(Q, V);
     await client.query(TRANS.COMMIT);
   } catch (e) {
@@ -413,6 +430,96 @@ export const updateStoreQuestion = async (questionId: string, detId: string) => 
     await client.query(TRANS.BEGIN);
     // const [Q, V];
     await client.query(TRANS.COMMIT);
+  } catch (e) {
+    await client.query(TRANS.ROLLBACK);
+    throw e;
+  } finally {
+    client.release();
+  }
+};
+
+export const checkQuestionType = async (questionId: string) => {
+  const client = await db.connect();
+  try {
+    await client.query(TRANS.BEGIN);
+    const result = await client.query(
+      `
+      SELECT answer_type FROM mst_question_answer WHERE id = $1
+        `,
+      [questionId]
+    );
+    await client.query(TRANS.COMMIT);
+    return result.rows[0];
+  } catch (e) {
+    await client.query(TRANS.ROLLBACK);
+  } finally {
+    await client.release();
+  }
+};
+
+export const storingQuestion = async (questionId: string, detId: string, payload: any) => {
+  const client = await db.connect();
+  try {
+    await client.query(TRANS.BEGIN);
+    const [Q, V] = updateQuery("t_store_answer", payload, { id: questionId });
+    await client.query(Q, V);
+    await client.query(TRANS.COMMIT);
+  } catch (e) {
+    await client.query(TRANS.ROLLBACK);
+    throw e;
+  } finally {
+    client.release();
+  }
+};
+
+export const getFinishAt = async (detId: string) => {
+  const client = await db.connect();
+  try {
+    await client.query(TRANS.BEGIN);
+    const result = await client.query(
+      `
+      SELECT should_be_finished_at 
+      FROM t_progress_batch_det
+      WHERE subtest_id = $1
+        `,
+      [detId]
+    );
+    await client.query(TRANS.COMMIT);
+    return result.rows[0];
+  } catch (e) {
+    await client.query(TRANS.ROLLBACK);
+    throw e;
+  } finally {
+    client.release();
+  }
+};
+
+export const updateProgressDet = async (detId: string, payload: any) => {
+  const client = await db.connect();
+  try {
+    await client.query(TRANS.BEGIN);
+    updateQuery("t_progress_batch_det", payload, { id: detId });
+    await client.query(TRANS.COMMIT);
+  } catch (e) {
+    await client.query(TRANS.ROLLBACK);
+    throw e;
+  } finally {
+    client.release();
+  }
+};
+
+export const checkSubmissionStatus = async (detId: string) => {
+  const client = await db.connect();
+  try {
+    await client.query(TRANS.BEGIN);
+    const status = await client.query(
+      `
+      SELECT submit_at FROM t_progress_batch_det WHERE id = $1
+        `,
+      [detId]
+    );
+    await client.query(TRANS.COMMIT);
+    return status.rows[0];
   } catch (e) {
     await client.query(TRANS.ROLLBACK);
     throw e;
