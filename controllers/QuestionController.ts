@@ -290,10 +290,7 @@ export const handleGetQuestionById = async (req: Request, res: Response) => {
       updated_by: result.updated_by,
       updated_date: result.updated_date,
       total_points: totalPoints,
-      category_id: result.category_id,
       question: {
-        seq: result.q_seq,
-        layout_type: result.q_layout_type,
         input_text: result.q_input_text,
         input_image_url: result.q_input_image_url,
       },
