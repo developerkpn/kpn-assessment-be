@@ -155,7 +155,7 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
       console.log("Parsed shouldBeFinishedAt:", shouldBeFinishedAt.format());
 
       // Jika waktu sudah habis, lempar error
-      if (now.isAfter(shouldBeFinishedAt)) throw new ResponseError(404, "Time's Out!");
+      // if (now.isAfter(shouldBeFinishedAt)) throw new ResponseError(404, "Time's Out!");
 
       // Hitung sisa durasi dalam detik
       const remainingDurationSeconds = shouldBeFinishedAt.diff(now, "seconds");
