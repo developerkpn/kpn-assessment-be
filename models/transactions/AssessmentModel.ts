@@ -165,6 +165,29 @@ export const getSubtestIdbyProgressId = async (progressDetailId: string) => {
   }
 };
 
+export const getSubtestDurationById = async (subtestId: string) => {
+  const client = await db.connect();
+  try {
+    await client.query(TRANS.BEGIN);
+    const duration = await client.query(
+      `
+        SELECT subtest_duration
+        FROM mst_subtest_head
+        WHERE id = $1
+        `,
+      [subtestId]
+    );
+    await client.query(TRANS.COMMIT);
+    return duration.rows[0];
+  } catch (e) {
+    console.error(e);
+    await client.query(TRANS.ROLLBACK);
+    throw e;
+  } finally {
+    client.release();
+  }
+};
+
 export const getSubtestNamebyId = async (subTestId: string) => {
   const client = await db.connect();
   try {
