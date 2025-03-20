@@ -15,6 +15,7 @@ import {
   getQuestionAssessment,
   getQuestionsBySeriesId,
   getSeriesBySubtestId,
+  getSubtestDurationById,
   getSubtestIdbyProgressId,
   getSubtestNamebyId,
   getTakenQuestions,
@@ -113,6 +114,7 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
     const progressDetailId = req.params.id;
     const subtest = await getSubtestIdbyProgressId(progressDetailId);
     const subtestName = await getSubtestNamebyId(subtest.subtest_id);
+    const subtestDurations: any = await getSubtestDurationById(subtest.subtest_id);
     console.log("Masuk hey");
     console.log(progressDetailId);
     console.log(subtest);
@@ -238,7 +240,7 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
       // Format response
       response = {
         det_id: progressDetailId,
-        duration: subtest.duration, // Default 1 hour if not specified
+        duration: subtestDurations.subtest_duration, // Default 1 hour if not specified
         subtest_name: subtestName.subtest_name,
         questions: questions.map((q: any) => ({
           question_id: q.id,
@@ -271,10 +273,10 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
       // Menggunakan moment.js untuk menangani tanggal dan waktu
       const takenAt = moment(); // waktu saat ini
       // Mengonversi string durasi ("00:30:00") menjadi objek duration
-      const subtestDuration = moment.duration(subtest.subtest_duration);
+      const subtestDuration = moment.duration(subtestDurations.subtest_duration);
       // Menambahkan durasi ke waktu pengambilan
       const shouldBeFinishedAt = moment(takenAt).add(subtestDuration);
-
+      console;
       // Membuat payload untuk update assessment (mengonversi kembali ke objek Date jika diperlukan)
       const updatePayload = {
         taken_at: takenAt.toDate(),
@@ -373,7 +375,7 @@ export const handleSubmissionConfirmation = async (req: Request, res: Response, 
     const { det_id } = req.body;
     const checkSubmission = await checkSubmissionStatus(det_id);
     console.log(checkSubmission);
-    if (checkSubmission) {
+    if (checkSubmission.submit_at) {
       // Sebelumnya belum pernah disubmit (ngga ada submit_at)
       throw new ResponseError(400, "Subtest's already submitted");
     } else {
