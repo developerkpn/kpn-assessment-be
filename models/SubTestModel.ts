@@ -128,7 +128,7 @@ export const getSubTestDetail = async (id: string) => {
         h.subtest_code,
         h.subtest_duration,
         h.is_active,
-        h.created_by,
+        a.fullname AS created_by,
         h.created_at,
         h.updated_by,
         h.updated_at,
@@ -136,7 +136,7 @@ export const getSubTestDetail = async (id: string) => {
         s.series_name,
         s.series_code,
         d.id AS detail_id,
-        d.added_by,
+        ad.fullname AS added_by,
         d.added_at,
         c.id AS value_id,
         c.value_code,
@@ -154,6 +154,12 @@ export const getSubTestDetail = async (id: string) => {
         mst_series s ON d.series_id = s.id
       LEFT JOIN
         mst_value c ON h.criteria_id = c.id
+      LEFT JOIN
+        mst_admin_web a ON h.created_by = a.id
+      LEFT JOIN
+        mst_admin_web au ON h.updated_by = au.id
+      LEFT JOIN 
+        mst_admin_web ad ON d.added_by = ad.id
       WHERE
         h.id = $1 
       `,
