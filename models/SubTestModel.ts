@@ -130,7 +130,7 @@ export const getSubTestDetail = async (id: string) => {
         h.is_active,
         a.fullname AS created_by,
         h.created_at,
-        h.updated_by,
+        au.fullname AS updated_by,
         h.updated_at,
         s.id AS series_id,
         s.series_name,
