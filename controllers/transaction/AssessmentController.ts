@@ -16,6 +16,7 @@ import {
   getQuestionsBySeriesId,
   getSeriesBySubtestId,
   getSubtestIdbyProgressId,
+  getSubtestNamebyId,
   getTakenQuestions,
   getTestStatus,
   storeAnswer,
@@ -107,15 +108,11 @@ export const handleGetBatchDetail = async (req: Request, res: Response, next: Ne
   }
 };
 
-const handleUntakenQuestions = async () => {};
-
-const handleTakenQuestions = async (req: Request, res: Response, next: NextFunction) => {};
-
 export const handleGetAsssessmentQuestion = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const progressDetailId = req.params.id;
     const subtest = await getSubtestIdbyProgressId(progressDetailId);
-
+    const subtestName = await getSubtestNamebyId(subtest.subtest_id);
     console.log("Masuk hey");
     console.log(progressDetailId);
     console.log(subtest);
@@ -169,12 +166,14 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
       response = {
         det_id: progressDetailId,
         duration: remainingDurationFormatted,
+        subtest_name: subtestName.subtest_name,
         questions: questions.map((q: any) => {
           // Cari taken question yang sesuai berdasarkan question_id
           const taken = takenQuestion.find((t: any) => t.question_id === q.id);
 
           return {
             question_id: q.id,
+            subtest_id: subtest.subtest_id,
             input: {
               text: q.q_input_text,
               image_url: q.q_input_image_url,
@@ -186,6 +185,8 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
               c: { text: q.answer_choice_c_text, image_url: q.answer_choice_c_image_url },
               d: { text: q.answer_choice_d_text, image_url: q.answer_choice_d_image_url },
               e: { text: q.answer_choice_e_text, image_url: q.answer_choice_e_image_url },
+              f: { text: q.answer_choice_f_text, image_url: q.answer_choice_f_image_url },
+              g: { text: q.answer_choice_g_text, image_url: q.answer_choice_g_image_url },
             },
             choosen_answer: {
               a: taken.answer_a,
@@ -193,6 +194,8 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
               c: taken.answer_c,
               d: taken.answer_d,
               e: taken.answer_e,
+              f: taken.answer_f,
+              g: taken.answer_g,
             },
           };
         }),
@@ -236,6 +239,7 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
       response = {
         det_id: progressDetailId,
         duration: subtest.duration, // Default 1 hour if not specified
+        subtest_name: subtestName.subtest_name,
         questions: questions.map((q: any) => ({
           question_id: q.id,
           input: {
@@ -249,6 +253,8 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
             c: { text: q.answer_choice_c_text, image_url: q.answer_choice_c_image_url },
             d: { text: q.answer_choice_d_text, image_url: q.answer_choice_d_image_url },
             e: { text: q.answer_choice_e_text, image_url: q.answer_choice_e_image_url },
+            f: { text: q.answer_choice_f_text, image_url: q.answer_choice_f_image_url },
+            g: { text: q.answer_choice_g_text, image_url: q.answer_choice_g_image_url },
           },
           choosen_answer: {
             a: false,
@@ -256,6 +262,8 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
             c: false,
             d: false,
             e: false,
+            f: false,
+            g: false,
           },
         })),
       };
@@ -343,7 +351,7 @@ export const handleStoreAnswer = async (req: Request, res: Response, next: NextF
       const trueCount = answerValues.filter((val) => val === true).length;
       console.log("total true");
       console.log(trueCount);
-      if (trueCount !== 1) {
+      if (trueCount > 1) {
         throw new ResponseError(400, "Single choice answer");
       }
     }
