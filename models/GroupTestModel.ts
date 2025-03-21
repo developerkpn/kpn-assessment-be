@@ -221,7 +221,7 @@ export const getGroupTestDetail = async (id: string) => {
       grouptest_code: result.rows[0].grouptest_code,
       is_active: result.rows[0].is_active,
       created_by: result.rows[0].created_by,
-      created_at: result.rows[0].created_date,
+      created_at: result.rows[0].created_at,
       updated_by: result.rows[0].updated_by,
       updated_at: result.rows[0].updated_at,
       tests: result.rows
