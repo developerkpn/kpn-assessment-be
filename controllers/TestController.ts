@@ -76,13 +76,17 @@ export const handleUpdateTest = async (req: Request, res: Response, next: NextFu
 
     const testHeaderUpdateRequest: TestHeaderRequest = {
       ...validatedRequest,
+      updated_by: updatedBy,
+      updated_at: updatedAt,
     };
 
     delete testHeaderUpdateRequest.subtests;
     console.log(testHeaderUpdateRequest);
 
     let testDetailRequest;
-    if (validatedRequest.subtests) {
+    console.log(validatedRequest.subtests);
+    if (validatedRequest.subtests.length > 0) {
+      console.log("masuk sini oy");
       testDetailRequest = validatedRequest.subtests.map((prev: TestDetailRequest) => ({
         ...prev,
         id: uuid(),
