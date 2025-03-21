@@ -66,10 +66,16 @@ export const updateTest = async (testId: string, headerPayload: any, detailPaylo
   try {
     await client.query(TRANS.BEGIN);
     const [headerQ, headerV] = updateQuery("mst_test_head", headerPayload, { id: testId }, "test_code");
+    console.log("keluar 1");
     const headerResult = await client.query(headerQ, headerV);
+    console.log("keluar 2");
     if (!headerResult.rows[0].test_code) throw new ResponseError(404, `Test with ID ${testId} is not found`);
-    const [detailQ, detailV] = insertQuery("mst_test_det", detailPayload);
-    await client.query(detailQ, detailV);
+    console.log("keluar 3");
+    if (detailPayload) {
+      console.log("masuk");
+      const [detailQ, detailV] = insertQuery("mst_test_det", detailPayload);
+      await client.query(detailQ, detailV);
+    }
     await client.query(TRANS.COMMIT);
   } catch (error) {
     console.error(error);
