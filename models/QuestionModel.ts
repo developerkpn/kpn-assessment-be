@@ -37,21 +37,32 @@ export const updateQuestion = async (payload: QuestionRequest, id: string) => {
   }
 };
 
-export const getQuestion = async () => {
+export const getQuestion = async (categoryId?: number) => {
   const client = await db.connect();
   try {
     await client.query(TRANS.BEGIN);
-    const result = await client.query(
-      `
+
+    let query = `
       SELECT
         q.*, a.fullname AS created_by, c.category_name
       FROM mst_question_answer q
       LEFT JOIN mst_admin_web a ON q.created_by = a.id
       LEFT JOIN mst_category c ON q.category_id = c.id
-      ORDER BY created_date DESC
-    `
-    );
+    `;
+
+    const values: any[] = [];
+
+    // Jika categoryId ada, tambahkan kondisi WHERE
+    if (categoryId) {
+      query += ` WHERE q.category_id = $1`;
+      values.push(categoryId);
+    }
+
+    query += ` ORDER BY q.created_date DESC`;
+
+    const result = await client.query(query, values);
     await client.query(TRANS.COMMIT);
+
     return result.rows;
   } catch (error) {
     console.error(error);
