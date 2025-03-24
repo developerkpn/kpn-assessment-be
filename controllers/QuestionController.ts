@@ -217,9 +217,11 @@ export const handleUpdateQuestion = async (req: Request, res: Response): Promise
   }
 };
 
-export const handleGetQuestion = async (_req: Request, res: Response) => {
+export const handleGetQuestion = async (req: Request, res: Response) => {
   try {
-    const result = await getQuestion();
+    const categoryId = req.query.category_id ? Number(req.query.category_id) : undefined;
+    console.log(categoryId);
+    const result = await getQuestion(categoryId);
     const formattedResult: any[] = result.map((item) => {
       const answers: AnswerResponse[] = [];
       ["a", "b", "c", "d", "e"].forEach((choice) => {
