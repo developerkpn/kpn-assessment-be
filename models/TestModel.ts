@@ -135,7 +135,7 @@ export const getTestDetail = async (id: string) => {
                 h.description,
                 a.fullname AS created_by,
                 h.created_at,
-                h.updated_by,
+                a.fullname AS updated_by,
                 h.updated_at,
                 s.id AS subtest_id,
                 s.subtest_name,
@@ -156,6 +156,8 @@ export const getTestDetail = async (id: string) => {
                 mst_subtest_head s ON d.subtest_id = s.id
             LEFT JOIN 
                 mst_admin_web a ON h.created_by = a.id
+            LEFT JOIN
+                mst_admin_web ads ON h.updated_by = ads.id
             LEFT JOIN
                 mst_admin_web ad ON d.added_by = ad.id
             WHERE
