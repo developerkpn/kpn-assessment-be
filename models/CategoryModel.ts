@@ -29,6 +29,7 @@ export const getCategory = async () => {
             SELECT h.id, h.category_name, h.category_code, h.created_at, h.is_active, d.fullname AS created_by 
             FROM mst_category h
             LEFT JOIN mst_admin_web d ON h.created_by = d.id
+            ORDER BY h.created_at DESC
             `
     );
     console.log(result);
