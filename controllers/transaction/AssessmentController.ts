@@ -112,9 +112,19 @@ export const handleGetBatchDetail = async (req: Request, res: Response, next: Ne
 export const handleGetAsssessmentQuestion = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const progressDetailId = req.params.id;
+
+    // Cek apakah sudah disubmit
+    const checkIfAlreadySubmitted = await checkSubmissionStatus(progressDetailId);
+    console.log(checkIfAlreadySubmitted);
+    if (checkIfAlreadySubmitted.submit_at !== null) {
+      throw new ResponseError(400, "Sub Test's already submitted!");
+    }
+
+    // Ambil Subtest Id
     const subtest = await getSubtestIdbyProgressId(progressDetailId);
+    // Ambil nama subtest
     const subtestName = await getSubtestNamebyId(subtest.subtest_id);
-    const subtestDurations: any = await getSubtestDurationById(subtest.subtest_id);
+
     console.log("Masuk hey");
     console.log(progressDetailId);
     console.log(subtest);
@@ -126,20 +136,7 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
     // Kalo ada dia berarti udah pernah diambil
     if (checkQuestionIsAlreadyTaken) {
       console.log("Masuk hey 1");
-
-      // Ambil data pertanyaan yang sudah diambil
-      const takenQuestion: any[] = await getTakenQuestions(progressDetailId);
-      console.log(takenQuestion);
-
-      // Ambil question_id dari takenQuestion
-      const questionIds = takenQuestion.map((q: any) => q.question_id);
-      console.log(questionIds);
-
-      // Ambil detail pertanyaan dari daftar question_id
-      const questions = await getQuestionAssessment(questionIds);
-      console.log(questions);
-
-      console.log(subtest);
+      console.log("Keluar");
 
       // Ambil waktu sekarang
       const now = moment();
@@ -154,7 +151,7 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
       console.log("Parsed shouldBeFinishedAt:", shouldBeFinishedAt.format());
 
       // Jika waktu sudah habis, lempar error
-      // if (now.isAfter(shouldBeFinishedAt)) throw new ResponseError(404, "Time's Out!");
+      if (now.isAfter(shouldBeFinishedAt)) throw new ResponseError(404, "Time's Out!");
 
       // Hitung sisa durasi dalam detik
       const remainingDurationSeconds = shouldBeFinishedAt.diff(now, "seconds");
@@ -163,6 +160,20 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
       // Konversi ke format "hh:mm:ss"
       const remainingDurationFormatted = moment.utc(remainingDurationSeconds * 1000).format("HH:mm:ss");
       console.log("Remaining duration formatted:", remainingDurationFormatted);
+
+      // Ambil data pertanyaan yang sudah diambil
+      const takenQuestion: any[] = await getTakenQuestions(progressDetailId);
+      console.log(takenQuestion);
+
+      // Ambil question_id dari takenQuestion
+      const questionIds = takenQuestion.map((q: any) => q.question_id);
+      console.log(questionIds);
+
+      // Ambil detail pertanyaan dari daftar question_id
+      const questions = await getQuestionAssessment(questionIds);
+      console.log(questions);
+
+      console.log(subtest);
 
       // Format response
       response = {
@@ -204,6 +215,9 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
       };
     } else {
       console.log("Masuk hey 2");
+      // Ambil durasi
+      const subtestDurations: any = await getSubtestDurationById(subtest.subtest_id);
+
       // Get and randomize series
       const seriesList: any[] = await getSeriesBySubtestId(subtest.subtest_id);
       const choosenSeriesId = seriesList[Math.floor(Math.random() * seriesList.length)].series_id;
@@ -343,6 +357,30 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
 export const handleStoreAnswer = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { det_id, question_id, answer } = req.body;
+    // Ambil Subtest Id
+    const subtest = await getSubtestIdbyProgressId(det_id);
+    // Cek apakah sudah disubmit
+    const checkIfAlreadySubmitted = await checkSubmissionStatus(det_id);
+    console.log(checkIfAlreadySubmitted);
+    if (checkIfAlreadySubmitted.submit_at !== null) {
+      throw new ResponseError(400, "Sub Test's already submitted!");
+    }
+
+    // Cek apakah durasi sudah habis
+    // Ambil waktu sekarang
+    const now = moment();
+    console.log("Current time:", now.format());
+
+    // Ambil waktu selesai dari database (sudah dalam zona +07:00)
+    const finishAtFromDB = await getFinishAt(subtest.subtest_id);
+    console.log("Raw finishAt from DB:", finishAtFromDB);
+
+    // Langsung parse tanpa .utc()
+    const shouldBeFinishedAt = moment.utc(finishAtFromDB.should_be_finished_at).tz("Asia/Jakarta");
+    console.log("Parsed shouldBeFinishedAt:", shouldBeFinishedAt.format());
+
+    // Jika waktu sudah habis, lempar error
+    if (now.isAfter(shouldBeFinishedAt)) throw new ResponseError(404, "Time's Out!");
 
     const questionType = await checkQuestionType(question_id);
     console.log(questionType);
