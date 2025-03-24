@@ -224,19 +224,27 @@ export const getAvailableSeriesForSubTest = async (subtestId: string) => {
 
     if (existingIds.length > 0) {
       queryParams.push(existingIds);
-      exclusionClause = "WHERE id != ALL($1)";
+      exclusionClause = "WHERE s.id != ALL($1)"; // Add table alias 's.' here
     }
 
     const result = await client.query(
       `
             SELECT 
-                id, 
-                series_name, 
-                series_code
-            FROM mst_series
-            ${exclusionClause}
-            ORDER BY created_date DESC
-            `,
+              s.id,
+              s.series_name, 
+              s.series_code,
+              a.fullname AS created_by,
+              s.created_date AS created_at,
+              (
+                  SELECT COUNT(sd.question_id)
+                  FROM mst_series_det sd
+                  WHERE sd.series_id = s.id
+              ) AS question_count
+          FROM mst_series s
+          LEFT JOIN mst_admin_web a ON s.created_by = a.id
+          ${exclusionClause}
+          ORDER BY s.created_date DESC;
+         `,
       queryParams
     );
 
