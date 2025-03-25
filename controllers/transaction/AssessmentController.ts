@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { getBatchDetail } from "#dep/models/BatchModel";
+import { getBatch, getBatchDetail } from "#dep/models/BatchModel";
 import {
   assessmentSubmission,
   checkQuestionType,
@@ -37,6 +37,7 @@ import fs from "fs";
 import path from "path";
 import moment from "moment";
 import "moment-timezone/index";
+import axios from "axios";
 
 const handleAssessmentToken = async (token: string) => {
   try {
@@ -46,6 +47,42 @@ const handleAssessmentToken = async (token: string) => {
     throw e;
   }
 };
+
+export const handleGetAssesseeProfile = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const token: any = await handleAssessmentToken(req.params.token);
+
+    const payload = {
+      api_key: process.env.API_KEY,
+      datasetKey: process.env.DATASET_KEY,
+      employee_ids: [`${token.user_id}`],
+    };
+
+    console.log(payload);
+
+    // Encode Basic Auth (username:password) ke Base64
+    const username = process.env.BASIC_AUTH_USERNAME || "no";
+    console.log(username);
+    const password = process.env.BASIC_AUTH_PASSWORD || "no";
+    console.log(password);
+    const basicAuth = Buffer.from(`${username}:${password}`).toString("base64");
+    console.log(basicAuth);
+    const getAssessee = await axios.post(`${process.env.DARWIN_BASE_URL}`, payload, {
+      headers: {
+        Authorization: `Basic ${basicAuth}`, // Menambahkan header Authorization
+        "Content-Type": "application/json",
+      },
+    });
+
+    res.status(200).send({
+      message: "Success!",
+      data: getAssessee.data.employee_data,
+    });
+  } catch (e) {
+    next(e);
+  }
+};
+
 export const handleGetBatchDetail = async (req: Request, res: Response, next: NextFunction) => {
   try {
     // Validate and get token
