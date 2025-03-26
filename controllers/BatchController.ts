@@ -115,56 +115,77 @@ export const handleAddAssesseeManually = async (req: Request, res: Response, nex
     const validatedId = Validation.validate(BatchValidation.ID, req.params.id);
     const validatedRequest = Validation.validate(BatchValidation.ADDASSESSEEMANUALLY, req.body);
 
-    const payload = {
-      api_key: process.env.API_KEY,
-      datasetKey: process.env.DATASET_KEY,
-      employee_ids: [`${validatedRequest.assessee_nik}`],
-    };
-
-    console.log(payload);
-
-    // Encode Basic Auth (username:password) ke Base64
-    const username = process.env.BASIC_AUTH_USERNAME || "no";
-    console.log(username);
-    const password = process.env.BASIC_AUTH_PASSWORD || "no";
-    console.log(password);
-    const basicAuth = Buffer.from(`${username}:${password}`).toString("base64");
-    console.log(basicAuth);
-    const getAssessee = await axios.post(`${process.env.DARWIN_BASE_URL}`, payload, {
-      headers: {
-        Authorization: `Basic ${basicAuth}`, // Menambahkan header Authorization
-        "Content-Type": "application/json",
-      },
-    });
-
-    console.log(getAssessee);
-    if (getAssessee.data.status! === 1) {
-      const assessee = {
+    const assessee = validatedRequest.map((row: any) => {
+      const result = {
         id: uuid(),
         batch_id: validatedId,
-        assessee_nik: getAssessee.data.employee_data[0].employee_id,
-        assessee_name: getAssessee.data.employee_data[0].full_name,
-        assessee_email: getAssessee.data.employee_data[0].company_email_id,
+        assessee_nik: row.assessee_nik,
+        assessee_name: row.assessee_name,
+        assessee_email: row.assessee_email,
       };
+      return result;
+    });
 
-      console.log(assessee);
+    console.log(assessee);
 
-      await addAssessee(assessee);
+    await addAssessee(assessee);
 
-      res.status(201).send({
-        message: "Assessee is successfully added!",
-        data: {
-          assessee_nik: getAssessee.data.employee_data[0].employee_id,
-          assessee_name: getAssessee.data.employee_data[0].full_name,
-          assessee_email: getAssessee.data.employee_data[0].company_email_id,
-        },
-      });
-    } else {
-      throw new ResponseError(400, getAssessee.data.message!);
-    }
-    console.log(getAssessee.status!);
-
-    console.log(getAssessee.data);
+    res.status(201).send({
+      message: "Assessee is successfully added!",
+    });
+    // const validatedId = Validation.validate(BatchValidation.ID, req.params.id);
+    // const validatedRequest = Validation.validate(BatchValidation.ADDASSESSEEMANUALLY, req.body);
+    //
+    // const payload = {
+    //   api_key: process.env.API_KEY,
+    //   datasetKey: process.env.DATASET_KEY,
+    //   employee_ids: [`${validatedRequest.assessee_nik}`],
+    // };
+    //
+    // console.log(payload);
+    //
+    // // Encode Basic Auth (username:password) ke Base64
+    // const username = process.env.BASIC_AUTH_USERNAME || "no";
+    // console.log(username);
+    // const password = process.env.BASIC_AUTH_PASSWORD || "no";
+    // console.log(password);
+    // const basicAuth = Buffer.from(`${username}:${password}`).toString("base64");
+    // console.log(basicAuth);
+    // const getAssessee = await axios.post(`${process.env.DARWIN_BASE_URL}`, payload, {
+    //   headers: {
+    //     Authorization: `Basic ${basicAuth}`, // Menambahkan header Authorization
+    //     "Content-Type": "application/json",
+    //   },
+    // });
+    //
+    // console.log(getAssessee);
+    // if (getAssessee.data.status! === 1) {
+    //   const assessee = {
+    //     id: uuid(),
+    //     batch_id: validatedId,
+    //     assessee_nik: getAssessee.data.employee_data[0].employee_id,
+    //     assessee_name: getAssessee.data.employee_data[0].full_name,
+    //     assessee_email: getAssessee.data.employee_data[0].company_email_id,
+    //   };
+    //
+    //   console.log(assessee);
+    //
+    //   await addAssessee(assessee);
+    //
+    //   res.status(201).send({
+    //     message: "Assessee is successfully added!",
+    //     data: {
+    //       assessee_nik: getAssessee.data.employee_data[0].employee_id,
+    //       assessee_name: getAssessee.data.employee_data[0].full_name,
+    //       assessee_email: getAssessee.data.employee_data[0].company_email_id,
+    //     },
+    //   });
+    // } else {
+    //   throw new ResponseError(400, getAssessee.data.message!);
+    // }
+    // console.log(getAssessee.status!);
+    //
+    // console.log(getAssessee.data);
   } catch (e) {
     next(e);
   }
