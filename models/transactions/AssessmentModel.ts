@@ -536,7 +536,7 @@ export const getAssessmentTermsPP = async () => {
   try {
     const result = await client.query(
       `
-    SELECT name FROM mst_term_pp
+    SELECT id, name FROM mst_term_pp
     `
     );
     return result.rows;
