@@ -31,11 +31,13 @@ export class BatchValidation {
     description: z.string().trim().min(1).optional(),
   });
 
-  static readonly ADDASSESSEEMANUALLY: z.ZodSchema = z.object({
-    assessee_nik: z.string().min(11),
-    assessee_name: z.string().trim().min(1).optional(),
-    assessee_email: z.string().email().optional(),
-  });
+  static readonly ADDASSESSEEMANUALLY: z.ZodSchema = z.array(
+    z.object({
+      assessee_nik: z.string().length(16),
+      assessee_name: z.string().trim().min(1),
+      assessee_email: z.string().email(),
+    })
+  );
 
   static readonly ID: ZodType = z.string().uuid();
 
