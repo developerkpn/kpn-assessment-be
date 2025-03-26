@@ -3,6 +3,8 @@ import { TRANSACTION as TRANS } from "#dep/config/transaction";
 import { deleteQuery, insertQuery, updateQuery } from "#dep/helper/queryBuilder";
 import { SeriesDetailRequest, SeriesHeaderRequest } from "#dep/types/SeriesTypes";
 import { ResponseError } from "#dep/error/response-error";
+import { SeriesDataCreate } from "#dep/types/MasterDataTypes";
+import { QueryResult } from "pg";
 
 export const createSeries = async (headerPayload: SeriesHeaderRequest, detailPayload: SeriesDetailRequest[]) => {
   // (headerPayload: SeriesHeaderRequest, detailPayload: SeriesDetailRequest[])
@@ -98,6 +100,8 @@ export const updateSeries = async (id: string, headerPayload: SeriesHeaderReques
     const [headerQ, headerV] = updateQuery("mst_series", headerPayload, { id }, "series_code");
     const result = await client.query(headerQ, headerV);
     if (result.rowCount === 0) throw new ResponseError(404, `Series with code ${result.rows[0].series_code} not exist`);
+    //delete first existing questions
+    const { rows } = await client.query("delete from mst_series_det where series_id = $1", [id]);
     const [detailQ, detailV] = insertQuery("mst_series_det", detailPayload);
     await client.query(detailQ, detailV);
     await client.query(TRANS.COMMIT);
@@ -108,6 +112,42 @@ export const updateSeries = async (id: string, headerPayload: SeriesHeaderReques
     throw error;
   } finally {
     client.release();
+  }
+};
+
+export const getSeriesbyID = async (id: string) => {
+  try {
+    const client = await db.connect();
+    try {
+      const { rows: series_data_get }: QueryResult<SeriesDataCreate> = await client.query(
+        `
+        select
+          ms.*,
+          msd.questions_id
+        from
+          mst_series ms
+        left join (
+          select
+            series_id,
+            array_agg(question_id) as questions_id
+          from
+            mst_series_det
+          group by
+            series_id
+        ) msd on
+          msd.series_id = ms.id
+        where ms.id = $1
+        `,
+        [id]
+      );
+      return series_data_get[0];
+    } catch (error) {
+      throw error;
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    throw error;
   }
 };
 

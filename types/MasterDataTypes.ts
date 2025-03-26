@@ -67,6 +67,17 @@ export type SeriesRequest = {
   created_date: Date;
 };
 
+export type SeriesHeader = {
+  series_id: string;
+  series_name: string;
+  series_code: string;
+  category_id: string;
+};
+
+export type SeriesDataCreate = SeriesHeader & {
+  question_id: string[];
+};
+
 // QUESTION
 export type Answer = {
   text?: string;
@@ -123,7 +134,7 @@ export type QuestionResult = {
   updated_by: string;
   updated_date: Date;
   total_points: number;
-  category_id: string;
+  category_id?: string;
   question: {
     seq?: string;
     layout_type?: string;
