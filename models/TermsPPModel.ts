@@ -6,17 +6,14 @@ import { BriefRequest, TermsPPRequest } from "#dep/types/MasterDataTypes";
 export const getTermsPP = async () => {
   const client = await db.connect();
   try {
-    await client.query(TRANS.BEGIN);
     const result = await client.query(
       `
     SELECT * FROM mst_term_pp
     `
     );
-    await client.query(TRANS.COMMIT);
     return result.rows;
   } catch (error) {
     console.error(error);
-    await client.query(TRANS.ROLLBACK);
     throw error;
   } finally {
     client.release();
@@ -42,17 +39,14 @@ export const updateTermsPP = async (payload: TermsPPRequest, id: string) => {
 export const getShortBrief = async () => {
   const client = await db.connect();
   try {
-    await client.query(TRANS.BEGIN);
     const result = await client.query(
       `
     SELECT * FROM mst_short_brief
     `
     );
-    await client.query(TRANS.COMMIT);
     return result.rows[0];
   } catch (error) {
     console.error(error);
-    await client.query(TRANS.ROLLBACK);
     throw error;
   } finally {
     client.release();

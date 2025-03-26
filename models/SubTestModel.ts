@@ -26,7 +26,6 @@ export const createSubTest = async (payloadHeader: SubTestHeaderRequest, payload
 export const getSubTest = async () => {
   const client = await db.connect();
   try {
-    await client.query(TRANS.BEGIN);
     const result = await client.query(
       `
             SELECT
@@ -45,11 +44,9 @@ export const getSubTest = async () => {
             ORDER BY h.created_at DESC
             `
     );
-    await client.query(TRANS.COMMIT);
     return result.rows;
   } catch (error) {
     console.error(error);
-    await client.query(TRANS.ROLLBACK);
     throw error;
   } finally {
     client.release();
@@ -119,7 +116,6 @@ export const deleteSubTest = async (id: string) => {
 export const getSubTestDetail = async (id: string) => {
   const client = await db.connect();
   try {
-    await client.query(TRANS.BEGIN);
     const result = await client.query(
       `
       SELECT
@@ -166,8 +162,6 @@ export const getSubTestDetail = async (id: string) => {
       [id]
     );
 
-    await client.query(TRANS.COMMIT);
-
     if (result.rows.length === 0) {
       return null;
     }
@@ -198,7 +192,6 @@ export const getSubTestDetail = async (id: string) => {
     return subtestDetail;
   } catch (error) {
     console.error(error);
-    await client.query(TRANS.ROLLBACK);
     throw error;
   } finally {
     client.release();
@@ -208,8 +201,6 @@ export const getSubTestDetail = async (id: string) => {
 export const getAvailableSeriesForSubTest = async (subtestId: string) => {
   const client = await db.connect();
   try {
-    await client.query(TRANS.BEGIN);
-
     const existingSeries = await client.query(
       `
             SELECT series_id FROM mst_subtest_det WHERE subtest_id = $1
@@ -251,7 +242,6 @@ export const getAvailableSeriesForSubTest = async (subtestId: string) => {
     return result.rows;
   } catch (error) {
     console.error(error);
-    await client.query(TRANS.ROLLBACK);
     throw error;
   } finally {
     client.release();
