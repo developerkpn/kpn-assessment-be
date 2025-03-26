@@ -4,6 +4,7 @@ import {
   deleteSeries,
   getAvailableQuestionsForSeries,
   getSeries,
+  getSeriesbyID,
   getSeriesDetail,
   updateSeries,
 } from "#dep/models/SeriesModel";
@@ -85,7 +86,7 @@ export const handleUpdateSeries = async (req: Request, res: Response, next: Next
     const validatedRequest = Validation.validate(SeriesValidation.UPDATE, req.body);
 
     const date = new Date();
-    const seriesId = uuid();
+    const seriesId = validatedId;
     const creator = req.userDecode!.user_id;
 
     const seriesHeaderRequest: SeriesHeaderRequest = {
@@ -126,6 +127,18 @@ export const handleGetDetailSeries = async (req: Request, res: Response, next: N
     });
   } catch (e) {
     next(e);
+  }
+};
+
+export const handleGetSeriesByID = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const result = await getSeriesbyID(id);
+    res.status(200).send({
+      data: result,
+    });
+  } catch (error) {
+    next(error);
   }
 };
 
