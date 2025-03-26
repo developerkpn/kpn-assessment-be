@@ -530,3 +530,20 @@ export const checkSubmissionStatus = async (detId: string) => {
     client.release();
   }
 };
+
+export const getAssessmentTermsPP = async () => {
+  const client = await db.connect();
+  try {
+    const result = await client.query(
+      `
+    SELECT name FROM mst_term_pp
+    `
+    );
+    return result.rows;
+  } catch (error) {
+    console.error(error);
+    throw error;
+  } finally {
+    client.release();
+  }
+};
