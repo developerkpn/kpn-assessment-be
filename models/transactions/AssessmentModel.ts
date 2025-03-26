@@ -10,7 +10,6 @@ import cli = format.cli;
 export const getBatchByAssessment = async (batchId: string) => {
   const client = await db.connect();
   try {
-    await client.query(TRANSACTION.BEGIN);
     const result = await client.query(
       `
                 SELECT
@@ -31,11 +30,9 @@ export const getBatchByAssessment = async (batchId: string) => {
       [batchId]
     );
 
-    await client.query(TRANS.COMMIT);
     return result.rows[0];
   } catch (error) {
     console.error(error);
-    await client.query(TRANS.ROLLBACK);
     throw error;
   } finally {
     client.release();
@@ -45,8 +42,6 @@ export const getBatchByAssessment = async (batchId: string) => {
 export const getProgressHead = async (userId: string, batchId: string) => {
   const client = await db.connect();
   try {
-    await client.query(TRANS.BEGIN);
-    console.log(userId, batchId);
     const result = await client.query(
       `
             SELECT 
@@ -61,7 +56,6 @@ export const getProgressHead = async (userId: string, batchId: string) => {
     return result.rows[0];
   } catch (error) {
     console.error(error);
-    await client.query(TRANS.ROLLBACK);
     throw error;
   } finally {
     client.release();
@@ -71,7 +65,6 @@ export const getProgressHead = async (userId: string, batchId: string) => {
 export const getProgressDetail = async (progressHeadId: string) => {
   const client = await db.connect();
   try {
-    await client.query(TRANS.BEGIN);
     const result = await client.query(
       `
              SELECT
@@ -87,7 +80,6 @@ export const getProgressDetail = async (progressHeadId: string) => {
     return result.rows[0];
   } catch (error) {
     console.error(error);
-    await client.query(TRANS.ROLLBACK);
     throw error;
   } finally {
     client.release();
@@ -145,7 +137,6 @@ export const assessmentSubmission = async (detId: string, payload: any) => {
 export const getSubtestIdbyProgressId = async (progressDetailId: string) => {
   const client = await db.connect();
   try {
-    await client.query(TRANS.BEGIN);
     const result = await client.query(
       `
             SELECT subtest_id 
@@ -154,11 +145,10 @@ export const getSubtestIdbyProgressId = async (progressDetailId: string) => {
             `,
       [progressDetailId]
     );
-    await client.query(TRANS.COMMIT);
+
     return result.rows[0];
   } catch (error) {
     console.error(error);
-    await client.query(TRANS.ROLLBACK);
     throw error;
   } finally {
     client.release();
@@ -168,7 +158,6 @@ export const getSubtestIdbyProgressId = async (progressDetailId: string) => {
 export const getSubtestDurationById = async (subtestId: string) => {
   const client = await db.connect();
   try {
-    await client.query(TRANS.BEGIN);
     const duration = await client.query(
       `
         SELECT subtest_duration
@@ -177,11 +166,9 @@ export const getSubtestDurationById = async (subtestId: string) => {
         `,
       [subtestId]
     );
-    await client.query(TRANS.COMMIT);
     return duration.rows[0];
   } catch (e) {
     console.error(e);
-    await client.query(TRANS.ROLLBACK);
     throw e;
   } finally {
     client.release();
@@ -191,7 +178,6 @@ export const getSubtestDurationById = async (subtestId: string) => {
 export const getSubtestNamebyId = async (subTestId: string) => {
   const client = await db.connect();
   try {
-    await client.query(TRANS.BEGIN);
     const result = await client.query(
       `
         SELECT subtest_name
@@ -200,9 +186,10 @@ export const getSubtestNamebyId = async (subTestId: string) => {
         `,
       [subTestId]
     );
-    await client.query(TRANS.COMMIT);
     return result.rows[0];
   } catch (e) {
+    console.log(e);
+    throw e;
   } finally {
     client.release();
   }
@@ -211,7 +198,6 @@ export const getSubtestNamebyId = async (subTestId: string) => {
 export const getSeriesBySubtestId = async (subtestId: string) => {
   const client = await db.connect();
   try {
-    await client.query(TRANS.BEGIN);
     const result = await client.query(
       `
             SELECT series_id 
@@ -220,11 +206,9 @@ export const getSeriesBySubtestId = async (subtestId: string) => {
             `,
       [subtestId]
     );
-    await client.query(TRANS.COMMIT);
     return result.rows;
   } catch (error) {
     console.error(error);
-    await client.query(TRANS.ROLLBACK);
     throw error;
   } finally {
     client.release();
@@ -234,7 +218,6 @@ export const getSeriesBySubtestId = async (subtestId: string) => {
 export const getQuestionsBySeriesId = async (seriesId: string) => {
   const client = await db.connect();
   try {
-    await client.query(TRANS.BEGIN);
     const result = await client.query(
       `
             SELECT question_id FROM mst_series_det
@@ -246,7 +229,6 @@ export const getQuestionsBySeriesId = async (seriesId: string) => {
     return result.rows;
   } catch (error) {
     console.error(error);
-    await client.query(TRANS.ROLLBACK);
     throw error;
   } finally {
     client.release();
@@ -256,8 +238,6 @@ export const getQuestionsBySeriesId = async (seriesId: string) => {
 export const getQuestionAssessment = async (questionIds: string[]) => {
   const client = await db.connect();
   try {
-    await client.query(TRANS.BEGIN);
-
     // Use parameterized query with array
     const result = await client.query(
       `
@@ -282,11 +262,10 @@ export const getQuestionAssessment = async (questionIds: string[]) => {
       [questionIds]
     );
 
-    await client.query(TRANS.COMMIT);
     return result.rows;
   } catch (error) {
-    await client.query(TRANS.ROLLBACK);
     throw error;
+    console.log(error);
   } finally {
     client.release();
   }
@@ -351,7 +330,6 @@ export const getAssessmentSubTest = async (progressHeadId: string, testId: strin
 export const getAssessmentTest = async (headId: string) => {
   const client = await db.connect();
   try {
-    await client.query(TRANS.BEGIN);
     // Updated query to return only distinct test_ids with their corresponding test_name
     const result = await client.query(
       `
@@ -367,10 +345,8 @@ export const getAssessmentTest = async (headId: string) => {
         `,
       [headId]
     );
-    await client.query(TRANS.COMMIT);
     return result.rows;
   } catch (e) {
-    await client.query(TRANS.ROLLBACK);
     throw e;
   } finally {
     client.release();
@@ -380,8 +356,6 @@ export const getAssessmentTest = async (headId: string) => {
 export const getTestStatus = async (headId: string, testId: string) => {
   const client = await db.connect();
   try {
-    await client.query(TRANS.BEGIN);
-
     // First, get all subtests for this test_id
     const subtestsResult = await client.query(
       `
@@ -397,15 +371,12 @@ export const getTestStatus = async (headId: string, testId: string) => {
       [headId, testId]
     );
 
-    await client.query(TRANS.COMMIT);
-
     // If any subtest is not "Completed", the entire test is considered incomplete
     const allSubtests = subtestsResult.rows;
     const hasIncompleteSubtests = allSubtests.some((subtest) => subtest.status !== "Completed");
 
     return hasIncompleteSubtests ? "Not Completed" : "Completed";
   } catch (e) {
-    await client.query(TRANS.ROLLBACK);
     throw e;
   } finally {
     client.release();
@@ -415,7 +386,6 @@ export const getTestStatus = async (headId: string, testId: string) => {
 export const checkSubTestIsTaken = async (detId: string) => {
   const client = await db.connect();
   try {
-    await client.query(TRANS.BEGIN);
     const result = await client.query(
       `
             SELECT det_id FROM t_store_answer WHERE det_id = $1
@@ -424,7 +394,6 @@ export const checkSubTestIsTaken = async (detId: string) => {
     );
     return result.rows[0];
   } catch (e) {
-    await client.query(TRANS.ROLLBACK);
     throw e;
   } finally {
     client.release();
@@ -434,7 +403,6 @@ export const checkSubTestIsTaken = async (detId: string) => {
 export const getTakenQuestions = async (detId: string) => {
   const client = await db.connect();
   try {
-    await client.query(TRANS.BEGIN);
     const result = await client.query(
       `
             SELECT * FROM t_store_answer WHERE det_id = $1
@@ -445,7 +413,6 @@ export const getTakenQuestions = async (detId: string) => {
     return result.rows;
   } catch (e) {
     console.log(e);
-    await client.query(TRANS.ROLLBACK);
     throw e;
   } finally {
     client.release();
@@ -484,17 +451,15 @@ export const updateStoreQuestion = async (questionId: string, detId: string) => 
 export const checkQuestionType = async (questionId: string) => {
   const client = await db.connect();
   try {
-    await client.query(TRANS.BEGIN);
     const result = await client.query(
       `
       SELECT answer_type FROM mst_question_answer WHERE id = $1
         `,
       [questionId]
     );
-    await client.query(TRANS.COMMIT);
     return result.rows[0];
   } catch (e) {
-    await client.query(TRANS.ROLLBACK);
+    throw e;
   } finally {
     await client.release();
   }
@@ -518,7 +483,6 @@ export const storingQuestion = async (questionId: string, detId: string, payload
 export const getFinishAt = async (detId: string) => {
   const client = await db.connect();
   try {
-    await client.query(TRANS.BEGIN);
     const result = await client.query(
       `
       SELECT should_be_finished_at 
@@ -527,10 +491,9 @@ export const getFinishAt = async (detId: string) => {
         `,
       [detId]
     );
-    await client.query(TRANS.COMMIT);
+
     return result.rows[0];
   } catch (e) {
-    await client.query(TRANS.ROLLBACK);
     throw e;
   } finally {
     client.release();
@@ -554,17 +517,14 @@ export const updateProgressDet = async (detId: string, payload: any) => {
 export const checkSubmissionStatus = async (detId: string) => {
   const client = await db.connect();
   try {
-    await client.query(TRANS.BEGIN);
     const status = await client.query(
       `
       SELECT submit_at FROM t_progress_batch_det WHERE id = $1
         `,
       [detId]
     );
-    await client.query(TRANS.COMMIT);
     return status.rows[0];
   } catch (e) {
-    await client.query(TRANS.ROLLBACK);
     throw e;
   } finally {
     client.release();

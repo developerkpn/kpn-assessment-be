@@ -27,7 +27,6 @@ export const createCriteria = async (groupPayload: CriteriaGroup, criteriaPayloa
 export const getCriteria = async () => {
   const client = await db.connect();
   try {
-    await client.query(TRANS.BEGIN);
     const result = await client.query(
       `
     SELECT cr.*, v.value_code, v.value_name, v.id AS value_id
@@ -36,11 +35,9 @@ export const getCriteria = async () => {
     ORDER BY cr.minimum_score ASC
     `
     );
-    await client.query(TRANS.COMMIT);
     return result.rows;
   } catch (error) {
     console.error(error);
-    await client.query(TRANS.ROLLBACK);
     throw error;
   } finally {
     client.release();
@@ -111,7 +108,6 @@ export const updateCriteria = async (payload: CriteriaGroup, newCriteria: Criter
 export const getCriteriaDetail = async (id: string) => {
   const client = await db.connect();
   try {
-    await client.query(TRANS.BEGIN);
     const result = await client.query(
       `
       SELECT v.id AS value_id, v.value_name, v.value_code, cr.criteria_name, cr.minimum_score, cr.maximum_score
@@ -122,11 +118,9 @@ export const getCriteriaDetail = async (id: string) => {
       `,
       [id]
     );
-    await client.query(TRANS.COMMIT);
     return result.rows;
   } catch (error) {
     console.error(error);
-    await client.query(TRANS.ROLLBACK);
     throw error;
   } finally {
     client.release();

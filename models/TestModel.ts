@@ -29,7 +29,6 @@ export const createTest = async (payloadHeader: any, payloadDetail: any[]) => {
 export const getTest = async () => {
   const client = await db.connect();
   try {
-    await client.query(TRANS.BEGIN);
     const result = await client.query(
       `
             SELECT
@@ -47,12 +46,9 @@ export const getTest = async () => {
             ORDER BY h.created_at DESC
             `
     );
-
-    await client.query(TRANS.COMMIT);
     return result.rows;
   } catch (error) {
     console.error(error);
-    await client.query(TRANS.ROLLBACK);
     throw error;
   } finally {
     client.release();
@@ -124,7 +120,6 @@ export const deleteTest = async (id: string) => {
 export const getTestDetail = async (id: string) => {
   const client = await db.connect();
   try {
-    await client.query(TRANS.BEGIN);
     const result = await client.query(
       `
             SELECT
@@ -166,7 +161,6 @@ export const getTestDetail = async (id: string) => {
       [id]
     );
 
-    await client.query(TRANS.COMMIT);
     const subtestDetail = {
       id: result.rows[0].test_id,
       test_name: result.rows[0].test_name,
@@ -191,7 +185,6 @@ export const getTestDetail = async (id: string) => {
     return subtestDetail;
   } catch (error) {
     console.error(error);
-    await client.query(TRANS.ROLLBACK);
     throw error;
   } finally {
     client.release();
@@ -201,8 +194,6 @@ export const getTestDetail = async (id: string) => {
 export const getAvailableSubTestForTest = async (testId: string) => {
   const client = await db.connect();
   try {
-    await client.query(TRANS.BEGIN);
-
     const existingSubTest = await client.query(
       `
             SELECT subtest_id FROM mst_test_det WHERE test_id = $1
@@ -243,7 +234,6 @@ export const getAvailableSubTestForTest = async (testId: string) => {
     return result.rows;
   } catch (error) {
     console.error(error);
-    await client.query(TRANS.ROLLBACK);
     throw error;
   } finally {
     client.release();
@@ -280,7 +270,6 @@ export const deleteSubTestFromTest = async (testId: string, detailId: string, up
 export const getSubTestIdByTestId = async (testId: string) => {
   const client = await db.connect();
   try {
-    await client.query(TRANS.BEGIN);
     const result = await client.query(
       `
             SELECT subtest_id FROM mst_test_det WHERE test_id = $1
@@ -291,7 +280,6 @@ export const getSubTestIdByTestId = async (testId: string) => {
     return result.rows;
   } catch (e) {
     console.error(e);
-    await client.query(TRANS.ROLLBACK);
     throw e;
   } finally {
     client.release();

@@ -40,8 +40,6 @@ export const updateQuestion = async (payload: QuestionRequest, id: string) => {
 export const getQuestion = async (categoryId?: number) => {
   const client = await db.connect();
   try {
-    await client.query(TRANS.BEGIN);
-
     let query = `
       SELECT
         q.*, a.fullname AS created_by, c.category_name
@@ -61,12 +59,10 @@ export const getQuestion = async (categoryId?: number) => {
     query += ` ORDER BY q.created_date DESC`;
 
     const result = await client.query(query, values);
-    await client.query(TRANS.COMMIT);
 
     return result.rows;
   } catch (error) {
     console.error(error);
-    await client.query(TRANS.ROLLBACK);
     throw error;
   } finally {
     client.release();
@@ -76,7 +72,6 @@ export const getQuestion = async (categoryId?: number) => {
 export const getQuestionById = async (id: string) => {
   const client = await db.connect();
   try {
-    await client.query(TRANS.BEGIN);
     const result = await client.query(
       `
       SELECT
@@ -87,11 +82,10 @@ export const getQuestionById = async (id: string) => {
     `,
       [id]
     );
-    await client.query(TRANS.COMMIT);
+
     return result.rows[0];
   } catch (error) {
     console.error(error);
-    await client.query(TRANS.ROLLBACK);
     throw error;
   } finally {
     client.release();

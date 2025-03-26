@@ -23,7 +23,6 @@ export const createCategory = async (payload: CategoryRequest) => {
 export const getCategory = async () => {
   const client = await db.connect();
   try {
-    await client.query(TRANS.BEGIN);
     const result = await client.query(
       `
             SELECT h.id, h.category_name, h.category_code, h.created_at, h.is_active, d.fullname AS created_by 
@@ -32,12 +31,9 @@ export const getCategory = async () => {
             ORDER BY h.created_at DESC
             `
     );
-    console.log(result);
-    await client.query(TRANS.COMMIT);
     return result.rows;
   } catch (error) {
     console.error(error);
-    await client.query(TRANS.ROLLBACK);
     throw error;
   } finally {
     client.release();

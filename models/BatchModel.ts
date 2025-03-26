@@ -24,7 +24,6 @@ export const createBatch = async (headerPayload: any) => {
 export const getBatch = async () => {
   const client = await db.connect();
   try {
-    await client.query(TRANS.BEGIN);
     const result = await client.query(
       `
             SELECT
@@ -54,11 +53,10 @@ export const getBatch = async () => {
                 h.created_at DESC           
             `
     );
-    await client.query(TRANS.COMMIT);
+
     return result.rows;
   } catch (error) {
     console.error(error);
-    await client.query(TRANS.ROLLBACK);
     throw error;
   } finally {
     client.release();
@@ -136,7 +134,6 @@ export const addAssessee = async (assesseePayload: any) => {
 export const getBatchDetail = async (id: string) => {
   const client = await db.connect();
   try {
-    await client.query(TRANS.BEGIN);
     const result = await client.query(
       `
            SELECT
@@ -186,11 +183,9 @@ export const getBatchDetail = async (id: string) => {
            `,
       [id]
     );
-    await client.query(TRANS.COMMIT);
     return result.rows[0];
   } catch (error) {
     console.log(error);
-    await client.query(TRANS.ROLLBACK);
     throw error;
   } finally {
     client.release();
@@ -200,7 +195,6 @@ export const getBatchDetail = async (id: string) => {
 export const getBatchAssesses = async (id: string) => {
   const client = await db.connect();
   try {
-    await client.query(TRANS.BEGIN);
     const result = await client.query(
       `
             SELECT 
@@ -220,7 +214,6 @@ export const getBatchAssesses = async (id: string) => {
     return result.rows;
   } catch (error) {
     console.log(error);
-    await client.query(TRANS.ROLLBACK);
     throw error;
   } finally {
     client.release();
