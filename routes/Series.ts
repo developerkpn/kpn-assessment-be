@@ -10,6 +10,7 @@ import {
   // handleGetListSeriesByCategory,
   // handleGetQuestionsList,
   handleGetSeries,
+  handleGetSeriesByID,
   handleUpdateSeries,
 } from "#dep/controllers/SeriesController";
 import { checkPermission } from "#dep/middleware/auth";
@@ -23,6 +24,7 @@ Series.delete("/:id", checkPermission("fdelete", 4), handleDeleteSeries);
 Series.patch("/:id", checkPermission("fupdate", 4), handleUpdateSeries);
 
 Series.get("/:id", checkPermission("fread", 4), handleGetDetailSeries);
+Series.get("/create/:id", checkPermission("fread", 4), handleGetSeriesByID);
 Series.get("/:id/questions-available", checkPermission("fread", 4), handleGetAvailableQuestionForSeries);
 Series.delete("/:id/questions/:questionId", checkPermission("fdelete", 4), handleDeleteQuestionFromSeries);
 
