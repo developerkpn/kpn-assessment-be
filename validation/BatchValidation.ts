@@ -32,9 +32,9 @@ export class BatchValidation {
   });
 
   static readonly ADDASSESSEEMANUALLY: z.ZodSchema = z.object({
-    assessee_nik: z.string().length(11),
-    // assessee_name: z.string().trim().min(1),
-    // assessee_email: z.string().email(),
+    assessee_nik: z.string().min(11),
+    assessee_name: z.string().trim().min(1).optional(),
+    assessee_email: z.string().email().optional(),
   });
 
   static readonly ID: ZodType = z.string().uuid();
