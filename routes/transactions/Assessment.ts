@@ -2,6 +2,7 @@ import { Router } from "express";
 import {
   handleGetAssesseeProfile,
   handleGetAssessmentSubTest,
+  handleGetAssessmentTermsPP,
   handleGetAssessmentTest,
   handleGetAsssessmentQuestion,
   handleGetBatchDetail,
@@ -14,6 +15,7 @@ const Assessment = Router();
 
 Assessment.put("/subtest/submission", handleSubmissionConfirmation);
 Assessment.get("/:token/profile", handleGetAssesseeProfile);
+Assessment.get("/:token/termspp", handleGetAssessmentTermsPP);
 Assessment.get("/:token/batch", handleGetBatchDetail);
 // Assessment.get("/:token", handleStartProgress);
 Assessment.get("/:token/test", handleGetAssessmentTest);

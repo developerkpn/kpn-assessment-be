@@ -7,6 +7,7 @@ import {
   checkSubTestIsTaken,
   createAssessmentProgressDetail,
   getAssessmentSubTest,
+  getAssessmentTermsPP,
   getAssessmentTest,
   getBatchByAssessment,
   getFinishAt,
@@ -38,6 +39,7 @@ import path from "path";
 import moment from "moment";
 import "moment-timezone/index";
 import axios from "axios";
+import { PP_ID, TERMS_ID } from "#dep/constant";
 
 const handleAssessmentToken = async (token: string) => {
   try {
@@ -518,5 +520,27 @@ export const handleGetAssessmentSubTest = async (req: Request, res: Response, ne
     });
   } catch (e) {
     next(e);
+  }
+};
+
+export const handleGetAssessmentTermsPP = async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    console.log("masuk");
+    let data = { terms: "", pp: "" };
+    let result = await getAssessmentTermsPP();
+    result.forEach((row) => {
+      if (row.id === TERMS_ID) {
+        data.terms = row;
+      }
+      if (row.id === PP_ID) {
+        data.pp = row;
+      }
+    });
+    res.status(200).send({
+      message: `Success!`,
+      data: data,
+    });
+  } catch (error: any) {
+    next(error);
   }
 };
