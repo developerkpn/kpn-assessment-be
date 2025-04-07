@@ -6,6 +6,7 @@ import {
   deleteEmailTemplate,
   getEmailTemplate,
   getEmailTemplateDetail,
+  getUserRole,
   updateEmailTemplate,
 } from "#dep/models/EmailTemplateModel";
 import { v7 as uuid } from "uuid";
@@ -20,6 +21,18 @@ import dotenv from "dotenv";
 import { emailTemplateHTML } from "#dep/helper/email/emailnotifmgrprc";
 dotenv.config();
 
+export const handleGetUserRole = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const getRole = await getUserRole();
+
+    res.status(200).send({
+      message: "Success!",
+      data: getRole,
+    });
+  } catch (e) {
+    next(e);
+  }
+};
 export const handleCreateEmailTemplate = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const validatedRequest = Validation.validate(EmailTemplateValidation.CREATE, req.body);
@@ -103,12 +116,18 @@ export const handleGetEmailTemplatePreview = async (req: Request, res: Response,
   }
 };
 
-export const handleGenerateEmailTemplate = async (batchDetailId?: string, token?: string, emailTemplateId?: string) => {
+export const handleGenerateEmailTemplate = async (
+  batchDetailId?: string,
+  token?: string,
+  emailTemplateId?: string,
+  cc?: boolean
+) => {
   try {
     let email;
+
     if (batchDetailId && token) {
       console.log("masuk batch");
-      const batchDetail = await getBatchDetail(batchDetailId!);
+      const batchDetail: any = await getBatchDetail(batchDetailId!);
       console.log("masuk email template");
       console.log(batchDetail.template_email_id);
       const emailTemplate = await getEmailTemplateDetail(batchDetail.template_email_id);
@@ -156,7 +175,7 @@ export const handleGenerateEmailTemplate = async (batchDetailId?: string, token?
         fm_name: `Filling in Batch Section`,
         start_period: `Filling in Batch Section`,
         end_period: `Filling in Batch Section`,
-        batch_link: `${process.env.API_URL}/batch/${token ? token : "token"}`,
+        batch_link: `${process.env.API_URL}/client/${token ? token : "token"}`,
       };
 
       email = {
@@ -204,3 +223,46 @@ export const handleSendEmail = async (batchDetailId: string, token: string, asse
     throw e;
   }
 };
+
+const handleGenerateEmailCC = async (batchId: string) => {
+  try {
+    console.log("masuk batch");
+    const batchDetail: any = await getBatchDetail(batchId!);
+    console.log("masuk email template");
+    console.log("function menu");
+    const functionMenuDetail = await getFunctionMenuDetail(batchDetail.function_id);
+    console.log("masuk bu");
+    const businessUnitDetail = await getBusinessUnitDetail(batchDetail.bu_id!);
+    console.log("masuk template");
+    const emailCCRole = console.log(functionMenuDetail);
+    const template = emailTemplateHTML;
+
+    const payload: any = {
+      batch_name: batchDetail.batch_name ? batchDetail.batch_name : `Filling in Batch Section`,
+      batch_code: batchDetail.batch_code ? batchDetail.batch_code : `Filling in Batch Section`,
+      bu_name: businessUnitDetail.bu_name ? businessUnitDetail.bu_name : `Filling in Batch Section`,
+      fm_name: functionMenuDetail.fm_name ? functionMenuDetail.fm_name : `Filling in Batch Section`,
+      start_period: batchDetail.start_period ? batchDetail.start_period : `Filling in Batch Section`,
+      end_period: batchDetail.end_period ? batchDetail.end_period : `Filling in Batch Section`,
+      total_assessee: batchDetail.assessee_count ? batchDetail.total_assesseee : 0,
+    };
+
+    const email = {
+      subject: "[KPN Assessment] New Assessment is Published!",
+      template: mustache.render(template, payload),
+    };
+
+    return email;
+  } catch (e) {
+    throw e;
+  }
+};
+
+// export const handleSendCCEmail = async (batchId: string) => {
+//   try {
+//     console.log("masuk send email");
+//     const email = await handleGenerateEmailCC();
+//   } catch (e) {
+//     throw e;
+//   }
+// };
