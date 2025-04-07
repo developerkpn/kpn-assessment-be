@@ -507,7 +507,7 @@ export const emailTemplateHTML = `
                                     :
                                 </td>
                                 <td style="padding: 0.1em 2.5em">
-                                    <a>{{batch_link}}<a/>
+                                    <a href={{ batch_link }}>Click this link</a>
                                 </td>
                             </tr>
                             <tr>

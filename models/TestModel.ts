@@ -29,7 +29,6 @@ export const createTest = async (payloadHeader: any, payloadDetail: any[]) => {
 export const getTest = async () => {
   const client = await db.connect();
   try {
-    await client.query(TRANS.BEGIN);
     const result = await client.query(
       `
             SELECT
@@ -47,12 +46,9 @@ export const getTest = async () => {
             ORDER BY h.created_at DESC
             `
     );
-
-    await client.query(TRANS.COMMIT);
     return result.rows;
   } catch (error) {
     console.error(error);
-    await client.query(TRANS.ROLLBACK);
     throw error;
   } finally {
     client.release();
@@ -66,10 +62,16 @@ export const updateTest = async (testId: string, headerPayload: any, detailPaylo
   try {
     await client.query(TRANS.BEGIN);
     const [headerQ, headerV] = updateQuery("mst_test_head", headerPayload, { id: testId }, "test_code");
+    console.log("keluar 1");
     const headerResult = await client.query(headerQ, headerV);
+    console.log("keluar 2");
     if (!headerResult.rows[0].test_code) throw new ResponseError(404, `Test with ID ${testId} is not found`);
-    const [detailQ, detailV] = insertQuery("mst_test_det", detailPayload);
-    await client.query(detailQ, detailV);
+    console.log("keluar 3");
+    if (detailPayload) {
+      console.log("masuk");
+      const [detailQ, detailV] = insertQuery("mst_test_det", detailPayload);
+      await client.query(detailQ, detailV);
+    }
     await client.query(TRANS.COMMIT);
   } catch (error) {
     console.error(error);
@@ -118,7 +120,6 @@ export const deleteTest = async (id: string) => {
 export const getTestDetail = async (id: string) => {
   const client = await db.connect();
   try {
-    await client.query(TRANS.BEGIN);
     const result = await client.query(
       `
             SELECT
@@ -129,7 +130,7 @@ export const getTestDetail = async (id: string) => {
                 h.description,
                 a.fullname AS created_by,
                 h.created_at,
-                h.updated_by,
+                a.fullname AS updated_by,
                 h.updated_at,
                 s.id AS subtest_id,
                 s.subtest_name,
@@ -151,6 +152,8 @@ export const getTestDetail = async (id: string) => {
             LEFT JOIN 
                 mst_admin_web a ON h.created_by = a.id
             LEFT JOIN
+                mst_admin_web ads ON h.updated_by = ads.id
+            LEFT JOIN
                 mst_admin_web ad ON d.added_by = ad.id
             WHERE
                 h.id = $1 
@@ -158,7 +161,6 @@ export const getTestDetail = async (id: string) => {
       [id]
     );
 
-    await client.query(TRANS.COMMIT);
     const subtestDetail = {
       id: result.rows[0].test_id,
       test_name: result.rows[0].test_name,
@@ -183,7 +185,6 @@ export const getTestDetail = async (id: string) => {
     return subtestDetail;
   } catch (error) {
     console.error(error);
-    await client.query(TRANS.ROLLBACK);
     throw error;
   } finally {
     client.release();
@@ -193,8 +194,6 @@ export const getTestDetail = async (id: string) => {
 export const getAvailableSubTestForTest = async (testId: string) => {
   const client = await db.connect();
   try {
-    await client.query(TRANS.BEGIN);
-
     const existingSubTest = await client.query(
       `
             SELECT subtest_id FROM mst_test_det WHERE test_id = $1
@@ -235,7 +234,6 @@ export const getAvailableSubTestForTest = async (testId: string) => {
     return result.rows;
   } catch (error) {
     console.error(error);
-    await client.query(TRANS.ROLLBACK);
     throw error;
   } finally {
     client.release();
@@ -272,7 +270,6 @@ export const deleteSubTestFromTest = async (testId: string, detailId: string, up
 export const getSubTestIdByTestId = async (testId: string) => {
   const client = await db.connect();
   try {
-    await client.query(TRANS.BEGIN);
     const result = await client.query(
       `
             SELECT subtest_id FROM mst_test_det WHERE test_id = $1
@@ -283,7 +280,6 @@ export const getSubTestIdByTestId = async (testId: string) => {
     return result.rows;
   } catch (e) {
     console.error(e);
-    await client.query(TRANS.ROLLBACK);
     throw e;
   } finally {
     client.release();

@@ -6,10 +6,7 @@ import { ResponseError } from "#dep/error/response-error";
 
 export const getAvailableSubTestForGroupTest = async (grouptestId: string) => {
   const client = await db.connect();
-
   try {
-    await client.query(TRANS.BEGIN);
-
     console.log(grouptestId);
     const existingSubTests = await client.query(`SELECT test_id FROM mst_grouptest_det WHERE grouptest_id = $1`, [
       grouptestId,
@@ -51,7 +48,6 @@ export const getAvailableSubTestForGroupTest = async (grouptestId: string) => {
     return result.rows;
   } catch (error) {
     console.error(error);
-    await client.query(TRANS.ROLLBACK);
     throw error;
   } finally {
     client.release;
@@ -83,7 +79,6 @@ export const createGroupTest = async (
 export const getGroupTest = async () => {
   const client = await db.connect();
   try {
-    await client.query(TRANS.BEGIN);
     const result = await client.query(
       `
             SELECT 
@@ -101,11 +96,9 @@ export const getGroupTest = async () => {
             ORDER BY h.created_at DESC
             `
     );
-    await client.query(TRANS.COMMIT);
     return result.rows;
   } catch (error) {
     console.error(error);
-    await client.query(TRANS.ROLLBACK);
     throw error;
   } finally {
     client.release();
@@ -173,7 +166,6 @@ export const deleteGroupTest = async (id: string) => {
 export const getGroupTestDetail = async (id: string) => {
   const client = await db.connect();
   try {
-    await client.query(TRANS.BEGIN);
     const result = await client.query(
       `
             SELECT
@@ -214,14 +206,13 @@ export const getGroupTestDetail = async (id: string) => {
       [id]
     );
 
-    await client.query(TRANS.COMMIT);
     const grouptestDetail = {
       id: result.rows[0].grouptest_id,
       grouptest_name: result.rows[0].grouptest_name,
       grouptest_code: result.rows[0].grouptest_code,
       is_active: result.rows[0].is_active,
       created_by: result.rows[0].created_by,
-      created_at: result.rows[0].created_date,
+      created_at: result.rows[0].created_at,
       updated_by: result.rows[0].updated_by,
       updated_at: result.rows[0].updated_at,
       tests: result.rows
@@ -240,7 +231,6 @@ export const getGroupTestDetail = async (id: string) => {
     return grouptestDetail;
   } catch (error) {
     console.error(error);
-    await client.query(TRANS.ROLLBACK);
     throw error;
   } finally {
     client.release();

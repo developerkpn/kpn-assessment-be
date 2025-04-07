@@ -8,11 +8,14 @@ import {
   createBatch,
   deleteBatch,
   deleteBatchAssessee,
+  deleteEmailCC,
   getBatch,
   getBatchAssesses,
   getBatchDetail,
+  getUserEmailByRole,
   publishBatch,
   startProgress,
+  storeEmailCC,
   updateBatch,
 } from "#dep/models/BatchModel";
 import fs from "fs";
@@ -24,7 +27,8 @@ import { Secret, sign } from "jsonwebtoken";
 import { emailTemplateHTML } from "#dep/helper/email/emailnotifmgrprc";
 // import { getTestFromChoosenGroupTest} from "#dep/models/GroupTestModel";
 import moment from "moment";
-
+import axios from "axios";
+import { axiosDarwin } from "#dep/config/axiosDarwin";
 export const handleCreateBatch = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const validatedRequest = Validation.validate(BatchValidation.CREATE, req.body);
@@ -131,6 +135,59 @@ export const handleAddAssesseeManually = async (req: Request, res: Response, nex
     res.status(201).send({
       message: "Assessee is successfully added!",
     });
+    // const validatedId = Validation.validate(BatchValidation.ID, req.params.id);
+    // const validatedRequest = Validation.validate(BatchValidation.ADDASSESSEEMANUALLY, req.body);
+    //
+    // const payload = {
+    //   api_key: process.env.API_KEY,
+    //   datasetKey: process.env.DATASET_KEY,
+    //   employee_ids: [`${validatedRequest.assessee_nik}`],
+    // };
+    //
+    // console.log(payload);
+    //
+    // // Encode Basic Auth (username:password) ke Base64
+    // const username = process.env.BASIC_AUTH_USERNAME || "no";
+    // console.log(username);
+    // const password = process.env.BASIC_AUTH_PASSWORD || "no";
+    // console.log(password);
+    // const basicAuth = Buffer.from(`${username}:${password}`).toString("base64");
+    // console.log(basicAuth);
+    // const getAssessee = await axios.post(`${process.env.DARWIN_BASE_URL}`, payload, {
+    //   headers: {
+    //     Authorization: `Basic ${basicAuth}`, // Menambahkan header Authorization
+    //     "Content-Type": "application/json",
+    //   },
+    // });
+    //
+    // console.log(getAssessee);
+    // if (getAssessee.data.status! === 1) {
+    //   const assessee = {
+    //     id: uuid(),
+    //     batch_id: validatedId,
+    //     assessee_nik: getAssessee.data.employee_data[0].employee_id,
+    //     assessee_name: getAssessee.data.employee_data[0].full_name,
+    //     assessee_email: getAssessee.data.employee_data[0].company_email_id,
+    //   };
+    //
+    //   console.log(assessee);
+    //
+    //   await addAssessee(assessee);
+    //
+    //   res.status(201).send({
+    //     message: "Assessee is successfully added!",
+    //     data: {
+    //       assessee_nik: getAssessee.data.employee_data[0].employee_id,
+    //       assessee_name: getAssessee.data.employee_data[0].full_name,
+    //       assessee_email: getAssessee.data.employee_data[0].company_email_id,
+    //     },
+    //   });
+    // } else {
+    //   throw new ResponseError(400, getAssessee.data.message!);
+    // }
+    // console.log(getAssessee.status!);
+    //
+    // console.log(getAssessee.data);
   } catch (e) {
     next(e);
   }
@@ -141,7 +198,7 @@ export const handleGetBatchDetail = async (req: Request, res: Response, next: Ne
     const validatedId = Validation.validate(BatchValidation.ID, req.params.id);
 
     const result = await getBatchDetail(validatedId);
-
+    console.log(result);
     res.status(200).send({
       message: `Success!`,
       data: result,
@@ -184,35 +241,103 @@ export const handleDeleteBatchAssessee = async (req: Request, res: Response, nex
 export const handleAddAssesseeByFile = async (req: Request, res: Response, next: NextFunction) => {
   if (!req.file) {
     res.status(400).send("File tidak ditemukan.");
-    return;
   }
 
   try {
     const validatedId = Validation.validate(BatchValidation.ID, req.params.id);
-    const workbook = XLSX.read(req.file.buffer, { type: "buffer" });
+    const workbook = XLSX.read(req.file!.buffer, { type: "buffer" });
     const firstSheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[firstSheetName];
 
+    // Convert sheet to JSON
     const jsonData = XLSX.utils.sheet_to_json(worksheet, {
       defval: null,
       raw: false,
     });
 
-    const filteredData = jsonData.map((row: any) => {
-      const result = {
-        id: uuid(),
-        batch_id: validatedId,
-        assessee_nik: row.assessee_nik,
-        assessee_name: row.assessee_name,
-        assessee_email: row.assessee_email,
-      };
-      return result;
+    console.log("masuk payload");
+
+    // Prepare payload for API request
+    const payload = {
+      api_key: process.env.API_KEY,
+      datasetKey: process.env.DATASET_KEY,
+      limit: "1000",
+      employee_ids: jsonData.map((row: any) => `${row.NIK}`),
+    };
+
+    console.log(payload);
+    console.log("keluar payload");
+
+    // Prepare Basic Auth
+    const username = process.env.BASIC_AUTH_USERNAME || "no";
+    const password = process.env.BASIC_AUTH_PASSWORD || "no";
+    const basicAuth = Buffer.from(`${username}:${password}`).toString("base64");
+
+    // Fetch employee data from API
+    const getAssessee = await axios.post(`${process.env.DARWIN_BASE_URL}`, payload, {
+      headers: {
+        Authorization: `Basic ${basicAuth}`,
+        "Content-Type": "application/json",
+      },
     });
 
-    console.log(filteredData);
-    const validatedAssessee = Validation.validate(BatchValidation.ASSESSEE, filteredData);
+    console.log("fetch berhasil");
+    console.log(getAssessee);
+    console.log(getAssessee.data.employee_data);
 
-    await addAssessee(validatedAssessee);
+    // Create a map of found employee IDs for quick lookup
+    const foundEmployees = new Map(getAssessee.data.employee_data.map((emp: any) => [emp.employee_id, emp]));
+
+    // Process each row and update status
+    const processedData = jsonData.map((row: any) => {
+      const employee: any = foundEmployees.get(row.NIK);
+
+      if (employee) {
+        return {
+          ...row,
+          Status: "Success",
+          Name: employee.full_name,
+          Email: employee.company_email_id,
+        };
+      } else {
+        return {
+          ...row,
+          Status: "Failed",
+          Name: null,
+          Email: null,
+        };
+      }
+    });
+
+    // Prepare data for database insertion
+    const assesseeData = processedData
+      .filter((row: any) => row.Status === "Success")
+      .map((row: any) => ({
+        id: uuid(),
+        batch_id: validatedId,
+        assessee_nik: row.NIK,
+        assessee_name: row.Name,
+        assessee_email: row.Email,
+      }));
+
+    // // Validate and add assessees to database
+    // if (assesseeData.length > 0) {
+    //   const validatedAssessee = Validation.validate(BatchValidation.ASSESSEE, assesseeData);
+    //   await addAssessee(validatedAssessee);
+    // }
+    //
+    // // Prepare workbook for response
+    // const updatedWorksheet = XLSX.utils.json_to_sheet(processedData);
+    // const updatedWorkbook = XLSX.utils.book_new();
+    // XLSX.utils.book_append_sheet(updatedWorkbook, updatedWorksheet, "Assessees");
+    //
+    // // Set response headers for Excel file download
+    // res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    // res.setHeader("Content-Disposition", "attachment; filename=processed_assessees.xlsx");
+    //
+    // // Convert workbook to buffer and send
+    // const excelBuffer = XLSX.write(updatedWorkbook, { type: "buffer", bookType: "xlsx" });
+    // res.send(excelBuffer);
 
     res.status(200).send({
       message: "Success!",
@@ -257,7 +382,7 @@ export const handleCreateBatchToken = async (batchId: string, startPeriod: any, 
 export const handlePublishBatch = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const validatedId = Validation.validate(BatchValidation.ID, req.params.id);
-    const batchDetail = await getBatchDetail(validatedId);
+    const batchDetail: any = await getBatchDetail(validatedId);
     const assesseeList = await getBatchAssesses(validatedId);
 
     if (batchDetail.status !== "Draft") {
@@ -285,8 +410,84 @@ export const handlePublishBatch = async (req: Request, res: Response, next: Next
 
     await startProgress(progressHead);
 
-    res.status(200).send({
+    const sendCCEmail = res.status(200).send({
       message: "Batch is successfully published and email's sent to assessee",
+    });
+  } catch (e) {
+    next(e);
+  }
+};
+
+export const handleAddCCEmail = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { roles = [], emails = [] } = req.body;
+    const batch_id = req.params.id;
+
+    if (!batch_id) {
+      res.status(400).json({ message: "Batch ID diperlukan" });
+    }
+
+    // Data yang akan disimpan
+    let ccEmails: Array<{ id: string; batch_id: string; role_id: string | null; cc_email: string }> = [];
+
+    // Proses roles jika ada
+    if (roles && roles.length > 0) {
+      // Dapatkan email berdasarkan role_id
+      for (const role of roles) {
+        const userEmails = await getUserEmailByRole(role.role_id);
+
+        if (userEmails && userEmails.length > 0) {
+          // Tambahkan email dari role ke array
+          userEmails.forEach((user) => {
+            ccEmails.push({
+              id: uuid(),
+              batch_id,
+              role_id: role.role_id,
+              cc_email: user.email,
+            });
+          });
+        }
+      }
+    }
+
+    // Proses email manual jika ada
+    if (emails && emails.length > 0) {
+      // Tambahkan email manual ke array
+      emails.forEach((item: any) => {
+        ccEmails.push({
+          id: uuid(),
+          batch_id,
+          role_id: null, // Null karena dimasukkan manual
+          cc_email: item.cc_email,
+        });
+      });
+    }
+
+    // Jika tidak ada data yang akan disimpan
+    if (ccEmails.length === 0) {
+      res.status(400).json({ message: "Tidak ada email yang akan disimpan" });
+    }
+
+    // Simpan ke database
+    await storeEmailCC(ccEmails);
+
+    res.status(200).json({
+      message: "Success!",
+      data: ccEmails,
+    });
+  } catch (e) {
+    next(e);
+  }
+};
+
+export const handleDeleteCCEmail = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const batchId = req.params.batchId;
+    const id = req.params.id;
+    await deleteEmailCC(batchId, id);
+
+    res.status(200).send({
+      message: "Success!",
     });
   } catch (e) {
     next(e);

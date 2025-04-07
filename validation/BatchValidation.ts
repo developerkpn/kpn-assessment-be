@@ -45,7 +45,7 @@ export class BatchValidation {
     z.object({
       id: z.string().uuid(),
       batch_id: z.string().uuid(),
-      assessee_nik: z.string().trim().length(16),
+      assessee_nik: z.string().trim().length(11),
       assessee_name: z.string().trim().min(1),
       assessee_email: z.string().email(),
     })

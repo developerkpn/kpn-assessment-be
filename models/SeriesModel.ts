@@ -29,8 +29,6 @@ export const createSeries = async (headerPayload: SeriesHeaderRequest, detailPay
 export const getSeries = async () => {
   const client = await db.connect(); // Koneksi dibuat di awal
   try {
-    await client.query(TRANS.BEGIN);
-
     const result = await client.query(
       `
       SELECT 
@@ -49,11 +47,9 @@ export const getSeries = async () => {
       `
     );
 
-    await client.query(TRANS.COMMIT);
     return result.rows;
   } catch (error) {
     console.error(error);
-    await client.query(TRANS.ROLLBACK);
     throw error;
   } finally {
     client.release();
@@ -154,8 +150,6 @@ export const getSeriesbyID = async (id: string) => {
 export const getSeriesDetail = async (id: string) => {
   const client = await db.connect();
   try {
-    await client.query(TRANS.BEGIN);
-
     const result = await client.query(
       `
       SELECT 
@@ -219,8 +213,6 @@ export const getSeriesDetail = async (id: string) => {
       [id]
     );
 
-    await client.query(TRANS.COMMIT);
-
     if (result.rows.length === 0) {
       throw new Error("Series not found or no questions available.");
     }
@@ -261,7 +253,6 @@ export const getSeriesDetail = async (id: string) => {
     return seriesDetail;
   } catch (error) {
     console.error(error);
-    await client.query(TRANS.ROLLBACK);
     throw error;
   } finally {
     client.release();
@@ -301,8 +292,6 @@ export const deleteQuestionFromSeries = async (seriesId: string, questionId: str
 export const getAvailableQuestionsForSeries = async (seriesId: string) => {
   const client = await db.connect();
   try {
-    await client.query("BEGIN");
-
     const existingQuestions = await client.query(`SELECT question_id FROM mst_series_det WHERE series_id = $1`, [
       seriesId,
     ]);
@@ -329,15 +318,10 @@ export const getAvailableQuestionsForSeries = async (seriesId: string) => {
       queryParams
     );
 
-    await client.query("COMMIT");
-
     return result.rows;
   } catch (error) {
-    await client.query("ROLLBACK");
     throw error;
   } finally {
     client.release();
   }
 };
-
-// const getQuestionBySerie

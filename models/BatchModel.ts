@@ -24,7 +24,6 @@ export const createBatch = async (headerPayload: any) => {
 export const getBatch = async () => {
   const client = await db.connect();
   try {
-    await client.query(TRANS.BEGIN);
     const result = await client.query(
       `
             SELECT
@@ -54,11 +53,10 @@ export const getBatch = async () => {
                 h.created_at DESC           
             `
     );
-    await client.query(TRANS.COMMIT);
+
     return result.rows;
   } catch (error) {
     console.error(error);
-    await client.query(TRANS.ROLLBACK);
     throw error;
   } finally {
     client.release();
@@ -136,7 +134,6 @@ export const addAssessee = async (assesseePayload: any) => {
 export const getBatchDetail = async (id: string) => {
   const client = await db.connect();
   try {
-    await client.query(TRANS.BEGIN);
     const result = await client.query(
       `
            SELECT
@@ -186,11 +183,27 @@ export const getBatchDetail = async (id: string) => {
            `,
       [id]
     );
-    await client.query(TRANS.COMMIT);
-    return result.rows[0];
+
+    const ccEmails = await client.query(
+      `
+        SELECT id, role_id, cc_email
+        FROM t_batch_cc
+        WHERE batch_id = $1
+        `,
+      [id]
+    );
+
+    const batchDetail = result.rows[0];
+    const ccEmail = ccEmails.rows;
+
+    const data = {
+      batch: batchDetail,
+      email: ccEmail,
+    };
+
+    return data;
   } catch (error) {
     console.log(error);
-    await client.query(TRANS.ROLLBACK);
     throw error;
   } finally {
     client.release();
@@ -200,7 +213,6 @@ export const getBatchDetail = async (id: string) => {
 export const getBatchAssesses = async (id: string) => {
   const client = await db.connect();
   try {
-    await client.query(TRANS.BEGIN);
     const result = await client.query(
       `
             SELECT 
@@ -220,7 +232,6 @@ export const getBatchAssesses = async (id: string) => {
     return result.rows;
   } catch (error) {
     console.log(error);
-    await client.query(TRANS.ROLLBACK);
     throw error;
   } finally {
     client.release();
@@ -283,6 +294,64 @@ export const startProgress = async (headProgressPayload: any) => {
     console.error(error);
     await client.query(TRANS.ROLLBACK);
     throw error;
+  } finally {
+    client.release();
+  }
+};
+
+export const getUserEmailByRole = async (roleId: any) => {
+  const client = await db.connect();
+  try {
+    const result = await client.query(
+      `
+       SELECT h.email
+       FROM mst_admin_web h
+       WHERE role_id = $1
+       `,
+      [roleId]
+    );
+    return result.rows;
+  } catch (e) {
+    console.error(e);
+    throw e;
+  } finally {
+    client.release();
+  }
+};
+
+export const storeEmailCC = async (data: any) => {
+  const client = await db.connect();
+  try {
+    await client.query(TRANS.BEGIN);
+    console.log(data);
+    const [Q, V] = insertQuery("t_batch_cc", data);
+    await client.query(Q, V);
+    await client.query(TRANS.COMMIT);
+  } catch (e) {
+    console.error(e);
+    await client.query(TRANS.ROLLBACK);
+    throw e;
+  } finally {
+    client.release();
+  }
+};
+
+export const deleteEmailCC = async (batchId: string, id: string) => {
+  const client = await db.connect();
+  try {
+    await client.query(TRANS.BEGIN);
+    const deleteCCEmail = await client.query(
+      `
+      DELETE FROM t_batch_cc
+      WHERE batch_id = $1 AND id = $2
+      `,
+      [batchId, id]
+    );
+    await client.query(TRANS.COMMIT);
+  } catch (e) {
+    console.error(e);
+    await client.query(TRANS.ROLLBACK);
+    throw e;
   } finally {
     client.release();
   }

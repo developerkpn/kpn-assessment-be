@@ -3,9 +3,11 @@ import { checkPermission } from "#dep/middleware/auth";
 import {
   handleAddAssesseeByFile,
   handleAddAssesseeManually,
+  handleAddCCEmail,
   handleCreateBatch,
   handleDeleteBatch,
   handleDeleteBatchAssessee,
+  handleDeleteCCEmail,
   handleGetBatch,
   handleGetBatchAssessees,
   handleGetBatchDetail,
@@ -24,7 +26,8 @@ Batch.get("/preview", checkPermission("fread", 15), handlePreviewBatchTemplateEm
 Batch.patch("/:id", checkPermission("fupdate", 15), handleUpdateBatch);
 Batch.delete("/:id", checkPermission("fdelete", 15), handleDeleteBatch);
 Batch.get("/:id", checkPermission("fread", 15), handleGetBatchDetail);
-
+Batch.post("/:id/cc-email", checkPermission("fcreate", 15), handleAddCCEmail);
+Batch.delete("/:batchId/cc-email/:id", checkPermission("fdelete", 15), handleDeleteCCEmail);
 Batch.post("/:id", checkPermission("fcreate", 15), uploadSingleFile, handleAddAssesseeByFile);
 Batch.post("/:id/assessee", checkPermission("fcreate", 15), handleAddAssesseeManually);
 Batch.get("/:id/assessee", checkPermission("fread", 15), handleGetBatchAssessees);
