@@ -6,6 +6,7 @@ import {
   checkSubmissionStatus,
   checkSubTestIsTaken,
   createAssessmentProgressDetail,
+  getAssessmentByUserNIK,
   getAssessmentSubTest,
   getAssessmentTermsPP,
   getAssessmentTest,
@@ -22,6 +23,7 @@ import {
   getTakenQuestions,
   getTestStatus,
   storeAnswer,
+  storeLog,
   storeTakenQuestions,
   updateAssessmentStart,
 } from "#dep/models/transactions/AssessmentModel";
@@ -45,6 +47,19 @@ const handleAssessmentToken = async (token: string) => {
   try {
     const tokenDecode = verify(token, process.env.SECRETJWT as Secret);
     return tokenDecode;
+  } catch (e) {
+    throw e;
+  }
+};
+
+export const handleGetAssessmentsByUserId = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userNIK = req.params.nik;
+    const data = await getAssessmentByUserNIK(userNIK);
+    res.status(200).send({
+      message: "Success!",
+      data: data,
+    });
   } catch (e) {
     throw e;
   }
@@ -542,5 +557,31 @@ export const handleGetAssessmentTermsPP = async (_req: Request, res: Response, n
     });
   } catch (error: any) {
     next(error);
+  }
+};
+
+export const handleStoringLog = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const tokenDecode: any = await handleAssessmentToken(req.params.token);
+    console.log(tokenDecode);
+    const subtestId = req.params.id;
+    const payload = {
+      id: uuid(),
+      batch_id: tokenDecode.batch_id,
+      subtest_id: subtestId,
+      created_at: moment(),
+      user_id: tokenDecode.user_id,
+      log: req.body.log,
+    };
+
+    console.log(payload);
+    await storeLog(payload);
+
+    res.status(201).send({
+      message: "Success!",
+      data: payload,
+    });
+  } catch (e) {
+    next(e);
   }
 };
