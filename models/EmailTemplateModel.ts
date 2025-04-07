@@ -104,3 +104,21 @@ export const getEmailTemplateDetail = async (emailTemplateId: string) => {
     client.release();
   }
 };
+
+export const getUserRole = async () => {
+  const client = await db.connect();
+  try {
+    const result = await client.query(
+      `
+        SELECT id, role_name
+        FROM mst_role
+        `
+    );
+    return result.rows;
+  } catch (e) {
+    console.error(e);
+    throw e;
+  } finally {
+    client.release();
+  }
+};
