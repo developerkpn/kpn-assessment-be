@@ -8,11 +8,14 @@ import {
   createBatch,
   deleteBatch,
   deleteBatchAssessee,
+  deleteEmailCC,
   getBatch,
   getBatchAssesses,
   getBatchDetail,
+  getUserEmailByRole,
   publishBatch,
   startProgress,
+  storeEmailCC,
   updateBatch,
 } from "#dep/models/BatchModel";
 import fs from "fs";
@@ -26,7 +29,6 @@ import { emailTemplateHTML } from "#dep/helper/email/emailnotifmgrprc";
 import moment from "moment";
 import axios from "axios";
 import { axiosDarwin } from "#dep/config/axiosDarwin";
-
 export const handleCreateBatch = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const validatedRequest = Validation.validate(BatchValidation.CREATE, req.body);
@@ -196,7 +198,7 @@ export const handleGetBatchDetail = async (req: Request, res: Response, next: Ne
     const validatedId = Validation.validate(BatchValidation.ID, req.params.id);
 
     const result = await getBatchDetail(validatedId);
-
+    console.log(result);
     res.status(200).send({
       message: `Success!`,
       data: result,
@@ -380,7 +382,7 @@ export const handleCreateBatchToken = async (batchId: string, startPeriod: any, 
 export const handlePublishBatch = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const validatedId = Validation.validate(BatchValidation.ID, req.params.id);
-    const batchDetail = await getBatchDetail(validatedId);
+    const batchDetail: any = await getBatchDetail(validatedId);
     const assesseeList = await getBatchAssesses(validatedId);
 
     if (batchDetail.status !== "Draft") {
@@ -408,8 +410,84 @@ export const handlePublishBatch = async (req: Request, res: Response, next: Next
 
     await startProgress(progressHead);
 
-    res.status(200).send({
+    const sendCCEmail = res.status(200).send({
       message: "Batch is successfully published and email's sent to assessee",
+    });
+  } catch (e) {
+    next(e);
+  }
+};
+
+export const handleAddCCEmail = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { roles = [], emails = [] } = req.body;
+    const batch_id = req.params.id;
+
+    if (!batch_id) {
+      res.status(400).json({ message: "Batch ID diperlukan" });
+    }
+
+    // Data yang akan disimpan
+    let ccEmails: Array<{ id: string; batch_id: string; role_id: string | null; cc_email: string }> = [];
+
+    // Proses roles jika ada
+    if (roles && roles.length > 0) {
+      // Dapatkan email berdasarkan role_id
+      for (const role of roles) {
+        const userEmails = await getUserEmailByRole(role.role_id);
+
+        if (userEmails && userEmails.length > 0) {
+          // Tambahkan email dari role ke array
+          userEmails.forEach((user) => {
+            ccEmails.push({
+              id: uuid(),
+              batch_id,
+              role_id: role.role_id,
+              cc_email: user.email,
+            });
+          });
+        }
+      }
+    }
+
+    // Proses email manual jika ada
+    if (emails && emails.length > 0) {
+      // Tambahkan email manual ke array
+      emails.forEach((item: any) => {
+        ccEmails.push({
+          id: uuid(),
+          batch_id,
+          role_id: null, // Null karena dimasukkan manual
+          cc_email: item.cc_email,
+        });
+      });
+    }
+
+    // Jika tidak ada data yang akan disimpan
+    if (ccEmails.length === 0) {
+      res.status(400).json({ message: "Tidak ada email yang akan disimpan" });
+    }
+
+    // Simpan ke database
+    await storeEmailCC(ccEmails);
+
+    res.status(200).json({
+      message: "Success!",
+      data: ccEmails,
+    });
+  } catch (e) {
+    next(e);
+  }
+};
+
+export const handleDeleteCCEmail = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const batchId = req.params.batchId;
+    const id = req.params.id;
+    await deleteEmailCC(batchId, id);
+
+    res.status(200).send({
+      message: "Success!",
     });
   } catch (e) {
     next(e);
