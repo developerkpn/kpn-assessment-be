@@ -6,6 +6,7 @@ import { async } from "rxjs";
 import { getGroupTestDetail, getTestIdByGroupTestId } from "#dep/models/GroupTestModel";
 import { format } from "logform";
 import cli = format.cli;
+import { NextFunction } from "express";
 
 export const getBatchByAssessment = async (batchId: string) => {
   const client = await db.connect();
@@ -543,6 +544,49 @@ export const getAssessmentTermsPP = async () => {
   } catch (error) {
     console.error(error);
     throw error;
+  } finally {
+    client.release();
+  }
+};
+
+export const getAssessmentByUserNIK = async (userId: string) => {
+  const client = await db.connect();
+  try {
+    const result = await client.query(
+      `
+        SELECT 
+            p.batch_id, 
+            h.batch_name, 
+            h.batch_code,
+            h.start_period,
+            h.end_period
+        FROM t_progress_batch_head p 
+        LEFT JOIN t_batch_head h ON p.batch_id = h.id
+        WHERE assessee_id = $1
+        `,
+      [userId]
+    );
+
+    return result.rows;
+  } catch (e) {
+    console.error(e);
+    throw e;
+  } finally {
+    client.release();
+  }
+};
+
+export const storeLog = async (data: any) => {
+  const client = await db.connect();
+  try {
+    await client.query(TRANS.BEGIN);
+    const [Q, V] = insertQuery("t_batch_log", data);
+    await client.query(Q, V);
+    await client.query(TRANS.COMMIT);
+  } catch (e) {
+    await client.query(TRANS.ROLLBACK);
+    console.error(e);
+    throw e;
   } finally {
     client.release();
   }
