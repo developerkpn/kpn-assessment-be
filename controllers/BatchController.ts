@@ -11,6 +11,7 @@ import {
   deleteEmailCC,
   getBatch,
   getBatchAssesses,
+  getBatchCCEmail,
   getBatchDetail,
   getUserEmailByRole,
   publishBatch,
@@ -21,7 +22,11 @@ import {
 import fs from "fs";
 import { AdminWebValidation } from "#dep/validation/AdminWebValidation";
 import { BatchAssessee, BatchHeader, BatchHeadUpdate } from "#dep/types/BatchTypes";
-import { handleGenerateEmailTemplate, handleSendEmail } from "#dep/controllers/EmailTemplateController";
+import {
+  handleGenerateEmailTemplate,
+  handleSendCCEmail,
+  handleSendEmail,
+} from "#dep/controllers/EmailTemplateController";
 import { ResponseError } from "#dep/error/response-error";
 import { Secret, sign } from "jsonwebtoken";
 import { emailTemplateHTML } from "#dep/helper/email/emailnotifmgrprc";
@@ -382,9 +387,11 @@ export const handleCreateBatchToken = async (batchId: string, startPeriod: any, 
 export const handlePublishBatch = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const validatedId = Validation.validate(BatchValidation.ID, req.params.id);
-    const batchDetail: any = await getBatchDetail(validatedId);
+    const batchDetails: any = await getBatchDetail(validatedId);
+    const batchDetail = batchDetails.batch;
     const assesseeList = await getBatchAssesses(validatedId);
-
+    console.log(batchDetail);
+    console.log(batchDetail.status);
     if (batchDetail.status !== "Draft") {
       throw new ResponseError(400, "Batch's already submitted");
     }
@@ -408,9 +415,16 @@ export const handlePublishBatch = async (req: Request, res: Response, next: Next
       })
     );
 
+    console.log("check progress head");
     await startProgress(progressHead);
 
-    const sendCCEmail = res.status(200).send({
+    const emailCCList: any = await getBatchCCEmail(validatedId);
+
+    console.log("Berhasil masuk");
+    console.log(emailCCList);
+    await Promise.all(emailCCList.map((email: any) => handleSendCCEmail(validatedId, email.cc_email)));
+    console.log("send response");
+    res.status(200).send({
       message: "Batch is successfully published and email's sent to assessee",
     });
   } catch (e) {

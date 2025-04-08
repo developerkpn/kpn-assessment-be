@@ -19,6 +19,7 @@ import { getFunctionMenuDetail } from "#dep/models/FunctionMenuModel";
 import { getBusinessUnitDetail } from "#dep/models/BusinessUnitModel";
 import dotenv from "dotenv";
 import { emailTemplateHTML } from "#dep/helper/email/emailnotifmgrprc";
+import { emailCCTemplate } from "#dep/helper/email/emailcctemplate";
 dotenv.config();
 
 export const handleGetUserRole = async (req: Request, res: Response, next: NextFunction) => {
@@ -127,7 +128,9 @@ export const handleGenerateEmailTemplate = async (
 
     if (batchDetailId && token) {
       console.log("masuk batch");
-      const batchDetail: any = await getBatchDetail(batchDetailId!);
+      const batchDetails: any = await getBatchDetail(batchDetailId!);
+      const batchDetail = batchDetails.batch;
+      console.log("batchDetail", batchDetail);
       console.log("masuk email template");
       console.log(batchDetail.template_email_id);
       const emailTemplate = await getEmailTemplateDetail(batchDetail.template_email_id);
@@ -193,6 +196,7 @@ export const handleGenerateEmailTemplate = async (
 export const handleSendEmail = async (batchDetailId: string, token: string, assessee_email: string) => {
   try {
     console.log("masuk send email 2");
+    console.log;
     const email = await handleGenerateEmailTemplate(batchDetailId, token);
     console.log("masuk send email 3");
     const transporter = createTransport({
@@ -227,16 +231,19 @@ export const handleSendEmail = async (batchDetailId: string, token: string, asse
 const handleGenerateEmailCC = async (batchId: string) => {
   try {
     console.log("masuk batch");
-    const batchDetail: any = await getBatchDetail(batchId!);
+    const batchDetails: any = await getBatchDetail(batchId!);
+    const batchDetail = batchDetails.batch;
+    console.log("batchDetail", batchDetail);
     console.log("masuk email template");
     console.log("function menu");
     const functionMenuDetail = await getFunctionMenuDetail(batchDetail.function_id);
     console.log("masuk bu");
     const businessUnitDetail = await getBusinessUnitDetail(batchDetail.bu_id!);
     console.log("masuk template");
-    const emailCCRole = console.log(functionMenuDetail);
-    const template = emailTemplateHTML;
+    const template = emailCCTemplate;
 
+    console.log("oy ini dia detailnya");
+    console.log(batchDetail);
     const payload: any = {
       batch_name: batchDetail.batch_name ? batchDetail.batch_name : `Filling in Batch Section`,
       batch_code: batchDetail.batch_code ? batchDetail.batch_code : `Filling in Batch Section`,
@@ -244,7 +251,7 @@ const handleGenerateEmailCC = async (batchId: string) => {
       fm_name: functionMenuDetail.fm_name ? functionMenuDetail.fm_name : `Filling in Batch Section`,
       start_period: batchDetail.start_period ? batchDetail.start_period : `Filling in Batch Section`,
       end_period: batchDetail.end_period ? batchDetail.end_period : `Filling in Batch Section`,
-      total_assessee: batchDetail.assessee_count ? batchDetail.total_assesseee : 0,
+      total_assessee: batchDetail.assessee_count ? batchDetail.assessee_count : 0,
     };
 
     const email = {
@@ -258,11 +265,36 @@ const handleGenerateEmailCC = async (batchId: string) => {
   }
 };
 
-// export const handleSendCCEmail = async (batchId: string) => {
-//   try {
-//     console.log("masuk send email");
-//     const email = await handleGenerateEmailCC();
-//   } catch (e) {
-//     throw e;
-//   }
-// };
+export const handleSendCCEmail = async (batchId: string, cc_email: string) => {
+  try {
+    console.log("masuk send email");
+    const email = await handleGenerateEmailCC(batchId);
+
+    const transporter = createTransport({
+      name: "kpndomain.com",
+      host: process.env.SMTP_HOST,
+      secure: true,
+      port: Number(process.env.SMPT_PORT) || 0,
+      tls: {
+        ciphers: "SSLv3",
+        rejectUnauthorized: false,
+      },
+      auth: {
+        user: `${process.env.SMTP_USERNAME}`,
+        pass: `${process.env.SMTP_PASSWORD}`,
+      },
+      pool: true,
+    });
+
+    const mailOptions = {
+      from: process.env.SMTP_USERNAME,
+      to: cc_email,
+      subject: email.subject,
+      html: email.template,
+    };
+
+    await transporter.sendMail(mailOptions);
+  } catch (e) {
+    throw e;
+  }
+};
