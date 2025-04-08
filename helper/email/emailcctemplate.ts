@@ -1,3 +1,4 @@
+export const emailCCTemplate = `
 <!doctype html>
 <html lang="en">
 <head>
@@ -553,3 +554,4 @@
 </center>
 </body>
 </html>
+`;

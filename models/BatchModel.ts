@@ -356,3 +356,23 @@ export const deleteEmailCC = async (batchId: string, id: string) => {
     client.release();
   }
 };
+
+export const getBatchCCEmail = async (id: string) => {
+  const client = await db.connect();
+  try {
+    const result = await client.query(
+      `
+        SELECT
+          cc_email
+        FROM t_batch_cc
+        WHERE batch_id = $1
+        `,
+      [id]
+    );
+
+    return result.rows;
+  } catch (e) {
+  } finally {
+    client.release();
+  }
+};
