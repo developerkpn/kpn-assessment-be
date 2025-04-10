@@ -23,25 +23,25 @@ export const handleCreateSubTest = async (req: Request, res: Response, next: Nex
     const subtestId = uuid();
     const creator = req.userDecode!.user_id;
 
-    const subtestHeaderRequest: SubTestHeaderRequest = {
+    const subtestHeaderRequest: any = {
       id: subtestId,
       subtest_name: validatedRequest.subtest_name,
       subtest_code: validatedRequest.subtest_code,
       subtest_duration: validatedRequest.subtest_duration,
       criteria_id: validatedRequest.criteria_id,
+      intro_desc: validatedRequest.intro_desc,
+      series_example_id: validatedRequest.series_example_id,
       created_by: creator,
       created_at: date,
     };
 
-    const subtestDetailRequest = validatedRequest.series.map((prev: SubTestDetailRequest) => ({
+    const subtestDetailRequest = validatedRequest.series.map((prev: any) => ({
       ...prev,
       id: uuid(),
       subtest_id: subtestId,
       added_by: creator,
       added_at: date,
     }));
-
-    console.log(subtestHeaderRequest);
 
     const result = await createSubTest(subtestHeaderRequest, subtestDetailRequest);
 
@@ -72,10 +72,11 @@ export const handleUpdateSubTest = async (req: Request, res: Response, next: Nex
     const updatedBy = req.userDecode!.user_id;
     const updatedAt = new Date();
 
-    const validatedId = Validation.validate(SubTestValidation.ID, req.params.id);
+    const subtestId = Validation.validate(SubTestValidation.ID, req.params.id);
     const validatedRequest = Validation.validate(SubTestValidation.UPDATE, req.body);
     console.log(validatedRequest);
-    const subtestHeaderRequest: SubTestHeaderRequest = {
+
+    const updateHead: any = {
       subtest_name: validatedRequest.subtest_name,
       subtest_code: validatedRequest.subtest_code,
       subtest_duration: validatedRequest.subtest_duration,
@@ -83,25 +84,48 @@ export const handleUpdateSubTest = async (req: Request, res: Response, next: Nex
       is_active: validatedRequest.is_active,
       updated_by: updatedBy,
       updated_at: updatedAt,
+      intro_desc: validatedRequest.intro_desc,
+      series_example_id: validatedRequest.series_example_id,
     };
 
-    console.log(subtestHeaderRequest);
-    // Jika series tidak ada atau array kosong, maka detail request menjadi array kosong
-    const subtestDetailRequest =
-      validatedRequest.series && validatedRequest.series.length > 0
-        ? validatedRequest.series.map((prev: SeriesDetailRequest) => ({
+    console.log("masuk 1");
+    console.log(updateHead);
+
+    const deletedSeries =
+      validatedRequest.deleted_series && validatedRequest.deleted_series.length > 0
+        ? validatedRequest.deleted_series.map((prev: any) => ({
+            ...prev,
+            subtest_id: subtestId,
+          }))
+        : [];
+
+    console.log("masuk 2");
+    console.log(deletedSeries);
+
+    const selectedSeries =
+      validatedRequest.selected_series && validatedRequest.selected_series.length > 0
+        ? validatedRequest.selected_series.map((prev: any) => ({
             ...prev,
             id: uuid(),
-            subtest_id: validatedId,
+            subtest_id: subtestId,
             added_by: updatedBy,
             added_at: updatedAt,
           }))
         : [];
 
-    const result = await updateSubTest(validatedId, subtestHeaderRequest, subtestDetailRequest);
+    console.log("masuk 3");
+    console.log(selectedSeries);
+
+    const result = await updateSubTest(subtestId, updateHead, deletedSeries, selectedSeries);
 
     res.status(200).send({
       message: `Sub Test with code ${result} is updated successfully!`,
+      data: {
+        validatedRequest,
+        updateHead,
+        deletedSeries,
+        selectedSeries,
+      },
     });
   } catch (e) {
     next(e);
