@@ -14,6 +14,7 @@ export const getBatchByAssessment = async (batchId: string) => {
     const result = await client.query(
       `
                 SELECT
+                    id as batch_id,
                     batch_name,
                     batch_code,
                     description,

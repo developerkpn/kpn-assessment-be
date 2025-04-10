@@ -9,18 +9,16 @@ import {
   deleteBatch,
   deleteBatchAssessee,
   deleteEmailCC,
-  getAssesseeByDarwinNIK,
   getBatch,
   getBatchAssesses,
   getBatchCCEmail,
-  getBatchCode,
   getBatchDetail,
-  getFMandBUCode,
   getUserEmailByRole,
   publishBatch,
   startProgress,
   storeEmailCC,
   updateBatch,
+  getDarwinUser,
 } from "#dep/models/BatchModel";
 import fs from "fs";
 import { AdminWebValidation } from "#dep/validation/AdminWebValidation";
@@ -35,127 +33,38 @@ import { Secret, sign } from "jsonwebtoken";
 import { emailTemplateHTML } from "#dep/helper/email/emailnotifmgrprc";
 // import { getTestFromChoosenGroupTest} from "#dep/models/GroupTestModel";
 import moment from "moment";
-
+import axios, { AxiosResponse } from "axios";
+import { axiosDarwin } from "#dep/config/axiosDarwin";
+import { DataEmpDarwin, XLSAssessee } from "#dep/types/MasterDataTypes";
 export const handleCreateBatch = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const validatedRequest = Validation.validate(BatchValidation.CREATE, req.body);
-    console.log(validatedRequest);
-    // Batch Head
-    const batchId = uuid();
-    const date = new Date();
-    const month = moment().format("MMM").toUpperCase();
-    const year = moment().format("YYYY");
 
-    // Generate Batch Code
-    const code = await getFMandBUCode(validatedRequest.function_id, validatedRequest.bu_id);
-    console.log(code);
-    const checkIfCodeIsExist = await getBatchCode(code.fmCode, code.buCode, month, year);
-    console.log("keluar");
-    let currentBatch;
-    if (checkIfCodeIsExist?.batch != null) {
-      currentBatch = checkIfCodeIsExist.batch + 1;
-    } else {
-      currentBatch = 1;
-    }
+    console.log("date");
+    console.log(validatedRequest.end_period);
+    console.log(moment(validatedRequest.end_period).toISOString());
 
-    const currentCode = `${code.fmCode}/${code.buCode}/${month}/${year}/${currentBatch}`;
-
-    const batchCode = {
-      id: uuid(),
-      tm_code: code.fmCode,
-      bu_code: code.buCode,
-      month: month,
-      year: year,
-      batch: currentBatch,
-      taken_at: date,
-    };
-
-    // Create Batch
-    const batchHeadPayload: any = {
-      id: batchId,
-      batch_name: validatedRequest.batch_name,
-      grouptest_id: validatedRequest.grouptest_id,
-      bu_id: validatedRequest.bu_id,
-      function_id: validatedRequest.function_id,
-      template_email_id: validatedRequest.template_email_id,
-      is_mic: validatedRequest.is_mic,
-      is_screenshot: validatedRequest.is_screenshot,
-      note: validatedRequest.note,
-      description: validatedRequest.description,
-      type: validatedRequest.type,
-      // is_published: validatedRequest.is_published,
-      batch_code: currentCode,
+    const payload: any = {
+      ...validatedRequest,
       start_period: moment(validatedRequest.start_period).toISOString(),
       end_period: moment(validatedRequest.end_period).toISOString(),
-      created_by: req.userDecode!.user_id,
-      created_at: new Date(),
     };
 
-    // Batch CC Email
-    console.log(validatedRequest);
-    const ccEmailData = validatedRequest.cc_email;
-    let ccEmails: Array<{ id: string; batch_id: string; role_id: string | null; cc_email: string }> = [];
-    console.log(ccEmailData);
-    // Proses roles jika ada
-    if (ccEmailData.roles && ccEmailData.roles.length > 0) {
-      // Dapatkan email berdasarkan role_id
-      for (const role of ccEmailData.roles) {
-        const userEmails = await getUserEmailByRole(role.role_id);
+    console.log(payload);
 
-        if (userEmails && userEmails.length > 0) {
-          // Tambahkan email dari role ke array
-          userEmails.forEach((user) => {
-            ccEmails.push({
-              id: uuid(),
-              batch_id: batchId,
-              role_id: role.role_id,
-              cc_email: user.email,
-            });
-          });
-        }
-      }
-    }
+    const batch: BatchHeader = {
+      id: uuid(),
+      created_by: req.userDecode!.user_id,
+      created_at: new Date(),
+      ...payload,
+    };
 
-    // Proses email manual jika ada
-    if (ccEmailData.emails && ccEmailData.emails.length > 0) {
-      // Tambahkan email manual ke array
-      ccEmailData.emails.forEach((item: any) => {
-        ccEmails.push({
-          id: uuid(),
-          batch_id: batchId,
-          role_id: null, // Null karena dimasukkan manual
-          cc_email: item.cc_email,
-        });
-      });
-    }
-
-    // Jika tidak ada data yang akan disimpan
-    if (ccEmails.length === 0) {
-      res.status(400).json({ message: "Tidak ada email yang akan disimpan" });
-    }
-
-    //Batch Asssessee
-    const batchAssessee = validatedRequest.assessees;
-    const assessee = batchAssessee.map((row: any) => {
-      const assesseeId = uuid();
-      const result = {
-        id: assesseeId,
-        batch_id: batchId,
-        assessee_nik: row.assessee_nik ? row.assessee_nik : assesseeId,
-        assessee_name: row.assessee_name,
-        assessee_email: row.assessee_email,
-      };
-      return result;
-    });
-
-    console.log(assessee);
-
-    await createBatch(batchHeadPayload, batchCode, ccEmails, assessee);
+    const result = await createBatch(batch);
 
     res.status(201).send({
-      message: `Success!`,
+      message: `Batch with code ${result} is created successfully!`,
       data: {
-        batch_id: batchId,
+        id: batch.id,
       },
     });
   } catch (e) {
@@ -180,148 +89,16 @@ export const handleUpdateBatch = async (req: Request, res: Response, next: NextF
   try {
     const validatedId = Validation.validate(BatchValidation.ID, req.params.id);
     const validatedRequest = Validation.validate(BatchValidation.UPDATE, req.body);
-
-    const batchStatus: any = await getBatchDetail(validatedId);
-
-    if (batchStatus.status === "Published") {
-      throw new ResponseError(400, "Can't be edited. This batch is already published!");
-    }
-
-    const batchHeadUpdate: any = {
-      batch_name: validatedRequest.batch_name,
-      grouptest_id: validatedRequest.grouptest_id,
-      bu_id: validatedRequest.bu_id,
-      function_id: validatedRequest.function_id,
-      template_email_id: validatedRequest.template_email_id,
-      is_mic: validatedRequest.is_mic,
-      is_screenshot: validatedRequest.is_screenshot,
-      note: validatedRequest.note,
-      description: validatedRequest.description,
-      type: validatedRequest.type,
-      start_period: moment(validatedRequest.start_period).toISOString(),
-      end_period: moment(validatedRequest.end_period).toISOString(),
+    const batchUpdate: BatchHeadUpdate = {
+      id: validatedId,
       updated_by: req.userDecode?.user_id,
       updated_at: new Date(),
+      ...validatedRequest,
     };
-
-    const deletedCCEmailByRole =
-      validatedRequest.cc_email.roles.deleted_roles && validatedRequest.cc_email.roles.deleted_roles.length > 0
-        ? validatedRequest.cc_email.roles.deleted_roles.map((prev: any) => ({
-            ...prev,
-            batch_id: validatedId,
-          }))
-        : [];
-
-    console.log("deleted CC Role");
-    console.log(deletedCCEmailByRole);
-
-    // const selectedNewCCEmailByRole =
-    //   validatedRequest.cc_email.roles.selected_roles && validatedRequest.cc_email.roles.selected_roles.length > 0
-    //     ? validatedRequest.cc_email.roles.selected_roles.map((prev: any) => ({
-    //         ...prev,
-    //         batch_id: validatedId,
-    //       }))
-    //     : [];
-
-    // Batch CC Email;
-    const ccEmailData = validatedRequest.cc_email;
-    let ccEmails: Array<{ id: string; batch_id: string; role_id: string | null; cc_email: string }> = [];
-    console.log(ccEmailData);
-    // Proses roles jika ada
-    if (ccEmailData.roles.selected_roles && ccEmailData.roles.selected_roles.length > 0) {
-      // Dapatkan email berdasarkan role_id
-      for (const role of ccEmailData.roles.selected_roles) {
-        const userEmails = await getUserEmailByRole(role.role_id);
-
-        if (userEmails && userEmails.length > 0) {
-          // Tambahkan email dari role ke array
-          userEmails.forEach((user) => {
-            ccEmails.push({
-              id: uuid(),
-              batch_id: validatedId,
-              role_id: role.role_id,
-              cc_email: user.email,
-            });
-          });
-        }
-      }
-    }
-
-    // Proses email manual jika ada
-    if (ccEmailData.emails.selected_emails && ccEmailData.emails.selected_emails.length > 0) {
-      // Tambahkan email manual ke array
-      ccEmailData.emails.selected_emails.forEach((item: any) => {
-        ccEmails.push({
-          id: uuid(),
-          batch_id: validatedId,
-          role_id: null, // Null karena dimasukkan manual
-          cc_email: item.cc_email,
-        });
-      });
-    }
-
-    console.log("selected CC Role");
-    console.log(ccEmails);
-
-    const deletedCCEmailByEmail =
-      validatedRequest.cc_email.emails.deleted_emails && validatedRequest.cc_email.emails.deleted_emails.length > 0
-        ? validatedRequest.cc_email.emails.deleted_emails.map((prev: any) => ({
-            ...prev,
-            batch_id: validatedId,
-          }))
-        : [];
-
-    console.log("deleted CC Email");
-    console.log(deletedCCEmailByEmail);
-
-    // const selectedNewCCEmailByEmail =
-    //   validatedRequest.cc_email.emails.selected_emails && validatedRequest.cc_email.emails.selected_emails.length > 0
-    //     ? validatedRequest.cc_email.emails.selected_emails.map((prev: any) => ({
-    //         ...prev,
-    //         batch_id: validatedId,
-    //       }))
-    //     : [];
-
-    // console.log("selected CC Email");
-    // console.log(selectedNewCCEmailByEmail);
-
-    const deletedAssessee =
-      validatedRequest.assessees.deleted_assessees && validatedRequest.assessees.deleted_assessees.length > 0
-        ? validatedRequest.assessees.deleted_assessees.map((prev: any) => ({
-            ...prev,
-            batch_id: validatedId,
-          }))
-        : [];
-    console.log("deleted assessee");
-    console.log(deletedAssessee);
-
-    const selectedNewAssessee = validatedRequest.assessees.selected_assessees?.length
-      ? validatedRequest.assessees.selected_assessees.map((prev: any) => {
-          const assesseeId = uuid();
-          return {
-            ...prev,
-            id: assesseeId,
-            assessee_nik: prev.assessee_nik || assesseeId,
-            batch_id: validatedId,
-          };
-        })
-      : [];
-
-    console.log("selected new Assesse");
-    console.log(selectedNewAssessee);
-
-    await updateBatch(
-      validatedId,
-      batchHeadUpdate,
-      deletedCCEmailByRole,
-      deletedCCEmailByEmail,
-      ccEmails,
-      deletedAssessee,
-      selectedNewAssessee
-    );
+    const result = await updateBatch(validatedId, batchUpdate);
 
     res.status(201).send({
-      message: `Batch with code is updated successfully!`,
+      message: `Batch with code ${result} is updated successfully!`,
     });
   } catch (e) {
     next(e);
@@ -365,6 +142,59 @@ export const handleAddAssesseeManually = async (req: Request, res: Response, nex
     res.status(201).send({
       message: "Assessee is successfully added!",
     });
+    // const validatedId = Validation.validate(BatchValidation.ID, req.params.id);
+    // const validatedRequest = Validation.validate(BatchValidation.ADDASSESSEEMANUALLY, req.body);
+    //
+    // const payload = {
+    //   api_key: process.env.API_KEY,
+    //   datasetKey: process.env.DATASET_KEY,
+    //   employee_ids: [`${validatedRequest.assessee_nik}`],
+    // };
+    //
+    // console.log(payload);
+    //
+    // // Encode Basic Auth (username:password) ke Base64
+    // const username = process.env.BASIC_AUTH_USERNAME || "no";
+    // console.log(username);
+    // const password = process.env.BASIC_AUTH_PASSWORD || "no";
+    // console.log(password);
+    // const basicAuth = Buffer.from(`${username}:${password}`).toString("base64");
+    // console.log(basicAuth);
+    // const getAssessee = await axios.post(`${process.env.DARWIN_BASE_URL}`, payload, {
+    //   headers: {
+    //     Authorization: `Basic ${basicAuth}`, // Menambahkan header Authorization
+    //     "Content-Type": "application/json",
+    //   },
+    // });
+    //
+    // console.log(getAssessee);
+    // if (getAssessee.data.status! === 1) {
+    //   const assessee = {
+    //     id: uuid(),
+    //     batch_id: validatedId,
+    //     assessee_nik: getAssessee.data.employee_data[0].employee_id,
+    //     assessee_name: getAssessee.data.employee_data[0].full_name,
+    //     assessee_email: getAssessee.data.employee_data[0].company_email_id,
+    //   };
+    //
+    //   console.log(assessee);
+    //
+    //   await addAssessee(assessee);
+    //
+    //   res.status(201).send({
+    //     message: "Assessee is successfully added!",
+    //     data: {
+    //       assessee_nik: getAssessee.data.employee_data[0].employee_id,
+    //       assessee_name: getAssessee.data.employee_data[0].full_name,
+    //       assessee_email: getAssessee.data.employee_data[0].company_email_id,
+    //     },
+    //   });
+    // } else {
+    //   throw new ResponseError(400, getAssessee.data.message!);
+    // }
+    // console.log(getAssessee.status!);
+    //
+    // console.log(getAssessee.data);
   } catch (e) {
     next(e);
   }
@@ -412,6 +242,144 @@ export const handleDeleteBatchAssessee = async (req: Request, res: Response, nex
     });
   } catch (e) {
     next(e);
+  }
+};
+
+export const handleAddAssesseeByFile = async (req: Request, res: Response, next: NextFunction) => {
+  if (!req.file) {
+    res.status(400).send("File tidak ditemukan.");
+  }
+
+  try {
+    const validatedId = Validation.validate(BatchValidation.ID, req.params.id);
+    const workbook = XLSX.read(req.file!.buffer, { type: "buffer" });
+    const firstSheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[firstSheetName];
+
+    // Convert sheet to JSON
+    const jsonData: XLSAssessee[] = XLSX.utils.sheet_to_json(worksheet, {
+      defval: null,
+      raw: false,
+    });
+
+    console.log("masuk payload");
+
+    // Prepare payload for API request
+    const payload = {
+      api_key: process.env.API_KEY,
+      datasetKey: process.env.DATASET_KEY,
+      limit: "1000",
+      employee_ids: jsonData.map((row: any) => `${row.NIK}`),
+    };
+
+    console.log(payload);
+    console.log("keluar payload");
+
+    // Prepare Basic Auth
+    const username = process.env.BASIC_AUTH_USERNAME || "no";
+    const password = process.env.BASIC_AUTH_PASSWORD || "no";
+    const basicAuth = Buffer.from(`${username}:${password}`).toString("base64");
+
+    // Fetch employee data from API
+    const getAssessee = await axios.post<any, AxiosResponse<{ employee_data: DataEmpDarwin[] }>>(
+      `${process.env.DARWIN_BASE_URL}`,
+      payload,
+      {
+        headers: {
+          Authorization: `Basic ${basicAuth}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    console.log("fetch berhasil");
+    console.log(getAssessee);
+    console.log(getAssessee.data.employee_data);
+
+    // Create a map of found employee IDs for quick lookup
+    const foundEmployees = new Map(getAssessee.data.employee_data.map((emp: any) => [emp.employee_id, emp]));
+
+    // Process each row and update status
+    const processedData = jsonData.map<XLSAssessee & { Status: string }>((row: any) => {
+      const employee: any = foundEmployees.get(row.NIK);
+
+      if (employee) {
+        return {
+          ...row,
+          Status: "Success",
+          Name: employee.full_name,
+          Email: employee.company_email_id,
+        };
+      } else {
+        return {
+          ...row,
+          Status: "Failed",
+          Name: null,
+          Email: null,
+        };
+      }
+    });
+
+    // Prepare data for database insertion
+    const assesseeData = processedData
+      .filter((row: any) => row.Status === "Success")
+      .map((row: any) => ({
+        id: uuid(),
+        batch_id: validatedId,
+        assessee_nik: row.NIK,
+        assessee_name: row.Name,
+        assessee_email: row.Email,
+      }));
+
+    const not_found_data = processedData
+      .filter((row) => row.Status === "Failed")
+      .map((row) => ({
+        id: uuid(),
+        batch_id: validatedId,
+        assessee_nik: row.NIK,
+        assessee_name: row.Name,
+        assessee_email: row.Email,
+      }));
+
+    // Validate and add assessees to database
+    if (assesseeData.length > 0) {
+      const validatedAssessee = Validation.validate(BatchValidation.ASSESSEE, assesseeData);
+      await addAssessee(validatedAssessee);
+    }
+
+    // // Prepare workbook for response
+    // const updatedWorksheet = XLSX.utils.json_to_sheet(processedData);
+    // const updatedWorkbook = XLSX.utils.book_new();
+    // XLSX.utils.book_append_sheet(updatedWorkbook, updatedWorksheet, "Assessees");
+    //
+    // // Set response headers for Excel file download
+    // res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    // res.setHeader("Content-Disposition", "attachment; filename=processed_assessees.xlsx");
+    //
+    // // Convert workbook to buffer and send
+    // const excelBuffer = XLSX.write(updatedWorkbook, { type: "buffer", bookType: "xlsx" });
+    // res.send(excelBuffer);
+
+    res.status(200).send({
+      message: "Success!",
+      not_found: not_found_data,
+    });
+  } catch (e) {
+    next(e);
+  }
+};
+
+export const handleGetAssesseebyDarwin = async (
+  req: Request<{ nik: string }, {}, {}>,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { nik } = req.params;
+    const result = await getDarwinUser(nik);
+    res.status(200).send(result);
+  } catch (error) {
+    next(error);
   }
 };
 
@@ -503,6 +471,55 @@ export const handleAddCCEmail = async (req: Request, res: Response, next: NextFu
     if (!batch_id) {
       res.status(400).json({ message: "Batch ID diperlukan" });
     }
+
+    // Data yang akan disimpan
+    let ccEmails: Array<{ id: string; batch_id: string; role_id: string | null; cc_email: string }> = [];
+
+    // Proses roles jika ada
+    if (roles && roles.length > 0) {
+      // Dapatkan email berdasarkan role_id
+      for (const role of roles) {
+        const userEmails = await getUserEmailByRole(role.role_id);
+
+        if (userEmails && userEmails.length > 0) {
+          // Tambahkan email dari role ke array
+          userEmails.forEach((user) => {
+            ccEmails.push({
+              id: uuid(),
+              batch_id,
+              role_id: role.role_id,
+              cc_email: user.email,
+            });
+          });
+        }
+      }
+    }
+
+    // Proses email manual jika ada
+    if (emails && emails.length > 0) {
+      // Tambahkan email manual ke array
+      emails.forEach((item: any) => {
+        ccEmails.push({
+          id: uuid(),
+          batch_id,
+          role_id: null, // Null karena dimasukkan manual
+          cc_email: item.cc_email,
+        });
+      });
+    }
+
+    // Jika tidak ada data yang akan disimpan
+    if (ccEmails.length === 0) {
+      res.status(400).json({ message: "Tidak ada email yang akan disimpan" });
+    }
+
+    // Simpan ke database
+    await storeEmailCC(ccEmails);
+
+    res.status(200).json({
+      message: "Success!",
+      data: ccEmails,
+    });
   } catch (e) {
     next(e);
   }
@@ -516,184 +533,6 @@ export const handleDeleteCCEmail = async (req: Request, res: Response, next: Nex
 
     res.status(200).send({
       message: "Success!",
-    });
-  } catch (e) {
-    next(e);
-  }
-};
-
-export const getInternalAssesseeData = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    console.log("masuk oy");
-    console.log("testing1");
-    console.log(req.file);
-    let assesseeData = null;
-    let invalidAssesse = null;
-    if (req.body.assessee_nik) {
-      const assesseeNIK = String(req.body.assessee_nik);
-      console.log(assesseeNIK);
-      assesseeData = await getAssesseeByDarwinNIK(assesseeNIK);
-    } else if (req.file) {
-      console.log("Processing uploaded file");
-
-      // Read the uploaded Excel file
-      const workbook = XLSX.read(req.file.buffer, { type: "buffer" });
-      const firstSheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[firstSheetName];
-
-      // Convert to JSON
-      const jsonData = XLSX.utils.sheet_to_json(worksheet);
-
-      // Extract NIKs from the file
-      const nikList: any = jsonData
-        .map((row: any) => {
-          // Check if assessee_nik exists in the row
-          if (!row.assessee_nik) {
-            console.warn("Row missing assessee_nik:", row);
-            return null;
-          }
-          return String(row.assessee_nik); // Convert to string to ensure consistency
-        })
-        .filter(Boolean); // Remove null values
-
-      if (nikList.length === 0) {
-        res.status(400).send({
-          message: "No valid NIKs found in the uploaded file",
-        });
-      }
-
-      console.log("NIKs from file:", nikList);
-      // [
-      //   '01122110013',
-      //   '01122110013',
-      //   '01120020025',
-      //   '01123010012',
-      //   '01123010014'
-      // ]
-
-      // Buat jadi set biar arraynya menyimpan data-data yang unik
-      // Process the extracted NIKs
-      assesseeData = await getAssesseeByDarwinNIK(nikList);
-      console.log(assesseeData);
-
-      // Create a Set to store unique NIKs
-      const uniqueNiks: any = [...new Set(nikList)];
-      console.log("Unique NIKs:", uniqueNiks);
-
-      // Get data from Darwin API
-      assesseeData = await getAssesseeByDarwinNIK(uniqueNiks);
-
-      // Find invalid NIKs (those in the file but not returned from Darwin)
-      // Make sure we're comparing against the correct property from assesseeData
-      const validNikSet = new Set(assesseeData.map((assessee: any) => assessee.assessee_nik));
-
-      invalidAssesse = uniqueNiks
-        .filter((nik: any) => !validNikSet.has(nik))
-        .map((nik: any) => ({ assessee_nik: nik, reason: "NIK not found in Darwin system" }));
-    } else {
-      // Handle when neither condition is met
-      throw new ResponseError(400, "No assessee_nik provided and no file uploaded");
-    }
-
-    res.status(200).send({
-      message: "Success!",
-      data: {
-        valid_assessee: assesseeData,
-        invalid_assessee: invalidAssesse,
-      },
-    });
-  } catch (e) {
-    next(e);
-  }
-};
-
-export const handleGetBatchCode = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    console.log("test");
-    const payload = req.body;
-    const tmCode = payload.tm_code;
-    const buCode = payload.bu_code;
-
-    res.status(200).send({
-      message: "Success!",
-      data: {
-        batch_code: "",
-      },
-    });
-  } catch (e) {
-    next(e);
-  }
-};
-
-export const handleReadAssesseeFile = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    // Initialize response data
-    let validAssessee: any[] = [];
-    let invalidAssessee: any[] = [];
-
-    if (req.file) {
-      // Read the uploaded Excel file
-      const workbook = XLSX.read(req.file?.buffer, { type: "buffer" });
-      const firstSheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[firstSheetName];
-
-      // Convert to JSON
-      const jsonData = XLSX.utils.sheet_to_json(worksheet);
-
-      if (jsonData.length === 0) {
-        res.status(400).send({
-          message: "No data found in the uploaded file",
-        });
-      }
-
-      // Track unique emails to identify duplicates
-      const uniqueEmails = new Set<string>();
-
-      // Process each row in the file
-      jsonData.forEach((row: any) => {
-        const assessee = {
-          assessee_name: row.assessee_name || null,
-          assessee_email: row.assessee_email || null,
-        };
-
-        // Validate required fields
-        const validationErrors: string[] = [];
-        if (!assessee.assessee_name) validationErrors.push("Missing name");
-        if (!assessee.assessee_email) validationErrors.push("Missing email");
-
-        // Check for email uniqueness
-        if (assessee.assessee_email) {
-          if (uniqueEmails.has(assessee.assessee_email)) {
-            validationErrors.push("Duplicate email");
-          }
-        }
-
-        // If there are validation errors, add to invalid list
-        if (validationErrors.length > 0) {
-          invalidAssessee.push({
-            ...assessee,
-            reason: validationErrors.join(", "),
-          });
-        } else {
-          // Add to valid list and update tracking set
-          validAssessee.push(assessee);
-          if (assessee.assessee_email) uniqueEmails.add(assessee.assessee_email);
-        }
-      });
-
-      console.log(`Found ${validAssessee.length} valid assessees and ${invalidAssessee.length} invalid assessees`);
-    } else {
-      res.status(400).send({
-        message: "No file uploaded",
-      });
-    }
-
-    res.status(200).send({
-      message: "Success!",
-      data: {
-        valid_assessee: validAssessee,
-        invalid_assessee: invalidAssessee,
-      },
     });
   } catch (e) {
     next(e);
