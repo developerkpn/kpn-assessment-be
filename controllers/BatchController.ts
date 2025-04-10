@@ -18,6 +18,7 @@ import {
   startProgress,
   storeEmailCC,
   updateBatch,
+  getDarwinUser,
 } from "#dep/models/BatchModel";
 import fs from "fs";
 import { AdminWebValidation } from "#dep/validation/AdminWebValidation";
@@ -32,8 +33,9 @@ import { Secret, sign } from "jsonwebtoken";
 import { emailTemplateHTML } from "#dep/helper/email/emailnotifmgrprc";
 // import { getTestFromChoosenGroupTest} from "#dep/models/GroupTestModel";
 import moment from "moment";
-import axios from "axios";
+import axios, { AxiosResponse } from "axios";
 import { axiosDarwin } from "#dep/config/axiosDarwin";
+import { DataEmpDarwin, XLSAssessee } from "#dep/types/MasterDataTypes";
 export const handleCreateBatch = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const validatedRequest = Validation.validate(BatchValidation.CREATE, req.body);
@@ -255,7 +257,7 @@ export const handleAddAssesseeByFile = async (req: Request, res: Response, next:
     const worksheet = workbook.Sheets[firstSheetName];
 
     // Convert sheet to JSON
-    const jsonData = XLSX.utils.sheet_to_json(worksheet, {
+    const jsonData: XLSAssessee[] = XLSX.utils.sheet_to_json(worksheet, {
       defval: null,
       raw: false,
     });
@@ -279,12 +281,16 @@ export const handleAddAssesseeByFile = async (req: Request, res: Response, next:
     const basicAuth = Buffer.from(`${username}:${password}`).toString("base64");
 
     // Fetch employee data from API
-    const getAssessee = await axios.post(`${process.env.DARWIN_BASE_URL}`, payload, {
-      headers: {
-        Authorization: `Basic ${basicAuth}`,
-        "Content-Type": "application/json",
-      },
-    });
+    const getAssessee = await axios.post<any, AxiosResponse<{ employee_data: DataEmpDarwin[] }>>(
+      `${process.env.DARWIN_BASE_URL}`,
+      payload,
+      {
+        headers: {
+          Authorization: `Basic ${basicAuth}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
 
     console.log("fetch berhasil");
     console.log(getAssessee);
@@ -294,7 +300,7 @@ export const handleAddAssesseeByFile = async (req: Request, res: Response, next:
     const foundEmployees = new Map(getAssessee.data.employee_data.map((emp: any) => [emp.employee_id, emp]));
 
     // Process each row and update status
-    const processedData = jsonData.map((row: any) => {
+    const processedData = jsonData.map<XLSAssessee & { Status: string }>((row: any) => {
       const employee: any = foundEmployees.get(row.NIK);
 
       if (employee) {
@@ -325,12 +331,22 @@ export const handleAddAssesseeByFile = async (req: Request, res: Response, next:
         assessee_email: row.Email,
       }));
 
-    // // Validate and add assessees to database
-    // if (assesseeData.length > 0) {
-    //   const validatedAssessee = Validation.validate(BatchValidation.ASSESSEE, assesseeData);
-    //   await addAssessee(validatedAssessee);
-    // }
-    //
+    const not_found_data = processedData
+      .filter((row) => row.Status === "Failed")
+      .map((row) => ({
+        id: uuid(),
+        batch_id: validatedId,
+        assessee_nik: row.NIK,
+        assessee_name: row.Name,
+        assessee_email: row.Email,
+      }));
+
+    // Validate and add assessees to database
+    if (assesseeData.length > 0) {
+      const validatedAssessee = Validation.validate(BatchValidation.ASSESSEE, assesseeData);
+      await addAssessee(validatedAssessee);
+    }
+
     // // Prepare workbook for response
     // const updatedWorksheet = XLSX.utils.json_to_sheet(processedData);
     // const updatedWorkbook = XLSX.utils.book_new();
@@ -346,9 +362,24 @@ export const handleAddAssesseeByFile = async (req: Request, res: Response, next:
 
     res.status(200).send({
       message: "Success!",
+      not_found: not_found_data,
     });
   } catch (e) {
     next(e);
+  }
+};
+
+export const handleGetAssesseebyDarwin = async (
+  req: Request<{ nik: string }, {}, {}>,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { nik } = req.params;
+    const result = await getDarwinUser(nik);
+    res.status(200).send(result);
+  } catch (error) {
+    next(error);
   }
 };
 

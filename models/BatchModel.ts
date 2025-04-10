@@ -3,6 +3,9 @@ import { TRANSACTION as TRANS } from "#dep/config/transaction";
 import { deleteQuery, insertQuery, updateQuery } from "#dep/helper/queryBuilder";
 import { ResponseError } from "#dep/error/response-error";
 import { async } from "rxjs";
+import { axiosDarwin } from "#dep/config/axiosDarwin";
+import { AxiosResponse } from "axios";
+import { DataEmpDarwin } from "#dep/types/MasterDataTypes";
 
 export const createBatch = async (headerPayload: any) => {
   const client = await db.connect();
@@ -354,6 +357,23 @@ export const deleteEmailCC = async (batchId: string, id: string) => {
     throw e;
   } finally {
     client.release();
+  }
+};
+
+export const getDarwinUser = async (nik_darwin: string) => {
+  try {
+    const { data: darwinUsers }: AxiosResponse<{ status: number; message: string; employee_data: DataEmpDarwin[] }> =
+      await axiosDarwin.post("/employee", {
+        api_key: process.env.API_KEY,
+        datasetKey: process.env.DATASET_KEY,
+        employee_ids: [nik_darwin],
+      });
+    if (darwinUsers.status == 0) {
+      throw Error(darwinUsers.message);
+    }
+    return darwinUsers.employee_data[0];
+  } catch (error) {
+    throw error;
   }
 };
 

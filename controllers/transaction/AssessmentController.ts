@@ -114,8 +114,6 @@ export const handleGetBatchDetail = async (req: Request, res: Response, next: Ne
 
     // Check existing progress
     const progressDet = await getProgressDetail(progressHead.id);
-    console.log("test");
-    console.log(progressDet);
     if (progressDet) {
       res.status(200).send({
         message: "Assessment progress already exists!",
@@ -124,8 +122,6 @@ export const handleGetBatchDetail = async (req: Request, res: Response, next: Ne
     } else {
       // Get all tests from group test
       const tests = await getTestIdByGroupTestId(batch.grouptest_id);
-      console.log(batch.grouptest_id);
-      console.log(tests);
       if (!tests || tests.length === 0) {
         throw new ResponseError(404, "No tests found in this group");
       }
@@ -205,7 +201,7 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
       console.log("Parsed shouldBeFinishedAt:", shouldBeFinishedAt.format());
 
       // Jika waktu sudah habis, lempar error
-      if (now.isAfter(shouldBeFinishedAt)) throw new ResponseError(404, "Time's Out!");
+      if (now.isAfter(shouldBeFinishedAt)) throw new ResponseError(401, "Time's Out!");
 
       // Hitung sisa durasi dalam detik
       const remainingDurationSeconds = shouldBeFinishedAt.diff(now, "seconds");
@@ -434,7 +430,7 @@ export const handleStoreAnswer = async (req: Request, res: Response, next: NextF
     console.log("Parsed shouldBeFinishedAt:", shouldBeFinishedAt.format());
 
     // Jika waktu sudah habis, lempar error
-    if (now.isAfter(shouldBeFinishedAt)) throw new ResponseError(404, "Time's Out!");
+    if (now.isAfter(shouldBeFinishedAt)) throw new ResponseError(401, "Time's Out!");
 
     const questionType = await checkQuestionType(question_id);
     console.log(questionType);
@@ -572,6 +568,7 @@ export const handleStoringLog = async (req: Request, res: Response, next: NextFu
       created_at: moment(),
       user_id: tokenDecode.user_id,
       log: req.body.log,
+      log_code: req.body.log_code,
     };
 
     console.log(payload);

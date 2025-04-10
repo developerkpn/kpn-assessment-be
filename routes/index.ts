@@ -19,6 +19,7 @@ import Test from "#dep/routes/Test";
 import { Batch } from "#dep/routes/Batch";
 import EmailTemplate from "#dep/routes/EmailTemplate";
 import Assessment from "#dep/routes/transactions/Assessment";
+import Proctoring from "./transactions/Proctoring";
 
 //#depusing router
 // router.use('/api/<endpoint>', <controller>)
@@ -39,6 +40,7 @@ router.use("/api/grouptest", isAuth, GroupTest);
 router.use("/api/batch", isAuth, Batch);
 router.use("/api/email-template", isAuth, EmailTemplate);
 router.use("/api/assessment/", Assessment);
+router.use("/api/proctoring", Proctoring);
 router.use("/api/check", (req, res) => {
   res.status(200).send({
     message: "Connected",

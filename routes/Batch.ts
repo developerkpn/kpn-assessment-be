@@ -8,6 +8,7 @@ import {
   handleDeleteBatch,
   handleDeleteBatchAssessee,
   handleDeleteCCEmail,
+  handleGetAssesseebyDarwin,
   handleGetBatch,
   handleGetBatchAssessees,
   handleGetBatchDetail,
@@ -32,5 +33,6 @@ Batch.post("/:id", checkPermission("fcreate", 15), uploadSingleFile, handleAddAs
 Batch.post("/:id/assessee", checkPermission("fcreate", 15), handleAddAssesseeManually);
 Batch.get("/:id/assessee", checkPermission("fread", 15), handleGetBatchAssessees);
 Batch.delete("/:id/assessee/:assesseeId", checkPermission("fdelete", 15), handleDeleteBatchAssessee);
+Batch.get("/assessee/:nik", checkPermission("fread", 15), handleGetAssesseebyDarwin);
 
 Batch.post("/:id/published", checkPermission("fupdate", 15), handlePublishBatch);
