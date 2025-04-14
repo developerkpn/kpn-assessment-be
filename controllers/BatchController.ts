@@ -13,6 +13,7 @@ import {
   getBatch,
   getBatchAssesses,
   getBatchCCEmail,
+  getBatchCode,
   getBatchDetail,
   getUserEmailByRole,
   publishBatch,
@@ -528,6 +529,39 @@ export const getInternalAssesseeData = async (req: Request, res: Response, next:
     res.status(200).send({
       message: "Success!",
       data: assesseeData,
+    });
+  } catch (e) {
+    next(e);
+  }
+};
+
+export const handleGetBatchCode = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    console.log("test");
+    const payload = req.body;
+    const tmCode = payload.tm_code;
+    const buCode = payload.bu_code;
+
+    const month = moment().format("MMM").toUpperCase();
+    const year = moment().format("YYYY");
+
+    const checkIfCodeIsExist = await getBatchCode(tmCode, buCode, month, year);
+
+    console.log("keluar");
+    let currentBatch;
+    if (checkIfCodeIsExist?.batch != null) {
+      currentBatch = checkIfCodeIsExist.batch + 1;
+    } else {
+      currentBatch = 1;
+    }
+
+    const currentCode = `${tmCode}/${buCode}/${month}/${year}/${currentBatch}`;
+
+    res.status(200).send({
+      message: "Success!",
+      data: {
+        batch_code: currentCode,
+      },
     });
   } catch (e) {
     next(e);

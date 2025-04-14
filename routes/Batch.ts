@@ -10,6 +10,7 @@ import {
   handleDeleteCCEmail,
   handleGetBatch,
   handleGetBatchAssessees,
+  handleGetBatchCode,
   handleGetBatchDetail,
   handlePreviewBatchTemplateEmail,
   handlePublishBatch,
@@ -21,6 +22,7 @@ import { uploadSingleFile } from "#dep/middleware/fileMiddleware";
 export const Batch = Router();
 
 Batch.get("/darwin-assessee", checkPermission("fread", 15), uploadSingleFile, getInternalAssesseeData);
+Batch.get("/code", checkPermission("fread", 15), handleGetBatchCode);
 Batch.post("/", checkPermission("fcreate", 15), handleCreateBatch);
 Batch.get("/", checkPermission("fread", 15), handleGetBatch);
 Batch.get("/preview", checkPermission("fread", 15), handlePreviewBatchTemplateEmail);
@@ -32,5 +34,4 @@ Batch.delete("/:batchId/cc-email/:id", checkPermission("fdelete", 15), handleDel
 Batch.post("/:id/assessee", checkPermission("fcreate", 15), handleAddAssesseeManually);
 Batch.get("/:id/assessee", checkPermission("fread", 15), handleGetBatchAssessees);
 Batch.delete("/:id/assessee/:assesseeId", checkPermission("fdelete", 15), handleDeleteBatchAssessee);
-
 Batch.post("/:id/published", checkPermission("fupdate", 15), handlePublishBatch);
