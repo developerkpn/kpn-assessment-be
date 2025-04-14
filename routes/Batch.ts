@@ -14,6 +14,7 @@ import {
   handleGetBatchDetail,
   handlePreviewBatchTemplateEmail,
   handlePublishBatch,
+  handleReadAssesseeFile,
   handleUpdateBatch,
 } from "#dep/controllers/BatchController";
 import { handleGetTest } from "#dep/controllers/TestController";
@@ -22,6 +23,7 @@ import { uploadSingleFile } from "#dep/middleware/fileMiddleware";
 export const Batch = Router();
 
 Batch.get("/darwin-assessee", checkPermission("fread", 15), uploadSingleFile, getInternalAssesseeData);
+Batch.get("/external-assessee", checkPermission("fread", 15), uploadSingleFile, handleReadAssesseeFile);
 Batch.get("/code", checkPermission("fread", 15), handleGetBatchCode);
 Batch.post("/", checkPermission("fcreate", 15), handleCreateBatch);
 Batch.get("/", checkPermission("fread", 15), handleGetBatch);
