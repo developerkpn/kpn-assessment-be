@@ -147,25 +147,6 @@ export const handleAddAssesseeManually = async (req: Request, res: Response, nex
   }
 };
 
-// export const handleAddInternalAssesseeManually = async (req: Request, res: Response, next: NextFunction) => {
-//   try {
-//     const validatedId = Validation.validate(BatchValidation.ID, req.params.id);
-//     const validatedRequest = Validation.validate(BatchValidation.ADDASSESSEEINTERNALMANUALLY, req.body);
-//
-//     const { assessee } = await getAssesseeByDarwinNIK(validatedRequest.assessee_nik);
-//     console.log(assessee);
-//
-//     await addAssessee(assessee);
-//
-//     res.status(201).send({
-//       message: "Assessee is successfully added!",
-//       data: assessee,
-//     });
-//   } catch (e) {
-//     next(e);
-//   }
-// };
-
 export const handleGetBatchDetail = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const validatedId = Validation.validate(BatchValidation.ID, req.params.id);
@@ -210,114 +191,6 @@ export const handleDeleteBatchAssessee = async (req: Request, res: Response, nex
     next(e);
   }
 };
-
-// export const handleAddAssesseeByFile = async (req: Request, res: Response, next: NextFunction) => {
-//   if (!req.file) {
-//     res.status(400).send("File tidak ditemukan.");
-//
-//   try {
-//     const validatedId = Validation.validate(BatchValidation.ID, req.params.id);
-//     const workbook = XLSX.read(req.file!.buffer, { type: "buffer" });
-//     const firstSheetName = workbook.SheetNames[0];
-//     const worksheet = workbook.Sheets[firstSheetName];
-//
-//     // Convert sheet to JSON
-//     const jsonData = XLSX.utils.sheet_to_json(worksheet, {
-//       defval: null,
-//       raw: false,
-//     });
-//
-//     console.log("masuk payload");
-//
-//     // Prepare payload for API request
-//     const payload = {
-//       api_key: process.env.API_KEY,
-//       datasetKey: process.env.DATASET_KEY,
-//       limit: "1000",
-//       employee_ids: jsonData.map((row: any) => `${row.NIK}`),
-//     };
-//
-//     console.log(payload);
-//     console.log("keluar payload");
-//
-//     // Prepare Basic Auth
-//     const username = process.env.BASIC_AUTH_USERNAME || "no";
-//     const password = process.env.BASIC_AUTH_PASSWORD || "no";
-//     const basicAuth = Buffer.from(`${username}:${password}`).toString("base64");
-//
-//     // Fetch employee data from API
-//     const getAssessee = await axios.post(`${process.env.DARWIN_BASE_URL}`, payload, {
-//       headers: {
-//         Authorization: `Basic ${basicAuth}`,
-//         "Content-Type": "application/json",
-//       },
-//     });
-//
-//     console.log("fetch berhasil");
-//     console.log(getAssessee);
-//     console.log(getAssessee.data.employee_data);
-//
-//     // Create a map of found employee IDs for quick lookup
-//     const foundEmployees = new Map(getAssessee.data.employee_data.map((emp: any) => [emp.employee_id, emp]));
-//
-//     // Process each row and update status
-//     const processedData = jsonData.map((row: any) => {
-//       const employee: any = foundEmployees.get(row.NIK);
-//
-//       if (employee) {
-//         return {
-//           ...row,
-//           Status: "Success",
-//           Name: employee.full_name,
-//           Email: employee.company_email_id,
-//         };
-//       } else {
-//         return {
-//           ...row,
-//           Status: "Failed",
-//           Name: null,
-//           Email: null,
-//         };
-//       }
-//     });
-//
-//     // Prepare data for database insertion
-//     const assesseeData = processedData
-//       .filter((row: any) => row.Status === "Success")
-//       .map((row: any) => ({
-//         id: uuid(),
-//         batch_id: validatedId,
-//         assessee_nik: row.NIK,
-//         assessee_name: row.Name,
-//         assessee_email: row.Email,
-//       }));
-
-// // Validate and add assessees to database
-// if (assesseeData.length > 0) {
-//   const validatedAssessee = Validation.validate(BatchValidation.ASSESSEE, assesseeData);
-//   await addAssessee(validatedAssessee);
-// }
-//
-// // Prepare workbook for response
-// const updatedWorksheet = XLSX.utils.json_to_sheet(processedData);
-// const updatedWorkbook = XLSX.utils.book_new();
-// XLSX.utils.book_append_sheet(updatedWorkbook, updatedWorksheet, "Assessees");
-//
-// // Set response headers for Excel file download
-// res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-// res.setHeader("Content-Disposition", "attachment; filename=processed_assessees.xlsx");
-//
-// // Convert workbook to buffer and send
-// const excelBuffer = XLSX.write(updatedWorkbook, { type: "buffer", bookType: "xlsx" });
-// res.send(excelBuffer);
-//
-//     res.status(200).send({
-//       message: "Success!",
-//     });
-//   } catch (e) {
-//     next(e);
-//   }
-// };
 
 export const handlePreviewBatchTemplateEmail = async (req: Request, res: Response, next: NextFunction) => {
   console.log("ini dia");
@@ -586,6 +459,81 @@ export const handleGetBatchCode = async (req: Request, res: Response, next: Next
       message: "Success!",
       data: {
         batch_code: currentCode,
+      },
+    });
+  } catch (e) {
+    next(e);
+  }
+};
+
+export const handleReadAssesseeFile = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    // Initialize response data
+    let validAssessee: any[] = [];
+    let invalidAssessee: any[] = [];
+
+    if (req.file) {
+      // Read the uploaded Excel file
+      const workbook = XLSX.read(req.file?.buffer, { type: "buffer" });
+      const firstSheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[firstSheetName];
+
+      // Convert to JSON
+      const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+      if (jsonData.length === 0) {
+        res.status(400).send({
+          message: "No data found in the uploaded file",
+        });
+      }
+
+      // Track unique emails to identify duplicates
+      const uniqueEmails = new Set<string>();
+
+      // Process each row in the file
+      jsonData.forEach((row: any) => {
+        const assessee = {
+          assessee_name: row.assessee_name || null,
+          assessee_email: row.assessee_email || null,
+        };
+
+        // Validate required fields
+        const validationErrors: string[] = [];
+        if (!assessee.assessee_name) validationErrors.push("Missing name");
+        if (!assessee.assessee_email) validationErrors.push("Missing email");
+
+        // Check for email uniqueness
+        if (assessee.assessee_email) {
+          if (uniqueEmails.has(assessee.assessee_email)) {
+            validationErrors.push("Duplicate email");
+          }
+        }
+
+        // If there are validation errors, add to invalid list
+        if (validationErrors.length > 0) {
+          invalidAssessee.push({
+            ...assessee,
+            reason: validationErrors.join(", "),
+          });
+        } else {
+          // Add to valid list and update tracking set
+          validAssessee.push(assessee);
+          if (assessee.assessee_email) uniqueEmails.add(assessee.assessee_email);
+        }
+      });
+
+      console.log(`Found ${validAssessee.length} valid assessees and ${invalidAssessee.length} invalid assessees`);
+    } else {
+      res.status(400).send({
+        message: "No file uploaded",
+      });
+    }
+
+    res.status(200).send({
+      message: "Success!",
+      data: {
+        valid_assessee: validAssessee,
+        invalid_assessee: invalidAssessee,
       },
     });
   } catch (e) {
