@@ -441,3 +441,23 @@ export const getAssesseeByDarwinNIKBatch = async (nikList: string[]) => {
     throw e;
   }
 };
+
+export const getBatchCode = async (tmCode: string, buCode: string, month: string, year: string) => {
+  const client = await db.connect();
+  try {
+    const result = await client.query(
+      `
+        SELECT 
+        batch
+        FROM t_batch_code
+        WHERE tm_code = $1 AND bu_code = $2 AND month = $3 AND year = $4
+        ORDER BY taken_at DESC
+    `,
+      [tmCode, buCode, month, year]
+    );
+
+    return result.rows[0];
+  } catch (e) {
+  } finally {
+  }
+};
