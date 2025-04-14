@@ -481,7 +481,7 @@ export const getInternalAssesseeData = async (req: Request, res: Response, next:
     console.log("testing1");
     console.log(req.file);
     let assesseeData = null;
-
+    let invalidAssesse = null;
     if (req.body.assessee_nik) {
       const assesseeNIK = String(req.body.assessee_nik);
       console.log(assesseeNIK);
@@ -516,11 +516,33 @@ export const getInternalAssesseeData = async (req: Request, res: Response, next:
       }
 
       console.log("NIKs from file:", nikList);
+      // [
+      //   '01122110013',
+      //   '01122110013',
+      //   '01120020025',
+      //   '01123010012',
+      //   '01123010014'
+      // ]
 
+      // Buat jadi set biar arraynya menyimpan data-data yang unik
       // Process the extracted NIKs
       assesseeData = await getAssesseeByDarwinNIK(nikList);
+      console.log(assesseeData);
 
-      // Note: Don't call fs.unlinkSync since we're using buffer, not file path
+      // Create a Set to store unique NIKs
+      const uniqueNiks: any = [...new Set(nikList)];
+      console.log("Unique NIKs:", uniqueNiks);
+
+      // Get data from Darwin API
+      assesseeData = await getAssesseeByDarwinNIK(uniqueNiks);
+
+      // Find invalid NIKs (those in the file but not returned from Darwin)
+      // Make sure we're comparing against the correct property from assesseeData
+      const validNikSet = new Set(assesseeData.map((assessee: any) => assessee.assessee_nik));
+
+      invalidAssesse = uniqueNiks
+        .filter((nik: any) => !validNikSet.has(nik))
+        .map((nik: any) => ({ assessee_nik: nik, reason: "NIK not found in Darwin system" }));
     } else {
       // Handle when neither condition is met
       throw new ResponseError(400, "No assessee_nik provided and no file uploaded");
@@ -528,7 +550,10 @@ export const getInternalAssesseeData = async (req: Request, res: Response, next:
 
     res.status(200).send({
       message: "Success!",
-      data: assesseeData,
+      data: {
+        valid_assessee: assesseeData,
+        invalid_assessee: invalidAssesse,
+      },
     });
   } catch (e) {
     next(e);
