@@ -1,7 +1,8 @@
-import {Permission, TokenPayload} from "#dep/types/AdminTypes";
+import { Permission, TokenPayload } from "#dep/types/AdminTypes";
 import { NextFunction, Request, Response } from "express";
 import { Secret, verify } from "jsonwebtoken";
-import {verifyPermission} from "#dep/models/AdminWebModel";
+import { verifyPermission } from "#dep/models/AdminWebModel";
+import AuthModel from "#dep/models/AuthModel";
 
 export const isAuth = (req: Request, res: Response, next: NextFunction): any => {
   const authHeaders = req.headers.Authorization || req.headers.authorization;
@@ -30,31 +31,63 @@ export const isAuth = (req: Request, res: Response, next: NextFunction): any => 
   }
 };
 
+export const isAuthDarwin = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const authHeaders = req.headers.authorization;
+    if (!authHeaders) {
+      res.status(403).send({
+        message: "Forbidden",
+      });
+      return;
+    }
+    let token = authHeaders.split(" ")[1];
+    if (!token) {
+      res.status(403).send({
+        message: "Forbidden",
+      });
+      return;
+    }
+    const result = await AuthModel.CheckTokenDarwin(token);
+    next();
+  } catch (error) {
+    if ((error as Error).message == "Forbidden") {
+      res.status(403).send({
+        message: (error as Error).message,
+      });
+      return;
+    }
+    res.status(500).send({
+      message: (error as Error).message,
+    });
+    return;
+  }
+};
+
 export const checkPermission =
-    (action: "fcreate" | "fread" | "fupdate" | "fdelete", menuId: number) =>
-        async (req: Request, res: Response, next: NextFunction): Promise<any> => {
-            try {
-                const getPermission = await verifyPermission(req.userDecode?.role_id, menuId);
+  (action: "fcreate" | "fread" | "fupdate" | "fdelete", menuId: number) =>
+  async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+    try {
+      const getPermission = await verifyPermission(req.userDecode?.role_id, menuId);
 
-                const verifiedPermission: Permission = {
-                    menu_id: getPermission.menu_id,
-                    fcreate: getPermission.fcreate,
-                    fread: getPermission.fread,
-                    fupdate: getPermission.fupdate,
-                    fdelete: getPermission.fdelete,
-                };
+      const verifiedPermission: Permission = {
+        menu_id: getPermission.menu_id,
+        fcreate: getPermission.fcreate,
+        fread: getPermission.fread,
+        fupdate: getPermission.fupdate,
+        fdelete: getPermission.fdelete,
+      };
 
-                if (!verifiedPermission) {
-                    throw new Error("Permission not provided or mismatched");
-                }
+      if (!verifiedPermission) {
+        throw new Error("Permission not provided or mismatched");
+      }
 
-                if (verifiedPermission[action]) {
-                    return next();
-                }
+      if (verifiedPermission[action]) {
+        return next();
+      }
 
-                return res.status(403).send({ message: "Forbidden" });
-            } catch (error: any) {
-                console.error("Error in checkPermission middleware:", error.message);
-                return res.status(500).send({ message: "Internal Server Error" });
-            }
-        };
+      return res.status(403).send({ message: "Forbidden" });
+    } catch (error: any) {
+      console.error("Error in checkPermission middleware:", error.message);
+      return res.status(500).send({ message: "Internal Server Error" });
+    }
+  };

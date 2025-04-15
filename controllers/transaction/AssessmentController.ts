@@ -18,6 +18,8 @@ import {
   getQuestionsBySeriesId,
   getSeriesBySubtestId,
   getSubtestDurationById,
+  getSubtestExampleData,
+  getSubtestExampleisTaken,
   getSubtestIdbyProgressId,
   getSubtestNamebyId,
   getTakenQuestions,
@@ -26,6 +28,7 @@ import {
   storeLog,
   storeTakenQuestions,
   updateAssessmentStart,
+  updateExampleTaken,
 } from "#dep/models/transactions/AssessmentModel";
 import { Validation } from "#dep/validation/Validation";
 import { getQuestion } from "#dep/models/QuestionModel";
@@ -40,7 +43,7 @@ import fs from "fs";
 import path from "path";
 import moment from "moment";
 import "moment-timezone/index";
-import axios from "axios";
+import axios, { isAxiosError } from "axios";
 import { PP_ID, TERMS_ID } from "#dep/constant";
 
 const handleAssessmentToken = async (token: string) => {
@@ -201,7 +204,7 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
       console.log("Parsed shouldBeFinishedAt:", shouldBeFinishedAt.format());
 
       // Jika waktu sudah habis, lempar error
-      if (now.isAfter(shouldBeFinishedAt)) throw new ResponseError(401, "Time's Out!");
+      if (now.isAfter(shouldBeFinishedAt)) throw new ResponseError(400, "Time's Out!");
 
       // Hitung sisa durasi dalam detik
       const remainingDurationSeconds = shouldBeFinishedAt.diff(now, "seconds");
@@ -474,6 +477,7 @@ export const handleSubmissionConfirmation = async (req: Request, res: Response, 
       await assessmentSubmission(det_id, payload);
       res.status(200).json({
         message: "Success!",
+        test_id: checkSubmission.test_id,
       });
     }
   } catch (e) {
@@ -580,5 +584,48 @@ export const handleStoringLog = async (req: Request, res: Response, next: NextFu
     });
   } catch (e) {
     next(e);
+  }
+};
+
+export const handleSubtestExampleisTaken = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const result = await getSubtestExampleisTaken(id);
+    res.status(200).send(result);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send({
+      message: (error as Error).message,
+    });
+  }
+};
+
+export const handleGetSubtestExampleData = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const result = await getSubtestExampleData(id);
+    res.status(200).send(result);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send({
+      message: (error as Error).message,
+    });
+  }
+};
+
+export const handleUpdateExampleTaken = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const result = await updateExampleTaken(id);
+    if (result) {
+      res.status(200).send({
+        message: "Example Taken updated",
+      });
+    } else {
+      throw new Error("Error");
+    }
+  } catch (error) {
+    console.error(error);
+    next(error);
   }
 };

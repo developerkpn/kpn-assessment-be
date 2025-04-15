@@ -106,6 +106,10 @@ export type QuestionRequest = {
   answer_choice_d_image_url?: string;
   answer_choice_e_text?: string;
   answer_choice_e_image_url?: string;
+  answer_choice_f_text?: string;
+  answer_choice_f_image_url?: string;
+  answer_choice_g_text?: string;
+  answer_choice_g_image_url?: string;
   created_by: string;
   created_date: Date;
   updated_by?: string;
@@ -115,6 +119,8 @@ export type QuestionRequest = {
   key_answer_point_c?: number;
   key_answer_point_d?: number;
   key_answer_point_e?: number;
+  key_answer_point_f?: number;
+  key_answer_point_g?: number;
   question_category: string;
   question_code: string;
 };

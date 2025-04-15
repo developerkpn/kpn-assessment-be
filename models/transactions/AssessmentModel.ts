@@ -7,6 +7,8 @@ import { getGroupTestDetail, getTestIdByGroupTestId } from "#dep/models/GroupTes
 import { format } from "logform";
 import cli = format.cli;
 import { NextFunction } from "express";
+import { QueryResult } from "pg";
+import { QuestionRequest } from "#dep/types/MasterDataTypes";
 
 export const getBatchByAssessment = async (batchId: string) => {
   const client = await db.connect();
@@ -141,7 +143,7 @@ export const getSubtestIdbyProgressId = async (progressDetailId: string) => {
   try {
     const result = await client.query(
       `
-            SELECT subtest_id 
+            SELECT subtest_id, test_id 
             FROM t_progress_batch_det
             WHERE id = $1
             `,
@@ -521,7 +523,7 @@ export const checkSubmissionStatus = async (detId: string) => {
   try {
     const status = await client.query(
       `
-      SELECT submit_at FROM t_progress_batch_det WHERE id = $1
+      SELECT submit_at, test_id FROM t_progress_batch_det WHERE id = $1
         `,
       [detId]
     );
@@ -556,6 +558,7 @@ export const getAssessmentByUserNIK = async (userId: string) => {
     const result = await client.query(
       `
         SELECT 
+            p.token,
             p.batch_id, 
             h.batch_name, 
             h.batch_code,
@@ -564,6 +567,7 @@ export const getAssessmentByUserNIK = async (userId: string) => {
         FROM t_progress_batch_head p 
         LEFT JOIN t_batch_head h ON p.batch_id = h.id
         WHERE assessee_id = $1
+        order by start_period desc
         `,
       [userId]
     );
@@ -590,5 +594,126 @@ export const storeLog = async (data: any) => {
     throw e;
   } finally {
     client.release();
+  }
+};
+
+export const getSubtestExampleisTaken = async (subtest_id: string) => {
+  try {
+    const client = await db.connect();
+    try {
+      const { rows }: QueryResult<{ example_taken: boolean }> = await client.query(
+        `select example_taken from t_progress_batch_det where id = $1`,
+        [subtest_id]
+      );
+      return rows[0];
+    } catch (error) {
+      throw error;
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const getSubtestExampleData = async (subtest_id: string) => {
+  try {
+    const client = await db.connect();
+    try {
+      const { rows }: QueryResult<QuestionRequest & { subtest_name: string; intro_desc: string }> = await client.query(
+        `
+        select
+          mqa.*, msh.subtest_name, msh.subtest_name, msh.intro_desc
+        from
+          t_progress_batch_det tpbd
+        left join mst_subtest_head msh on
+          msh.id = tpbd.subtest_id
+        left join mst_series_det ms on
+          ms.series_id = msh.series_example_id
+        left join mst_question_answer mqa on
+          mqa.id = ms.question_id
+        where
+          tpbd.id = $1
+        `,
+        [subtest_id]
+      );
+      const result = rows.map((item) => ({
+        question_id: item.id,
+        input: {
+          text: item.q_input_text,
+          image_url: item.q_input_image_url,
+        },
+        answer_type: item.answer_type,
+        choices: {
+          a: {
+            text: item.answer_choice_a_text,
+            image_url: item.answer_choice_a_image_url,
+            point: item.key_answer_point_a,
+          },
+          b: {
+            text: item.answer_choice_b_text,
+            image_url: item.answer_choice_b_image_url,
+            point: item.key_answer_point_b,
+          },
+          c: {
+            text: item.answer_choice_c_text,
+            image_url: item.answer_choice_c_image_url,
+            point: item.key_answer_point_c,
+          },
+          d: {
+            text: item.answer_choice_d_text,
+            image_url: item.answer_choice_d_image_url,
+            point: item.key_answer_point_d,
+          },
+          e: {
+            text: item.answer_choice_e_text,
+            image_url: item.answer_choice_e_image_url,
+            point: item.key_answer_point_e,
+          },
+          f: {
+            text: item.answer_choice_f_text,
+            image_url: item.answer_choice_f_image_url,
+            point: item.key_answer_point_f,
+          },
+          g: {
+            text: item.answer_choice_g_text,
+            image_url: item.answer_choice_g_image_url,
+            point: item.key_answer_point_g,
+          },
+        },
+      }));
+      return { data: result, subtest_name: rows[0].subtest_name, intro_desc: rows[0].intro_desc };
+    } catch (error) {
+      throw error;
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const updateExampleTaken = async (subtest_id: string) => {
+  try {
+    const client = await db.connect();
+    try {
+      await client.query(TRANS.BEGIN);
+      const { rowCount } = await client.query(
+        "UPDATE t_progress_batch_det set example_taken = true where id = $1 returning id",
+        [subtest_id]
+      );
+      if (!rowCount) {
+        throw new Error("Failed to update");
+      }
+      await client.query(TRANS.COMMIT);
+      return true;
+    } catch (error) {
+      await client.query(TRANS.ROLLBACK);
+      throw error;
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    throw error;
   }
 };

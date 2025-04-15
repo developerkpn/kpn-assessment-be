@@ -7,3 +7,11 @@ export const axiosDarwin = axios.create({
     password: process.env.BASIC_AUTH_PASSWORD || "",
   },
 });
+
+export const darwinAuth = axios.create({
+  baseURL: process.env.DARWINHOST,
+  auth: {
+    username: process.env.DARWINUSER || "",
+    password: process.env.DARWINPASS || "",
+  },
+});
