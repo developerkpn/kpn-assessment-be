@@ -7,13 +7,18 @@ import {
   handleGetAssessmentTest,
   handleGetAsssessmentQuestion,
   handleGetBatchDetail,
+  handleGetSubtestExampleData,
   handleStoreAnswer,
   handleStoringLog,
   handleSubmissionConfirmation,
+  handleSubtestExampleisTaken,
+  handleUpdateExampleTaken,
 } from "#dep/controllers/transaction/AssessmentController";
+import { isAuthDarwin } from "#dep/middleware/auth";
 
 const Assessment = Router();
 Assessment.get("/assessee/:nik", handleGetAssessmentsByUserId);
+Assessment.get("/darwin/assessee/:nik", isAuthDarwin, handleGetAssessmentsByUserId);
 Assessment.put("/subtest/submission", handleSubmissionConfirmation);
 
 Assessment.get("/:token/profile", handleGetAssesseeProfile);
@@ -23,6 +28,9 @@ Assessment.get("/:token/batch", handleGetBatchDetail);
 Assessment.get("/:token/test", handleGetAssessmentTest);
 // Assessment.get("/test/:testId/subtest");
 Assessment.get("/:token/test/subtest/:id", handleGetAsssessmentQuestion);
+Assessment.get("/test/subtest/header/:id", handleSubtestExampleisTaken);
+Assessment.get("/test/subtest/example/:id", handleGetSubtestExampleData);
+Assessment.patch("/test/subtest/example/:id", handleUpdateExampleTaken);
 Assessment.get("/:token/test/:id", handleGetAssessmentSubTest);
 // Assessment.post("/test/:testId/subtest/:subtestId/start");
 Assessment.post("/:token/subtest/submission", handleStoreAnswer);

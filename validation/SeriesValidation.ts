@@ -4,6 +4,7 @@ export class SeriesValidation {
   static readonly CREATE: ZodType = z.object({
     series_name: z.string().min(1).max(128).trim(),
     series_code: z.string().min(1).max(16).trim().toUpperCase(),
+    category_id: z.number(),
     questions: z.array(
       z.object({
         question_id: z.string().uuid(),
