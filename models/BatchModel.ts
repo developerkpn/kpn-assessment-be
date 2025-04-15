@@ -3,6 +3,10 @@ import { TRANSACTION as TRANS } from "#dep/config/transaction";
 import { deleteQuery, insertQuery, updateQuery } from "#dep/helper/queryBuilder";
 import { ResponseError } from "#dep/error/response-error";
 import { async } from "rxjs";
+import { Validation } from "#dep/validation/Validation";
+import { BatchValidation } from "#dep/validation/BatchValidation";
+import { v7 as uuid } from "uuid";
+import axios from "axios";
 import { axiosDarwin } from "#dep/config/axiosDarwin";
 import { AxiosResponse } from "axios";
 import { DataEmpDarwin } from "#dep/types/MasterDataTypes";
@@ -394,5 +398,86 @@ export const getBatchCCEmail = async (id: string) => {
   } catch (e) {
   } finally {
     client.release();
+  }
+};
+
+export const getAssesseeByDarwinNIK = async (assesseeNIK: string | string[]) => {
+  // Convert single NIK to array if needed
+  console.log("check file");
+  console.log(Array.isArray(assesseeNIK));
+  const nikList = Array.isArray(assesseeNIK) ? assesseeNIK : [assesseeNIK];
+  console.log(nikList);
+  return getAssesseeByDarwinNIKBatch(nikList);
+};
+
+export const getAssesseeByDarwinNIKBatch = async (nikList: string[]) => {
+  try {
+    const payload = {
+      api_key: process.env.API_KEY,
+      datasetKey: process.env.DATASET_KEY,
+      employee_ids: nikList,
+    };
+
+    console.log("Payload:", payload);
+
+    // Encode Basic Auth (username:password) to Base64
+    const username = process.env.BASIC_AUTH_USERNAME || "no";
+    console.log("Username:", username);
+    const password = process.env.BASIC_AUTH_PASSWORD || "no";
+    console.log("Password:", password);
+    const basicAuth = Buffer.from(`${username}:${password}`).toString("base64");
+    console.log("Basic Auth:", basicAuth);
+
+    const getAssessee: any = await axios.post(`${process.env.DARWIN_BASE_URL}`, payload, {
+      headers: {
+        Authorization: `Basic ${basicAuth}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    console.log("check");
+    console.log(getAssessee);
+
+    if (getAssessee.data.status === 0) {
+      throw new ResponseError(404, "Assessee's not found");
+    }
+
+    console.log("Response received:");
+    console.log("Employee data count:", getAssessee.data.employee_data.length);
+
+    const assessee = getAssessee.data.employee_data.map((row: any) => {
+      const result = {
+        assessee_nik: row.employee_id,
+        assessee_name: row.full_name,
+        assessee_email: row.company_email_id,
+      };
+      return result;
+    });
+
+    console.log("Processed assessee data:", assessee);
+
+    return assessee;
+  } catch (e) {
+    throw e;
+  }
+};
+
+export const getBatchCode = async (tmCode: string, buCode: string, month: string, year: string) => {
+  const client = await db.connect();
+  try {
+    const result = await client.query(
+      `
+        SELECT 
+        batch
+        FROM t_batch_code
+        WHERE tm_code = $1 AND bu_code = $2 AND month = $3 AND year = $4
+        ORDER BY taken_at DESC
+    `,
+      [tmCode, buCode, month, year]
+    );
+
+    return result.rows[0];
+  } catch (e) {
+  } finally {
   }
 };

@@ -418,7 +418,7 @@ export const emailCCTemplate = `
                                 style="padding: 1em 2.5em"
                         >
                             <h1 class="title">Assessment's Published</h1>
-                            <p style="word-wrap: break-word; white-space: normal;">Dear {{{header}}},</p>
+                            <p style="word-wrap: break-word; white-space: normal;">Dear HR Team,</p>
                             <p style="word-wrap: break-word; white-space: normal;">We would like to inform you that batch with details below is already published. Please check Assessment Website to see more details.</p>
                         </td>
                     </tr>
@@ -522,7 +522,7 @@ export const emailCCTemplate = `
                                 valign="top"
                                 class="bg_white"
                                 style="padding: 1em 2.5em">
-                            <p style="word-wrap: break-word; white-space: normal;">Thank you! <br>Hiring Team</br></p>
+                            <p style="word-wrap: break-word; white-space: normal;">Thank you!</p>
                         </td>
                     </tr>
                 </table>

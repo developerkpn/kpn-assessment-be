@@ -53,24 +53,39 @@ export const getSubTest = async () => {
   }
 };
 
-export const updateSubTest = async (subtestId: string, headerPayload: SubTestHeaderRequest, detailPayload: any[]) => {
+export const updateSubTest = async (
+  subtestId: string,
+  headerPayload: SubTestHeaderRequest,
+  deletedSeries: any,
+  addSeries: any
+) => {
   const client = await db.connect();
   try {
     await client.query(TRANS.BEGIN);
     const [headerQ, headerV] = updateQuery("mst_subtest_head", headerPayload, { id: subtestId }, "subtest_code");
     const headerResult = await client.query(headerQ, headerV);
 
-    // Periksa apakah ada baris yang dikembalikan
     if (!headerResult.rows || headerResult.rows.length === 0 || !headerResult.rows[0].subtest_code) {
       throw new ResponseError(404, `Sub Test with ID ${subtestId} is not found`);
     }
 
-    console.log(detailPayload);
-    // Update detail hanya jika detailPayload memiliki data
-    if (detailPayload.length > 0) {
-      const [detailQ, detailV] = insertQuery("mst_subtest_det", detailPayload);
-      await client.query(detailQ, detailV);
+    console.log("masuk 1s");
+
+    if (deletedSeries.length > 0) {
+      for (const item of deletedSeries) {
+        const [Q, V] = deleteQuery("mst_subtest_det", item);
+        await client.query(Q, V);
+      }
     }
+
+    console.log("masuk 2s");
+
+    if (addSeries.length > 0) {
+      const [Q, V] = insertQuery("mst_subtest_det", addSeries);
+      await client.query(Q, V);
+    }
+
+    console.log("masuk 3s");
 
     await client.query(TRANS.COMMIT);
   } catch (error) {
@@ -123,6 +138,8 @@ export const getSubTestDetail = async (id: string) => {
         h.subtest_name,
         h.subtest_code,
         h.subtest_duration,
+        h.intro_desc,
+        h.series_example_id,
         h.is_active,
         a.fullname AS created_by,
         h.created_at,
@@ -172,6 +189,8 @@ export const getSubTestDetail = async (id: string) => {
       subtest_code: result.rows[0].subtest_code,
       subtest_duration: result.rows[0].subtest_duration,
       is_active: result.rows[0].is_active,
+      intro_desc: result.rows[0].intro_desc,
+      series_example_id: result.rows[0].series_example_id,
       created_by: result.rows[0].created_by,
       created_at: result.rows[0].created_at,
       updated_by: result.rows[0].updated_by,

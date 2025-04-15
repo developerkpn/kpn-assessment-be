@@ -9,9 +9,11 @@ import {
   deleteBatch,
   deleteBatchAssessee,
   deleteEmailCC,
+  getAssesseeByDarwinNIK,
   getBatch,
   getBatchAssesses,
   getBatchCCEmail,
+  getBatchCode,
   getBatchDetail,
   getUserEmailByRole,
   publishBatch,
@@ -142,59 +144,6 @@ export const handleAddAssesseeManually = async (req: Request, res: Response, nex
     res.status(201).send({
       message: "Assessee is successfully added!",
     });
-    // const validatedId = Validation.validate(BatchValidation.ID, req.params.id);
-    // const validatedRequest = Validation.validate(BatchValidation.ADDASSESSEEMANUALLY, req.body);
-    //
-    // const payload = {
-    //   api_key: process.env.API_KEY,
-    //   datasetKey: process.env.DATASET_KEY,
-    //   employee_ids: [`${validatedRequest.assessee_nik}`],
-    // };
-    //
-    // console.log(payload);
-    //
-    // // Encode Basic Auth (username:password) ke Base64
-    // const username = process.env.BASIC_AUTH_USERNAME || "no";
-    // console.log(username);
-    // const password = process.env.BASIC_AUTH_PASSWORD || "no";
-    // console.log(password);
-    // const basicAuth = Buffer.from(`${username}:${password}`).toString("base64");
-    // console.log(basicAuth);
-    // const getAssessee = await axios.post(`${process.env.DARWIN_BASE_URL}`, payload, {
-    //   headers: {
-    //     Authorization: `Basic ${basicAuth}`, // Menambahkan header Authorization
-    //     "Content-Type": "application/json",
-    //   },
-    // });
-    //
-    // console.log(getAssessee);
-    // if (getAssessee.data.status! === 1) {
-    //   const assessee = {
-    //     id: uuid(),
-    //     batch_id: validatedId,
-    //     assessee_nik: getAssessee.data.employee_data[0].employee_id,
-    //     assessee_name: getAssessee.data.employee_data[0].full_name,
-    //     assessee_email: getAssessee.data.employee_data[0].company_email_id,
-    //   };
-    //
-    //   console.log(assessee);
-    //
-    //   await addAssessee(assessee);
-    //
-    //   res.status(201).send({
-    //     message: "Assessee is successfully added!",
-    //     data: {
-    //       assessee_nik: getAssessee.data.employee_data[0].employee_id,
-    //       assessee_name: getAssessee.data.employee_data[0].full_name,
-    //       assessee_email: getAssessee.data.employee_data[0].company_email_id,
-    //     },
-    //   });
-    // } else {
-    //   throw new ResponseError(400, getAssessee.data.message!);
-    // }
-    // console.log(getAssessee.status!);
-    //
-    // console.log(getAssessee.data);
   } catch (e) {
     next(e);
   }
@@ -533,6 +482,199 @@ export const handleDeleteCCEmail = async (req: Request, res: Response, next: Nex
 
     res.status(200).send({
       message: "Success!",
+    });
+  } catch (e) {
+    next(e);
+  }
+};
+
+export const getInternalAssesseeData = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    console.log("masuk oy");
+    console.log("testing1");
+    console.log(req.file);
+    let assesseeData = null;
+    let invalidAssesse = null;
+    if (req.body.assessee_nik) {
+      const assesseeNIK = String(req.body.assessee_nik);
+      console.log(assesseeNIK);
+      assesseeData = await getAssesseeByDarwinNIK(assesseeNIK);
+    } else if (req.file) {
+      console.log("Processing uploaded file");
+
+      // Read the uploaded Excel file
+      const workbook = XLSX.read(req.file.buffer, { type: "buffer" });
+      const firstSheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[firstSheetName];
+
+      // Convert to JSON
+      const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+      // Extract NIKs from the file
+      const nikList: any = jsonData
+        .map((row: any) => {
+          // Check if assessee_nik exists in the row
+          if (!row.assessee_nik) {
+            console.warn("Row missing assessee_nik:", row);
+            return null;
+          }
+          return String(row.assessee_nik); // Convert to string to ensure consistency
+        })
+        .filter(Boolean); // Remove null values
+
+      if (nikList.length === 0) {
+        res.status(400).send({
+          message: "No valid NIKs found in the uploaded file",
+        });
+      }
+
+      console.log("NIKs from file:", nikList);
+      // [
+      //   '01122110013',
+      //   '01122110013',
+      //   '01120020025',
+      //   '01123010012',
+      //   '01123010014'
+      // ]
+
+      // Buat jadi set biar arraynya menyimpan data-data yang unik
+      // Process the extracted NIKs
+      assesseeData = await getAssesseeByDarwinNIK(nikList);
+      console.log(assesseeData);
+
+      // Create a Set to store unique NIKs
+      const uniqueNiks: any = [...new Set(nikList)];
+      console.log("Unique NIKs:", uniqueNiks);
+
+      // Get data from Darwin API
+      assesseeData = await getAssesseeByDarwinNIK(uniqueNiks);
+
+      // Find invalid NIKs (those in the file but not returned from Darwin)
+      // Make sure we're comparing against the correct property from assesseeData
+      const validNikSet = new Set(assesseeData.map((assessee: any) => assessee.assessee_nik));
+
+      invalidAssesse = uniqueNiks
+        .filter((nik: any) => !validNikSet.has(nik))
+        .map((nik: any) => ({ assessee_nik: nik, reason: "NIK not found in Darwin system" }));
+    } else {
+      // Handle when neither condition is met
+      throw new ResponseError(400, "No assessee_nik provided and no file uploaded");
+    }
+
+    res.status(200).send({
+      message: "Success!",
+      data: {
+        valid_assessee: assesseeData,
+        invalid_assessee: invalidAssesse,
+      },
+    });
+  } catch (e) {
+    next(e);
+  }
+};
+
+export const handleGetBatchCode = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    console.log("test");
+    const payload = req.body;
+    const tmCode = payload.tm_code;
+    const buCode = payload.bu_code;
+
+    const month = moment().format("MMM").toUpperCase();
+    const year = moment().format("YYYY");
+
+    const checkIfCodeIsExist = await getBatchCode(tmCode, buCode, month, year);
+
+    console.log("keluar");
+    let currentBatch;
+    if (checkIfCodeIsExist?.batch != null) {
+      currentBatch = checkIfCodeIsExist.batch + 1;
+    } else {
+      currentBatch = 1;
+    }
+
+    const currentCode = `${tmCode}/${buCode}/${month}/${year}/${currentBatch}`;
+
+    res.status(200).send({
+      message: "Success!",
+      data: {
+        batch_code: currentCode,
+      },
+    });
+  } catch (e) {
+    next(e);
+  }
+};
+
+export const handleReadAssesseeFile = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    // Initialize response data
+    let validAssessee: any[] = [];
+    let invalidAssessee: any[] = [];
+
+    if (req.file) {
+      // Read the uploaded Excel file
+      const workbook = XLSX.read(req.file?.buffer, { type: "buffer" });
+      const firstSheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[firstSheetName];
+
+      // Convert to JSON
+      const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+      if (jsonData.length === 0) {
+        res.status(400).send({
+          message: "No data found in the uploaded file",
+        });
+      }
+
+      // Track unique emails to identify duplicates
+      const uniqueEmails = new Set<string>();
+
+      // Process each row in the file
+      jsonData.forEach((row: any) => {
+        const assessee = {
+          assessee_name: row.assessee_name || null,
+          assessee_email: row.assessee_email || null,
+        };
+
+        // Validate required fields
+        const validationErrors: string[] = [];
+        if (!assessee.assessee_name) validationErrors.push("Missing name");
+        if (!assessee.assessee_email) validationErrors.push("Missing email");
+
+        // Check for email uniqueness
+        if (assessee.assessee_email) {
+          if (uniqueEmails.has(assessee.assessee_email)) {
+            validationErrors.push("Duplicate email");
+          }
+        }
+
+        // If there are validation errors, add to invalid list
+        if (validationErrors.length > 0) {
+          invalidAssessee.push({
+            ...assessee,
+            reason: validationErrors.join(", "),
+          });
+        } else {
+          // Add to valid list and update tracking set
+          validAssessee.push(assessee);
+          if (assessee.assessee_email) uniqueEmails.add(assessee.assessee_email);
+        }
+      });
+
+      console.log(`Found ${validAssessee.length} valid assessees and ${invalidAssessee.length} invalid assessees`);
+    } else {
+      res.status(400).send({
+        message: "No file uploaded",
+      });
+    }
+
+    res.status(200).send({
+      message: "Success!",
+      data: {
+        valid_assessee: validAssessee,
+        invalid_assessee: invalidAssessee,
+      },
     });
   } catch (e) {
     next(e);

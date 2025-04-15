@@ -13,6 +13,8 @@ export class SubTestValidation {
         series_id: z.string().uuid(),
       })
     ),
+    intro_desc: z.string().min(1),
+    series_example_id: z.string().uuid(),
   });
 
   static readonly ID: ZodType = z.string().uuid();
@@ -26,7 +28,16 @@ export class SubTestValidation {
       .optional(),
     is_active: z.boolean().optional(),
     criteria_id: z.string().uuid().optional(),
-    series: z.array(
+    intro_desc: z.string().min(1).optional(),
+    series_example_id: z.string().uuid(),
+    deleted_series: z.array(
+      z
+        .object({
+          series_id: z.string().uuid(),
+        })
+        .optional()
+    ),
+    selected_series: z.array(
       z
         .object({
           series_id: z.string().uuid(),
