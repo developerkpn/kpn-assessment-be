@@ -8,12 +8,18 @@ import { BatchValidation } from "#dep/validation/BatchValidation";
 import { v7 as uuid } from "uuid";
 import axios from "axios";
 
-export const createBatch = async (headerPayload: any) => {
+export const createBatch = async (headerPayload: any, batchCodePayload: any, ccPayload: any, assesseePayload: any) => {
   const client = await db.connect();
   try {
     await client.query(TRANS.BEGIN);
     const [headerQ, headerV] = insertQuery("t_batch_head", headerPayload, "batch_code");
     const headerResult = await client.query(headerQ, headerV);
+    const [codeQ, codeV] = insertQuery("t_batch_code", batchCodePayload);
+    await client.query(codeQ, codeV);
+    const [emailQ, emailV] = insertQuery("t_batch_cc", ccPayload);
+    await client.query(emailQ, emailV);
+    const [assesseeQ, assesseeV] = insertQuery("t_batch_assessee", assesseePayload);
+    await client.query(assesseeQ, assesseeV);
     await client.query(TRANS.COMMIT);
     return headerResult.rows[0].batch_code;
   } catch (error) {
@@ -34,6 +40,8 @@ export const getBatch = async () => {
                 h.id,
                 h.batch_name,
                 h.batch_code,
+                h.type,
+                h.status,
                 g.grouptest_code,
                 COUNT(d.id) AS total_assessee,
                 h.start_period,
@@ -51,7 +59,7 @@ export const getBatch = async () => {
             LEFT JOIN
                 mst_function_menu f ON h.function_id = f.id     
             GROUP BY 
-                h.id, h.batch_name, h.batch_code, g.grouptest_code, 
+                h.id, h.batch_name, h.batch_code, g.grouptest_code, h.type, h.status,
                 h.start_period, h.end_period, b.bu_code, f.fm_code
             ORDER BY 
                 h.created_at DESC           
@@ -160,6 +168,7 @@ export const getBatchDetail = async (id: string) => {
                 h.is_screenshot,
                 h.description,
                 h.status,
+                h.type,
                 COUNT(d.id) AS assessee_count
                 FROM 
                     t_batch_head h 
@@ -459,5 +468,46 @@ export const getBatchCode = async (tmCode: string, buCode: string, month: string
     return result.rows[0];
   } catch (e) {
   } finally {
+  }
+};
+
+export const getFMandBUCode = async (fmId: string, buId: string) => {
+  const client = await db.connect();
+  try {
+    console.log(fmId, buId);
+    const fmCode: any = await client.query(
+      `
+        SELECT
+          fm_code
+        FROM
+          mst_function_menu
+        WHERE 
+          id = $1
+        `,
+      [fmId]
+    );
+
+    const buCode: any = await client.query(
+      `
+         SELECT 
+            bu_code
+         FROM
+            mst_business_unit
+         WHERE
+            id = $1
+        `,
+      [buId]
+    );
+
+    const result = {
+      fmCode: fmCode.rows[0].fm_code,
+      buCode: buCode.rows[0].bu_code,
+    };
+
+    console.log(result);
+    return result;
+  } catch (e) {
+    console.log(e);
+    throw e;
   }
 };
