@@ -192,7 +192,9 @@ export const getBatchDetail = async (id: string) => {
                     h.is_camera,
                     h.is_mic,
                     h.is_screenshot,
-                    h.description      
+                    h.description,
+                    h.status,
+                    h.type      
            `,
       [id]
     );
@@ -211,7 +213,7 @@ export const getBatchDetail = async (id: string) => {
 
     const data = {
       batch: batchDetail,
-      email: ccEmail,
+      cc_email: ccEmail,
     };
 
     return data;
