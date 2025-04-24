@@ -72,15 +72,6 @@ export class BatchValidation {
           .optional(),
       })
       .optional(),
-    assessees: z
-      .array(
-        z.object({
-          assessee_nik: z.string().trim().length(11).optional(),
-          assessee_name: z.string().trim().min(1),
-          assessee_email: z.string().email(),
-        })
-      )
-      .optional(),
   });
 
   static readonly ADDASSESSEEMANUALLY: z.ZodSchema = z.array(
