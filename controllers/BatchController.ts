@@ -137,22 +137,25 @@ export const handleCreateBatch = async (req: Request, res: Response, next: NextF
     //Batch Asssessee
     const batchAssessee = validatedRequest.assessees;
     const assessee = batchAssessee.map((row: any) => {
+      const assesseeId = uuid();
       const result = {
-        id: uuid(),
+        id: assesseeId,
         batch_id: batchId,
-        assessee_nik: row.assessee_nik,
+        assessee_nik: row.assessee_nik ? row.assessee_nik : assesseeId,
         assessee_name: row.assessee_name,
         assessee_email: row.assessee_email,
       };
       return result;
     });
 
+    console.log(assessee);
+
     await createBatch(batchHeadPayload, batchCode, ccEmails, assessee);
 
     res.status(201).send({
       message: `Success!`,
       data: {
-        batch_code: currentCode,
+        batch_id: batchId,
       },
     });
   } catch (e) {

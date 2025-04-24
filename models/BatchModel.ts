@@ -12,8 +12,8 @@ export const createBatch = async (headerPayload: any, batchCodePayload: any, ccP
   const client = await db.connect();
   try {
     await client.query(TRANS.BEGIN);
-    const [headerQ, headerV] = insertQuery("t_batch_head", headerPayload, "batch_code");
-    const headerResult = await client.query(headerQ, headerV);
+    const [headerQ, headerV] = insertQuery("t_batch_head", headerPayload, "id");
+    await client.query(headerQ, headerV);
     const [codeQ, codeV] = insertQuery("t_batch_code", batchCodePayload);
     await client.query(codeQ, codeV);
     const [emailQ, emailV] = insertQuery("t_batch_cc", ccPayload);
@@ -21,7 +21,6 @@ export const createBatch = async (headerPayload: any, batchCodePayload: any, ccP
     const [assesseeQ, assesseeV] = insertQuery("t_batch_assessee", assesseePayload);
     await client.query(assesseeQ, assesseeV);
     await client.query(TRANS.COMMIT);
-    return headerResult.rows[0].batch_code;
   } catch (error) {
     console.error(error);
     await client.query(TRANS.ROLLBACK);
