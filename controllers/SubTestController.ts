@@ -27,6 +27,7 @@ export const handleCreateSubTest = async (req: Request, res: Response, next: Nex
       id: subtestId,
       subtest_name: validatedRequest.subtest_name,
       subtest_code: validatedRequest.subtest_code,
+      // is_duration:
       subtest_duration: validatedRequest.subtest_duration,
       criteria_id: validatedRequest.criteria_id,
       intro_desc: validatedRequest.intro_desc,
