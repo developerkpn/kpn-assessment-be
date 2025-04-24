@@ -27,7 +27,6 @@ export const handleCreateSeries = async (req: Request, res: Response, next: Next
       series_name: validatedRequest.series_name,
       series_code: validatedRequest.series_code,
       is_active: validatedRequest.is_active,
-      category_id: validatedRequest.category_id,
       created_by: creator,
       created_date: date,
     };
