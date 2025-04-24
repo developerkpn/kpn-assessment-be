@@ -110,7 +110,7 @@ export const getCriteriaDetail = async (id: string) => {
   try {
     const result = await client.query(
       `
-      SELECT v.id AS value_id, v.value_name, v.value_code, cr.criteria_name, cr.minimum_score, cr.maximum_score
+      SELECT v.id AS value_id, v.value_name, v.value_code, cr.criteria_name, cr.minimum_score, cr.maximum_score, cr.description
       FROM mst_value v
       LEFT JOIN mst_criteria cr ON v.id = cr.category_fk
       WHERE v.id = $1
