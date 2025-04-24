@@ -155,8 +155,10 @@ export const handleGenerateEmailTemplate = async (
         fm_name: functionMenuDetail.fm_name ? functionMenuDetail.fm_name : `Filling in Batch Section`,
         start_period: batchDetail.start_period ? batchDetail.start_period : `Filling in Batch Section`,
         end_period: batchDetail.end_period ? batchDetail.end_period : `Filling in Batch Section`,
-        batch_link: `${process.env.API_URL}/batch/${token ? token : "token"}`,
+        batch_link: `${process.env.ASSESSMENT_CLIENT_URL}/${token ? token : "token"}`,
       };
+
+      console.log(payload.batch_link);
 
       email = {
         subject: emailTemplate.subject,
@@ -178,7 +180,7 @@ export const handleGenerateEmailTemplate = async (
         fm_name: `Filling in Batch Section`,
         start_period: `Filling in Batch Section`,
         end_period: `Filling in Batch Section`,
-        batch_link: `${process.env.API_URL}/client/${token ? token : "token"}`,
+        batch_link: `${process.env.ASSESSMENT_CLIENT_URL}/${token ? token : "token"}`,
       };
 
       email = {
