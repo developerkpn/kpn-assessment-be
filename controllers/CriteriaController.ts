@@ -145,11 +145,12 @@ export const handleGetCriteriaDetail = async (req: Request, res: Response, next:
               criteria_name: row.criteria_name,
               minimum_score: row.minimum_score,
               maximum_score: row.maximum_score,
+              description: row.description,
             });
           }
           return acc;
         },
-        [] as Array<{ criteria_name: string; minimum_score: number; maximum_score: number }>
+        [] as Array<{ criteria_name: string; minimum_score: number; maximum_score: number; description: string }>
       ),
     };
 

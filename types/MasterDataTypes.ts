@@ -15,6 +15,7 @@ export type CriteriaRequest = {
   criteria_name: string;
   minimum_score: number;
   maximum_score: number;
+  description: string;
   is_active: boolean;
 };
 
