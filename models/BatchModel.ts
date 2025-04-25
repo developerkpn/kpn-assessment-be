@@ -74,15 +74,56 @@ export const getBatch = async () => {
   }
 };
 
-export const updateBatch = async (id: string, updatePayload: any) => {
+export const updateBatch = async (
+  id: string,
+  batchHeadPayload: any,
+  deletedCCEmailByRolePayload: any,
+  deletedCCEmailByEmailPayload: any,
+  selectedNewCCEmailPayload: any,
+  deletedAssesseePayload: any,
+  selectedNewAssesseePayload: any
+) => {
   const client = await db.connect();
   try {
     await client.query(TRANS.BEGIN);
-    const [headerQ, headerV] = updateQuery("t_batch_head", updatePayload, { id: id }, "batch_code");
-    const result = await client.query(headerQ, headerV);
-    if (result.rowCount === 0) throw new ResponseError(404, `Batch with ID ${id} is not found`);
+    console.log("masuk 1");
+    const [headerQ, headerV] = updateQuery("t_batch_head", batchHeadPayload, { id: id }, "batch_code");
+    const header = await client.query(headerQ, headerV);
+    if (header.rowCount === 0) throw new ResponseError(404, `Batch with ID ${id} is not found`);
+    console.log("masuk 2");
+    if (deletedCCEmailByEmailPayload.length > 0) {
+      for (const item of deletedCCEmailByEmailPayload) {
+        const [Q, V] = deleteQuery("t_batch_cc", item);
+        await client.query(Q, V);
+      }
+    }
+    console.log("masuk 3");
+    if (deletedCCEmailByRolePayload.length > 0) {
+      for (const item of deletedCCEmailByRolePayload) {
+        const [Q, V] = deleteQuery("t_batch_cc", item);
+        await client.query(Q, V);
+      }
+    }
+    console.log("masuk 4");
+    if (deletedAssesseePayload.length > 0) {
+      for (const item of deletedAssesseePayload) {
+        const [Q, V] = deleteQuery("t_batch_cc", item);
+        await client.query(Q, V);
+      }
+    }
+    console.log("masuk 5");
+    console.log(selectedNewCCEmailPayload);
+    if (selectedNewCCEmailPayload.length > 0) {
+      const [Q, V] = insertQuery("t_batch_cc", selectedNewCCEmailPayload);
+      await client.query(Q, V);
+    }
+    console.log("masuk 6");
+    if (selectedNewAssesseePayload.length > 0) {
+      const [Q, V] = insertQuery("t_batch_assessee", selectedNewAssesseePayload);
+      await client.query(Q, V);
+    }
+    console.log("masuk 7");
     await client.query(TRANS.COMMIT);
-    return result.rows[0].batch_code;
   } catch (error) {
     console.error(error);
     await client.query(TRANS.ROLLBACK);

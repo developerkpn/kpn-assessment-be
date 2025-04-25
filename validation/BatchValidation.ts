@@ -53,25 +53,55 @@ export class BatchValidation {
     note: z.string().trim().min(1).optional().optional(),
     description: z.string().trim().min(1).optional(),
     type: z.string().trim().length(8).optional(),
-    is_published: z.boolean().optional(),
-    cc_email: z
-      .object({
-        roles: z
+    // is_published: z.boolean().optional(),
+    cc_email: z.object({
+      roles: z.object({
+        deleted_roles: z
           .array(
             z.object({
               role_id: z.string().uuid(),
             })
           )
           .optional(),
-        emails: z
+        selected_roles: z
+          .array(
+            z.object({
+              role_id: z.string().uuid(),
+            })
+          )
+          .optional(),
+      }),
+      emails: z.object({
+        deleted_emails: z
           .array(
             z.object({
               cc_email: z.string().email(),
             })
           )
           .optional(),
-      })
-      .optional(),
+        selected_emails: z
+          .array(
+            z.object({
+              cc_email: z.string().email(),
+            })
+          )
+          .optional(),
+      }),
+    }),
+    assessees: z.object({
+      deleted_assessees: z.array(
+        z.object({
+          id: z.string().uuid(),
+        })
+      ),
+      selected_assessees: z.array(
+        z.object({
+          assessee_nik: z.string().trim().length(11).optional(),
+          assessee_name: z.string().trim().min(1),
+          assessee_email: z.string().email(),
+        })
+      ),
+    }),
   });
 
   static readonly ADDASSESSEEMANUALLY: z.ZodSchema = z.array(
