@@ -32,7 +32,7 @@ export const getCriteria = async () => {
     SELECT cr.*, v.value_code, v.value_name, v.id AS value_id
     FROM mst_criteria cr
     JOIN mst_value v ON cr.category_fk = v.id
-    ORDER BY cr.minimum_score ASC
+    ORDER BY cr.minimum_score ASC, v.created_date DESC
     `
     );
     return result.rows;
