@@ -184,19 +184,144 @@ export const handleUpdateBatch = async (req: Request, res: Response, next: NextF
     const batchStatus: any = await getBatchDetail(validatedId);
 
     if (batchStatus.status === "Published") {
-      throw new ResponseError(400, "This batch is already published!");
+      throw new ResponseError(400, "Can't be edited. This batch is already published!");
     }
 
-    const batchUpdate: BatchHeadUpdate = {
-      id: validatedId,
+    const batchHeadUpdate: any = {
+      batch_name: validatedRequest.batch_name,
+      grouptest_id: validatedRequest.grouptest_id,
+      bu_id: validatedRequest.bu_id,
+      function_id: validatedRequest.function_id,
+      template_email_id: validatedRequest.template_email_id,
+      is_mic: validatedRequest.is_mic,
+      is_screenshot: validatedRequest.is_screenshot,
+      note: validatedRequest.note,
+      description: validatedRequest.description,
+      type: validatedRequest.type,
+      start_period: moment(validatedRequest.start_period).toISOString(),
+      end_period: moment(validatedRequest.end_period).toISOString(),
       updated_by: req.userDecode?.user_id,
       updated_at: new Date(),
-      ...validatedRequest,
     };
-    const result = await updateBatch(validatedId, batchUpdate);
+
+    const deletedCCEmailByRole =
+      validatedRequest.cc_email.roles.deleted_roles && validatedRequest.cc_email.roles.deleted_roles.length > 0
+        ? validatedRequest.cc_email.roles.deleted_roles.map((prev: any) => ({
+            ...prev,
+            batch_id: validatedId,
+          }))
+        : [];
+
+    console.log("deleted CC Role");
+    console.log(deletedCCEmailByRole);
+
+    // const selectedNewCCEmailByRole =
+    //   validatedRequest.cc_email.roles.selected_roles && validatedRequest.cc_email.roles.selected_roles.length > 0
+    //     ? validatedRequest.cc_email.roles.selected_roles.map((prev: any) => ({
+    //         ...prev,
+    //         batch_id: validatedId,
+    //       }))
+    //     : [];
+
+    // Batch CC Email;
+    const ccEmailData = validatedRequest.cc_email;
+    let ccEmails: Array<{ id: string; batch_id: string; role_id: string | null; cc_email: string }> = [];
+    console.log(ccEmailData);
+    // Proses roles jika ada
+    if (ccEmailData.roles.selected_roles && ccEmailData.roles.selected_roles.length > 0) {
+      // Dapatkan email berdasarkan role_id
+      for (const role of ccEmailData.roles.selected_roles) {
+        const userEmails = await getUserEmailByRole(role.role_id);
+
+        if (userEmails && userEmails.length > 0) {
+          // Tambahkan email dari role ke array
+          userEmails.forEach((user) => {
+            ccEmails.push({
+              id: uuid(),
+              batch_id: validatedId,
+              role_id: role.role_id,
+              cc_email: user.email,
+            });
+          });
+        }
+      }
+    }
+
+    // Proses email manual jika ada
+    if (ccEmailData.emails.selected_emails && ccEmailData.emails.selected_emails.length > 0) {
+      // Tambahkan email manual ke array
+      ccEmailData.emails.selected_emails.forEach((item: any) => {
+        ccEmails.push({
+          id: uuid(),
+          batch_id: validatedId,
+          role_id: null, // Null karena dimasukkan manual
+          cc_email: item.cc_email,
+        });
+      });
+    }
+
+    console.log("selected CC Role");
+    console.log(ccEmails);
+
+    const deletedCCEmailByEmail =
+      validatedRequest.cc_email.emails.deleted_emails && validatedRequest.cc_email.emails.deleted_emails.length > 0
+        ? validatedRequest.cc_email.emails.deleted_emails.map((prev: any) => ({
+            ...prev,
+            batch_id: validatedId,
+          }))
+        : [];
+
+    console.log("deleted CC Email");
+    console.log(deletedCCEmailByEmail);
+
+    // const selectedNewCCEmailByEmail =
+    //   validatedRequest.cc_email.emails.selected_emails && validatedRequest.cc_email.emails.selected_emails.length > 0
+    //     ? validatedRequest.cc_email.emails.selected_emails.map((prev: any) => ({
+    //         ...prev,
+    //         batch_id: validatedId,
+    //       }))
+    //     : [];
+
+    // console.log("selected CC Email");
+    // console.log(selectedNewCCEmailByEmail);
+
+    const deletedAssessee =
+      validatedRequest.assessees.deleted_assessees && validatedRequest.assessees.deleted_assessees.length > 0
+        ? validatedRequest.assessees.deleted_assessees.map((prev: any) => ({
+            ...prev,
+            batch_id: validatedId,
+          }))
+        : [];
+    console.log("deleted assessee");
+    console.log(deletedAssessee);
+
+    const selectedNewAssessee = validatedRequest.assessees.selected_assessees?.length
+      ? validatedRequest.assessees.selected_assessees.map((prev: any) => {
+          const assesseeId = uuid();
+          return {
+            ...prev,
+            id: assesseeId,
+            assessee_nik: prev.assessee_nik || assesseeId,
+            batch_id: validatedId,
+          };
+        })
+      : [];
+
+    console.log("selected new Assesse");
+    console.log(selectedNewAssessee);
+
+    await updateBatch(
+      validatedId,
+      batchHeadUpdate,
+      deletedCCEmailByRole,
+      deletedCCEmailByEmail,
+      ccEmails,
+      deletedAssessee,
+      selectedNewAssessee
+    );
 
     res.status(201).send({
-      message: `Batch with code ${result} is updated successfully!`,
+      message: `Batch with code is updated successfully!`,
     });
   } catch (e) {
     next(e);
