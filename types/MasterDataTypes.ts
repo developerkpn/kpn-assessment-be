@@ -194,6 +194,9 @@ export type TestHeaderRequest = {
   id?: string;
   test_name?: string;
   test_code?: string;
+  category_id?: number;
+  summary_type?: string;
+  summary_formula?: string;
   description?: string;
   is_active?: boolean;
   created_by?: string;
