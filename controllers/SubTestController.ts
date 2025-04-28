@@ -27,10 +27,10 @@ export const handleCreateSubTest = async (req: Request, res: Response, next: Nex
       id: subtestId,
       subtest_name: validatedRequest.subtest_name,
       subtest_code: validatedRequest.subtest_code,
-      // is_duration:
+      is_duration: validatedRequest.is_duration,
       subtest_duration: validatedRequest.subtest_duration,
-      criteria_id: validatedRequest.criteria_id,
       intro_desc: validatedRequest.intro_desc,
+      report_description: validatedRequest.report_description,
       series_example_id: validatedRequest.series_example_id,
       created_by: creator,
       created_at: date,
@@ -80,12 +80,13 @@ export const handleUpdateSubTest = async (req: Request, res: Response, next: Nex
     const updateHead: any = {
       subtest_name: validatedRequest.subtest_name,
       subtest_code: validatedRequest.subtest_code,
+      is_duration: validatedRequest.is_duration,
       subtest_duration: validatedRequest.subtest_duration,
-      criteria_id: validatedRequest.criteria_id,
       is_active: validatedRequest.is_active,
       updated_by: updatedBy,
       updated_at: updatedAt,
       intro_desc: validatedRequest.intro_desc,
+      report_description: validatedRequest.report_description,
       series_example_id: validatedRequest.series_example_id,
     };
 

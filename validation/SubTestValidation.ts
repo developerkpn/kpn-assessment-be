@@ -10,13 +10,13 @@ export class SubTestValidation {
         .string()
         .regex(/^(?:[0-1][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$/, "Invalid time format. Must be hh:mm:ss")
         .nullable(),
-      criteria_id: z.string().uuid(),
       series: z.array(
         z.object({
           series_id: z.string().uuid(),
         })
       ),
       intro_desc: z.string().min(1),
+      report_description: z.string().trim().min(1),
       series_example_id: z.string().uuid(),
     })
     .superRefine((data, ctx) => {
@@ -49,23 +49,27 @@ export class SubTestValidation {
         .nullable()
         .optional(),
       is_active: z.boolean().optional(),
-      criteria_id: z.string().uuid().optional(),
-      intro_desc: z.string().min(1).optional(),
-      series_example_id: z.string().uuid(),
-      deleted_series: z.array(
-        z
-          .object({
-            series_id: z.string().uuid(),
-          })
-          .optional()
-      ),
-      selected_series: z.array(
-        z
-          .object({
-            series_id: z.string().uuid(),
-          })
-          .optional()
-      ),
+      intro_desc: z.string().trim().min(1).optional(),
+      report_description: z.string().trim().min(1).optional(),
+      series_example_id: z.string().uuid().optional(),
+      deleted_series: z
+        .array(
+          z
+            .object({
+              series_id: z.string().uuid(),
+            })
+            .optional()
+        )
+        .optional(),
+      selected_series: z
+        .array(
+          z
+            .object({
+              series_id: z.string().uuid(),
+            })
+            .optional()
+        )
+        .optional(),
     })
     .superRefine((data, ctx) => {
       if (data.is_duration && !data.subtest_duration) {
