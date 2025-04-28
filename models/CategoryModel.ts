@@ -25,7 +25,7 @@ export const getCategory = async () => {
   try {
     const result = await client.query(
       `
-            SELECT h.id, h.category_name, h.category_code, v.value_name, v.value_code, h.created_at, h.is_active, d.fullname AS created_by 
+            SELECT h.id, h.category_name, h.category_code, h.criteria_id, v.value_name, v.value_code, h.created_at, h.is_active, d.fullname AS created_by 
             FROM mst_category h
             LEFT JOIN mst_admin_web d ON h.created_by = d.id
             LEFT JOIN mst_value v ON h.criteria_id = v.id 
