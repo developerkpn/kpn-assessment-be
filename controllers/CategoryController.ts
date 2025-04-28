@@ -14,6 +14,7 @@ export const handleCreateCategory = async (req: Request, res: Response) => {
       category_code: req.body.category_code,
       created_by: req.userDecode?.user_id,
       created_at: today,
+      criteria_id: req.body.criteria_id,
       is_active: req.body.is_active,
     };
     const validatedRequest = Validation.validate(CategoryValidation.CREATE, payload);
