@@ -222,9 +222,11 @@ export const handleGetQuestion = async (req: Request, res: Response) => {
     const categoryId = req.query.category_id ? Number(req.query.category_id) : undefined;
     console.log(categoryId);
     const result = await getQuestion(categoryId);
+    console.log("test oyyys");
+    console.log(result);
     const formattedResult: any[] = result.map((item) => {
       const answers: AnswerResponse[] = [];
-      ["a", "b", "c", "d", "e"].forEach((choice) => {
+      ["a", "b", "c", "d", "e", "f", "g"].forEach((choice) => {
         const textKey = `answer_choice_${choice}_text`;
         const imageKey = `answer_choice_${choice}_image_url`;
         const pointKey = `key_answer_point_${choice}`;
@@ -250,6 +252,9 @@ export const handleGetQuestion = async (req: Request, res: Response) => {
         answers: answers,
       };
     });
+
+    console.log("cek coy");
+    console.log(formattedResult);
 
     res.status(200).send({
       message: `Success get question`,
