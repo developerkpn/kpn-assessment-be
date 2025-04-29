@@ -15,6 +15,7 @@ export type CriteriaRequest = {
   criteria_name: string;
   minimum_score: number;
   maximum_score: number;
+  description: string;
   is_active: boolean;
 };
 
@@ -154,11 +155,13 @@ export type QuestionResult = {
 export type CategoryRequest = {
   category_name: string;
   category_code: string;
+  criteria_id: string;
   is_active: boolean;
 };
 
 export type CategoryUpdateRequest = {
   category_name: string;
+  criteria_id: string;
   is_active: boolean;
 };
 
@@ -197,6 +200,9 @@ export type TestHeaderRequest = {
   id?: string;
   test_name?: string;
   test_code?: string;
+  category_id?: number;
+  summary_type?: string;
+  summary_formula?: string;
   description?: string;
   is_active?: boolean;
   created_by?: string;

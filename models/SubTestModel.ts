@@ -4,7 +4,7 @@ import { deleteQuery, insertQuery, updateQuery } from "#dep/helper/queryBuilder"
 import { SubTestDetailRequest, SubTestHeaderRequest, SubTestRequest } from "#dep/types/MasterDataTypes";
 import { ResponseError } from "#dep/error/response-error";
 
-export const createSubTest = async (payloadHeader: SubTestHeaderRequest, payloadDetail: SubTestDetailRequest[]) => {
+export const createSubTest = async (payloadHeader: any, payloadDetail: any[]) => {
   const client = await db.connect();
   try {
     await client.query(TRANS.BEGIN);
@@ -32,6 +32,7 @@ export const getSubTest = async () => {
                 h.id,
                 h.subtest_name,
                 h.subtest_code,
+                h.is_duration,
                 h.subtest_duration,
                 h.is_active,
                 a.fullname AS created_by,
@@ -40,7 +41,7 @@ export const getSubTest = async () => {
             FROM mst_subtest_head h
             LEFT JOIN mst_subtest_det d ON h.id = d.subtest_id
             LEFT JOIN mst_admin_web a ON h.created_by = a.id
-            GROUP BY h.id, h.subtest_name, h.subtest_code, h.is_active, h.subtest_duration, a.fullname, h.created_at
+            GROUP BY h.id, h.subtest_name, h.subtest_code, h.is_active, h.is_duration, h.subtest_duration, a.fullname, h.created_at
             ORDER BY h.created_at DESC
             `
     );
@@ -53,12 +54,7 @@ export const getSubTest = async () => {
   }
 };
 
-export const updateSubTest = async (
-  subtestId: string,
-  headerPayload: SubTestHeaderRequest,
-  deletedSeries: any,
-  addSeries: any
-) => {
+export const updateSubTest = async (subtestId: string, headerPayload: any, deletedSeries: any, addSeries: any) => {
   const client = await db.connect();
   try {
     await client.query(TRANS.BEGIN);
@@ -137,8 +133,10 @@ export const getSubTestDetail = async (id: string) => {
         h.id AS subtest_id,
         h.subtest_name,
         h.subtest_code,
+        h.is_duration,
         h.subtest_duration,
         h.intro_desc,
+        h.report_description,
         h.series_example_id,
         h.is_active,
         a.fullname AS created_by,
@@ -151,9 +149,6 @@ export const getSubTestDetail = async (id: string) => {
         d.id AS detail_id,
         ad.fullname AS added_by,
         d.added_at,
-        c.id AS value_id,
-        c.value_code,
-        c.value_name,
         (
           SELECT COUNT(sd.question_id)
           FROM mst_series_det sd
@@ -165,8 +160,6 @@ export const getSubTestDetail = async (id: string) => {
         mst_subtest_det d ON h.id = d.subtest_id
       LEFT JOIN 
         mst_series s ON d.series_id = s.id
-      LEFT JOIN
-        mst_value c ON h.criteria_id = c.id
       LEFT JOIN
         mst_admin_web a ON h.created_by = a.id
       LEFT JOIN
@@ -187,16 +180,16 @@ export const getSubTestDetail = async (id: string) => {
       id: result.rows[0].subtest_id,
       subtest_name: result.rows[0].subtest_name,
       subtest_code: result.rows[0].subtest_code,
+      is_duration: result.rows[0].is_duration,
       subtest_duration: result.rows[0].subtest_duration,
       is_active: result.rows[0].is_active,
       intro_desc: result.rows[0].intro_desc,
+      report_description: result.rows[0].report_description,
       series_example_id: result.rows[0].series_example_id,
       created_by: result.rows[0].created_by,
       created_at: result.rows[0].created_at,
       updated_by: result.rows[0].updated_by,
       updated_at: result.rows[0].updated_at,
-      // Hapus properti criteria dan langsung gunakan criteria_id
-      criteria_id: result.rows[0].value_id,
       series: result.rows.map((row) => ({
         id: row.detail_id,
         series_id: row.series_id,

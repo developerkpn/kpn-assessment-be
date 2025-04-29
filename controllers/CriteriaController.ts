@@ -35,6 +35,10 @@ export const handleCreateCriteria = async (req: Request, res: Response, next: Ne
     created_date: today,
   }));
 
+  console.log("cek 1");
+  console.log(groupPayload);
+  console.log("cek 2");
+  console.log(criteriaPayload);
   try {
     const validatedGroupPayloadRequest = Validation.validate(CriteriaValidation.CREATEGROUP, groupPayload);
     const validatedCriteriaPayloadRequest = Validation.validate(CriteriaValidation.CREATECRITERIA, criteriaPayload);
@@ -51,27 +55,51 @@ export const handleCreateCriteria = async (req: Request, res: Response, next: Ne
 export const handleGetCriteria = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const result = await getCriteria();
-    const newResult = Object.values(
-      result.reduce((acc, item) => {
-        const { value_code, value_name, value_id, ...criteria } = item;
+    console.log("hasil ori", result);
 
-        if (!acc[value_code]) {
-          acc[value_code] = {
-            value_code,
-            value_name,
-            value_id,
-            criteria: [],
-          };
-        }
+    // 1) mapping: pastikan tiap item category_fk di-override jadi value_id
+    const mapped = result.map((item) => ({
+      ...item,
+      category_fk: item.value_id,
+    }));
 
-        acc[value_code].criteria.push(criteria);
-        return acc;
-      }, {})
+    // 2) reduce: group by value_id, dan konsisten pakai acc[value_id]
+    const groupedByValueId = Object.values(
+      mapped.reduce(
+        (acc, item) => {
+          const { value_code, value_name, value_id, ...criteria } = item;
+
+          // kalau belum ada grup untuk value_id ini, inisialisasi
+          if (!acc[value_id]) {
+            acc[value_id] = {
+              value_code,
+              value_name,
+              value_id,
+              criteria: [] as Array<Omit<typeof item, "value_code" | "value_name" | "value_id">>,
+            };
+          }
+
+          // masukkan sisa properti sebagai satu elemen criteria
+          acc[value_id].criteria.push(criteria);
+          return acc;
+        },
+        {} as Record<
+          string,
+          {
+            value_code: string;
+            value_name: string;
+            value_id: string;
+            criteria: any[];
+          }
+        >
+      )
     );
 
-    res.status(200).send({
-      message: `Success get criteria`,
-      data: newResult,
+    console.log("grouped:", groupedByValueId);
+
+    res.status(200).json({
+      message: "Success get criteria",
+      data: groupedByValueId,
     });
   } catch (e) {
     next(e);
@@ -145,11 +173,12 @@ export const handleGetCriteriaDetail = async (req: Request, res: Response, next:
               criteria_name: row.criteria_name,
               minimum_score: row.minimum_score,
               maximum_score: row.maximum_score,
+              description: row.description,
             });
           }
           return acc;
         },
-        [] as Array<{ criteria_name: string; minimum_score: number; maximum_score: number }>
+        [] as Array<{ criteria_name: string; minimum_score: number; maximum_score: number; description: string }>
       ),
     };
 

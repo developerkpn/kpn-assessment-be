@@ -35,6 +35,8 @@ export const getTest = async () => {
                 h.id,
                 h.test_name,
                 h.test_code,
+                c.category_name,
+                c.category_code,
                 h.is_active,
                 a.fullname AS created_by,
                 h.created_at,
@@ -42,7 +44,8 @@ export const getTest = async () => {
             FROM mst_test_head h
             LEFT JOIN mst_test_det d ON h.id = d.test_id 
             LEFT JOIN mst_admin_web a ON h.created_by = a.id
-            GROUP BY h.id, h.test_name, h.test_code, h.is_active, a.fullname, h.created_at
+            LEFT JOIN mst_category c ON h.category_id = c.id
+            GROUP BY h.id, h.test_name, h.test_code, c.category_name, c.category_code, h.is_active, a.fullname, h.created_at
             ORDER BY h.created_at DESC
             `
     );
@@ -55,7 +58,7 @@ export const getTest = async () => {
   }
 };
 
-export const updateTest = async (testId: string, headerPayload: any, detailPayload: TestDetailRequest[]) => {
+export const updateTest = async (testId: string, headerPayload: any, detailPayload: any[]) => {
   const client = await db.connect();
   console.log(`test`);
   console.log(detailPayload);
@@ -67,7 +70,7 @@ export const updateTest = async (testId: string, headerPayload: any, detailPaylo
     console.log("keluar 2");
     if (!headerResult.rows[0].test_code) throw new ResponseError(404, `Test with ID ${testId} is not found`);
     console.log("keluar 3");
-    if (detailPayload) {
+    if (detailPayload.length > 0) {
       console.log("masuk");
       const [detailQ, detailV] = insertQuery("mst_test_det", detailPayload);
       await client.query(detailQ, detailV);
@@ -128,6 +131,8 @@ export const getTestDetail = async (id: string) => {
                 h.test_code,
                 h.is_active,
                 h.description,
+                h.summary_type,
+                h.summary_formula,
                 a.fullname AS created_by,
                 h.created_at,
                 a.fullname AS updated_by,
@@ -135,6 +140,9 @@ export const getTestDetail = async (id: string) => {
                 s.id AS subtest_id,
                 s.subtest_name,
                 s.subtest_code,
+                h.category_id,
+                c.category_name,
+                c.category_code,
                 d.id AS detail_id,
                 ad.fullname AS added_by,
                 d.added_at,
@@ -155,6 +163,8 @@ export const getTestDetail = async (id: string) => {
                 mst_admin_web ads ON h.updated_by = ads.id
             LEFT JOIN
                 mst_admin_web ad ON d.added_by = ad.id
+            LEFT JOIN
+                mst_category c ON h.category_id = c.id
             WHERE
                 h.id = $1 
             `,
@@ -165,7 +175,12 @@ export const getTestDetail = async (id: string) => {
       id: result.rows[0].test_id,
       test_name: result.rows[0].test_name,
       test_code: result.rows[0].test_code,
+      category_id: result.rows[0].category_id,
+      category_name: result.rows[0].category_name,
+      category_code: result.rows[0].category_code,
       description: result.rows[0].description,
+      summary_type: result.rows[0].summary_type,
+      summary_formula: result.rows[0].summary_formula,
       is_active: result.rows[0].is_active,
       created_by: result.rows[0].created_by,
       created_at: result.rows[0].created_at,

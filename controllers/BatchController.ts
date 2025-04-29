@@ -15,6 +15,7 @@ import {
   getBatchCCEmail,
   getBatchCode,
   getBatchDetail,
+  getFMandBUCode,
   getUserEmailByRole,
   publishBatch,
   startProgress,
@@ -41,32 +42,123 @@ import { DataEmpDarwin, XLSAssessee } from "#dep/types/MasterDataTypes";
 export const handleCreateBatch = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const validatedRequest = Validation.validate(BatchValidation.CREATE, req.body);
+    console.log(validatedRequest);
+    // Batch Head
+    const batchId = uuid();
+    const date = new Date();
+    const month = moment().format("MMM").toUpperCase();
+    const year = moment().format("YYYY");
 
-    console.log("date");
-    console.log(validatedRequest.end_period);
-    console.log(moment(validatedRequest.end_period).toISOString());
+    // Generate Batch Code
+    const code = await getFMandBUCode(validatedRequest.function_id, validatedRequest.bu_id);
+    console.log(code);
+    const checkIfCodeIsExist = await getBatchCode(code.fmCode, code.buCode, month, year);
+    console.log("keluar");
+    let currentBatch;
+    if (checkIfCodeIsExist?.batch != null) {
+      currentBatch = checkIfCodeIsExist.batch + 1;
+    } else {
+      currentBatch = 1;
+    }
 
-    const payload: any = {
-      ...validatedRequest,
+    const currentCode = `${code.fmCode}/${code.buCode}/${month}/${year}/${currentBatch}`;
+
+    const batchCode = {
+      id: uuid(),
+      tm_code: code.fmCode,
+      bu_code: code.buCode,
+      month: month,
+      year: year,
+      batch: currentBatch,
+      taken_at: date,
+    };
+
+    // Create Batch
+    const batchHeadPayload: any = {
+      id: batchId,
+      batch_name: validatedRequest.batch_name,
+      grouptest_id: validatedRequest.grouptest_id,
+      bu_id: validatedRequest.bu_id,
+      function_id: validatedRequest.function_id,
+      template_email_id: validatedRequest.template_email_id,
+      is_mic: validatedRequest.is_mic,
+      is_screenshot: validatedRequest.is_screenshot,
+      note: validatedRequest.note,
+      description: validatedRequest.description,
+      type: validatedRequest.type,
+      // is_published: validatedRequest.is_published,
+      batch_code: currentCode,
       start_period: moment(validatedRequest.start_period).toISOString(),
       end_period: moment(validatedRequest.end_period).toISOString(),
-    };
-
-    console.log(payload);
-
-    const batch: BatchHeader = {
-      id: uuid(),
       created_by: req.userDecode!.user_id,
       created_at: new Date(),
-      ...payload,
     };
 
-    const result = await createBatch(batch);
+    // Batch CC Email
+    console.log(validatedRequest);
+    const ccEmailData = validatedRequest.cc_email;
+    let ccEmails: Array<{ id: string; batch_id: string; role_id: string | null; cc_email: string }> = [];
+    console.log(ccEmailData);
+    // Proses roles jika ada
+    if (ccEmailData.roles && ccEmailData.roles.length > 0) {
+      // Dapatkan email berdasarkan role_id
+      for (const role of ccEmailData.roles) {
+        const userEmails = await getUserEmailByRole(role.role_id);
+
+        if (userEmails && userEmails.length > 0) {
+          // Tambahkan email dari role ke array
+          userEmails.forEach((user) => {
+            ccEmails.push({
+              id: uuid(),
+              batch_id: batchId,
+              role_id: role.role_id,
+              cc_email: user.email,
+            });
+          });
+        }
+      }
+    }
+
+    // Proses email manual jika ada
+    if (ccEmailData.emails && ccEmailData.emails.length > 0) {
+      // Tambahkan email manual ke array
+      ccEmailData.emails.forEach((item: any) => {
+        ccEmails.push({
+          id: uuid(),
+          batch_id: batchId,
+          role_id: null, // Null karena dimasukkan manual
+          cc_email: item.cc_email,
+        });
+      });
+    }
+
+    // Jika tidak ada data yang akan disimpan
+    if (ccEmails.length === 0) {
+      res.status(400).json({ message: "Tidak ada email yang akan disimpan" });
+    }
+
+    //Batch Asssessee
+    const batchAssessee = validatedRequest.assessees;
+    const assessee = batchAssessee.map((row: any) => {
+      const assesseeId = uuid();
+      const result = {
+        id: assesseeId,
+        batch_id: batchId,
+        assessee_nik: row.assessee_nik ? row.assessee_nik : assesseeId,
+        assessee_name: row.assessee_name,
+        assessee_email: row.assessee_email,
+      };
+      return result;
+    });
+
+    console.log(assessee);
+
+    await createBatch(batchHeadPayload, batchCode, ccEmails, assessee);
 
     res.status(201).send({
-      message: `Batch with code ${result} is created successfully!`,
+      message: `Success!`,
       data: {
-        id: batch.id,
+        batch_id: batchId,
       },
     });
   } catch (e) {
@@ -91,16 +183,148 @@ export const handleUpdateBatch = async (req: Request, res: Response, next: NextF
   try {
     const validatedId = Validation.validate(BatchValidation.ID, req.params.id);
     const validatedRequest = Validation.validate(BatchValidation.UPDATE, req.body);
-    const batchUpdate: BatchHeadUpdate = {
-      id: validatedId,
+
+    const batchStatus: any = await getBatchDetail(validatedId);
+
+    if (batchStatus.status === "Published") {
+      throw new ResponseError(400, "Can't be edited. This batch is already published!");
+    }
+
+    const batchHeadUpdate: any = {
+      batch_name: validatedRequest.batch_name,
+      grouptest_id: validatedRequest.grouptest_id,
+      bu_id: validatedRequest.bu_id,
+      function_id: validatedRequest.function_id,
+      template_email_id: validatedRequest.template_email_id,
+      is_mic: validatedRequest.is_mic,
+      is_screenshot: validatedRequest.is_screenshot,
+      note: validatedRequest.note,
+      description: validatedRequest.description,
+      type: validatedRequest.type,
+      start_period: moment(validatedRequest.start_period).toISOString(),
+      end_period: moment(validatedRequest.end_period).toISOString(),
       updated_by: req.userDecode?.user_id,
       updated_at: new Date(),
-      ...validatedRequest,
     };
-    const result = await updateBatch(validatedId, batchUpdate);
+
+    const deletedCCEmailByRole =
+      validatedRequest.cc_email.roles.deleted_roles && validatedRequest.cc_email.roles.deleted_roles.length > 0
+        ? validatedRequest.cc_email.roles.deleted_roles.map((prev: any) => ({
+            ...prev,
+            batch_id: validatedId,
+          }))
+        : [];
+
+    console.log("deleted CC Role");
+    console.log(deletedCCEmailByRole);
+
+    // const selectedNewCCEmailByRole =
+    //   validatedRequest.cc_email.roles.selected_roles && validatedRequest.cc_email.roles.selected_roles.length > 0
+    //     ? validatedRequest.cc_email.roles.selected_roles.map((prev: any) => ({
+    //         ...prev,
+    //         batch_id: validatedId,
+    //       }))
+    //     : [];
+
+    // Batch CC Email;
+    const ccEmailData = validatedRequest.cc_email;
+    let ccEmails: Array<{ id: string; batch_id: string; role_id: string | null; cc_email: string }> = [];
+    console.log(ccEmailData);
+    // Proses roles jika ada
+    if (ccEmailData.roles.selected_roles && ccEmailData.roles.selected_roles.length > 0) {
+      // Dapatkan email berdasarkan role_id
+      for (const role of ccEmailData.roles.selected_roles) {
+        const userEmails = await getUserEmailByRole(role.role_id);
+
+        if (userEmails && userEmails.length > 0) {
+          // Tambahkan email dari role ke array
+          userEmails.forEach((user) => {
+            ccEmails.push({
+              id: uuid(),
+              batch_id: validatedId,
+              role_id: role.role_id,
+              cc_email: user.email,
+            });
+          });
+        }
+      }
+    }
+
+    // Proses email manual jika ada
+    if (ccEmailData.emails.selected_emails && ccEmailData.emails.selected_emails.length > 0) {
+      // Tambahkan email manual ke array
+      ccEmailData.emails.selected_emails.forEach((item: any) => {
+        ccEmails.push({
+          id: uuid(),
+          batch_id: validatedId,
+          role_id: null, // Null karena dimasukkan manual
+          cc_email: item.cc_email,
+        });
+      });
+    }
+
+    console.log("selected CC Role");
+    console.log(ccEmails);
+
+    const deletedCCEmailByEmail =
+      validatedRequest.cc_email.emails.deleted_emails && validatedRequest.cc_email.emails.deleted_emails.length > 0
+        ? validatedRequest.cc_email.emails.deleted_emails.map((prev: any) => ({
+            ...prev,
+            batch_id: validatedId,
+          }))
+        : [];
+
+    console.log("deleted CC Email");
+    console.log(deletedCCEmailByEmail);
+
+    // const selectedNewCCEmailByEmail =
+    //   validatedRequest.cc_email.emails.selected_emails && validatedRequest.cc_email.emails.selected_emails.length > 0
+    //     ? validatedRequest.cc_email.emails.selected_emails.map((prev: any) => ({
+    //         ...prev,
+    //         batch_id: validatedId,
+    //       }))
+    //     : [];
+
+    // console.log("selected CC Email");
+    // console.log(selectedNewCCEmailByEmail);
+
+    const deletedAssessee =
+      validatedRequest.assessees.deleted_assessees && validatedRequest.assessees.deleted_assessees.length > 0
+        ? validatedRequest.assessees.deleted_assessees.map((prev: any) => ({
+            ...prev,
+            batch_id: validatedId,
+          }))
+        : [];
+    console.log("deleted assessee");
+    console.log(deletedAssessee);
+
+    const selectedNewAssessee = validatedRequest.assessees.selected_assessees?.length
+      ? validatedRequest.assessees.selected_assessees.map((prev: any) => {
+          const assesseeId = uuid();
+          return {
+            ...prev,
+            id: assesseeId,
+            assessee_nik: prev.assessee_nik || assesseeId,
+            batch_id: validatedId,
+          };
+        })
+      : [];
+
+    console.log("selected new Assesse");
+    console.log(selectedNewAssessee);
+
+    await updateBatch(
+      validatedId,
+      batchHeadUpdate,
+      deletedCCEmailByRole,
+      deletedCCEmailByEmail,
+      ccEmails,
+      deletedAssessee,
+      selectedNewAssessee
+    );
 
     res.status(201).send({
-      message: `Batch with code ${result} is updated successfully!`,
+      message: `Batch with code is updated successfully!`,
     });
   } catch (e) {
     next(e);
@@ -420,55 +644,6 @@ export const handleAddCCEmail = async (req: Request, res: Response, next: NextFu
     if (!batch_id) {
       res.status(400).json({ message: "Batch ID diperlukan" });
     }
-
-    // Data yang akan disimpan
-    let ccEmails: Array<{ id: string; batch_id: string; role_id: string | null; cc_email: string }> = [];
-
-    // Proses roles jika ada
-    if (roles && roles.length > 0) {
-      // Dapatkan email berdasarkan role_id
-      for (const role of roles) {
-        const userEmails = await getUserEmailByRole(role.role_id);
-
-        if (userEmails && userEmails.length > 0) {
-          // Tambahkan email dari role ke array
-          userEmails.forEach((user) => {
-            ccEmails.push({
-              id: uuid(),
-              batch_id,
-              role_id: role.role_id,
-              cc_email: user.email,
-            });
-          });
-        }
-      }
-    }
-
-    // Proses email manual jika ada
-    if (emails && emails.length > 0) {
-      // Tambahkan email manual ke array
-      emails.forEach((item: any) => {
-        ccEmails.push({
-          id: uuid(),
-          batch_id,
-          role_id: null, // Null karena dimasukkan manual
-          cc_email: item.cc_email,
-        });
-      });
-    }
-
-    // Jika tidak ada data yang akan disimpan
-    if (ccEmails.length === 0) {
-      res.status(400).json({ message: "Tidak ada email yang akan disimpan" });
-    }
-
-    // Simpan ke database
-    await storeEmailCC(ccEmails);
-
-    res.status(200).json({
-      message: "Success!",
-      data: ccEmails,
-    });
   } catch (e) {
     next(e);
   }
@@ -580,25 +755,10 @@ export const handleGetBatchCode = async (req: Request, res: Response, next: Next
     const tmCode = payload.tm_code;
     const buCode = payload.bu_code;
 
-    const month = moment().format("MMM").toUpperCase();
-    const year = moment().format("YYYY");
-
-    const checkIfCodeIsExist = await getBatchCode(tmCode, buCode, month, year);
-
-    console.log("keluar");
-    let currentBatch;
-    if (checkIfCodeIsExist?.batch != null) {
-      currentBatch = checkIfCodeIsExist.batch + 1;
-    } else {
-      currentBatch = 1;
-    }
-
-    const currentCode = `${tmCode}/${buCode}/${month}/${year}/${currentBatch}`;
-
     res.status(200).send({
       message: "Success!",
       data: {
-        batch_code: currentCode,
+        batch_code: "",
       },
     });
   } catch (e) {

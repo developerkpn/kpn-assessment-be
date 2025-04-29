@@ -20,6 +20,7 @@ export class CriteriaValidation {
         criteria_name: z.string().trim().min(1, "Criteria name is required"),
         minimum_score: z.number().int("Minimum score must be an integer").min(0, "Minimum score must be 0 or greater"),
         maximum_score: z.number().int("Maximum score must be an integer").min(0, "Maximum score must be 0 or greater"),
+        description: z.string().trim().min(1),
       })
       .refine((data) => data.maximum_score > data.minimum_score, {
         message: "Maximum score must be greater than minimum score",

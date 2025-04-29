@@ -32,7 +32,7 @@ export const getCriteria = async () => {
     SELECT cr.*, v.value_code, v.value_name, v.id AS value_id
     FROM mst_criteria cr
     JOIN mst_value v ON cr.category_fk = v.id
-    ORDER BY cr.minimum_score ASC
+    ORDER BY cr.minimum_score ASC, v.created_date DESC
     `
     );
     return result.rows;
@@ -110,7 +110,7 @@ export const getCriteriaDetail = async (id: string) => {
   try {
     const result = await client.query(
       `
-      SELECT v.id AS value_id, v.value_name, v.value_code, cr.criteria_name, cr.minimum_score, cr.maximum_score
+      SELECT v.id AS value_id, v.value_name, v.value_code, cr.criteria_name, cr.minimum_score, cr.maximum_score, cr.description
       FROM mst_value v
       LEFT JOIN mst_criteria cr ON v.id = cr.category_fk
       WHERE v.id = $1
