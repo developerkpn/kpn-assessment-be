@@ -294,6 +294,7 @@ export const handleGetQuestionById = async (req: Request, res: Response) => {
     const formattedResult: QuestionResult = {
       id: result.id,
       answer_type: result.answer_type,
+      category_id: result.category_id,
       created_by: result.created_by,
       created_date: result.created_date,
       updated_by: result.updated_by,
