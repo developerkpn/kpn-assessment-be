@@ -75,9 +75,10 @@ export const getQuestionById = async (id: string) => {
     const result = await client.query(
       `
       SELECT
-        q.*, a.fullname AS created_by
+        q.*, a.fullname AS created_by, c.id, c.category_name, c.category_code
       FROM mst_question_answer q
       JOIN mst_admin_web a ON q.created_by = a.id
+      LEFT JOIN mst_category c ON q.category_id = c.id
       WHERE q.id = $1
     `,
       [id]
