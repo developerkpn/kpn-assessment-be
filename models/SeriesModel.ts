@@ -66,17 +66,12 @@ export const deleteSeries = async (id: string) => {
             `,
       [id]
     );
-
     const headerResult = await client.query(
       `
             DELETE FROM mst_series WHERE id = $1 RETURNING series_code
             `,
       [id]
     );
-
-    if (detailResult.rowCount === 0 || headerResult.rowCount === 0) {
-      throw new ResponseError(404, `ID ${id} not found.`);
-    }
 
     await client.query(TRANS.COMMIT);
     return headerResult.rows[0].series_code;

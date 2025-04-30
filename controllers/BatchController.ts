@@ -21,6 +21,7 @@ import {
   startProgress,
   storeEmailCC,
   updateBatch,
+  getDarwinUser,
 } from "#dep/models/BatchModel";
 import fs from "fs";
 import { AdminWebValidation } from "#dep/validation/AdminWebValidation";
@@ -35,7 +36,9 @@ import { Secret, sign } from "jsonwebtoken";
 import { emailTemplateHTML } from "#dep/helper/email/emailnotifmgrprc";
 // import { getTestFromChoosenGroupTest} from "#dep/models/GroupTestModel";
 import moment from "moment";
-
+import axios, { AxiosResponse } from "axios";
+import { axiosDarwin } from "#dep/config/axiosDarwin";
+import { DataEmpDarwin, XLSAssessee } from "#dep/types/MasterDataTypes";
 export const handleCreateBatch = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const validatedRequest = Validation.validate(BatchValidation.CREATE, req.body);
@@ -412,6 +415,144 @@ export const handleDeleteBatchAssessee = async (req: Request, res: Response, nex
     });
   } catch (e) {
     next(e);
+  }
+};
+
+export const handleAddAssesseeByFile = async (req: Request, res: Response, next: NextFunction) => {
+  if (!req.file) {
+    res.status(400).send("File tidak ditemukan.");
+  }
+
+  try {
+    const validatedId = Validation.validate(BatchValidation.ID, req.params.id);
+    const workbook = XLSX.read(req.file!.buffer, { type: "buffer" });
+    const firstSheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[firstSheetName];
+
+    // Convert sheet to JSON
+    const jsonData: XLSAssessee[] = XLSX.utils.sheet_to_json(worksheet, {
+      defval: null,
+      raw: false,
+    });
+
+    console.log("masuk payload");
+
+    // Prepare payload for API request
+    const payload = {
+      api_key: process.env.API_KEY,
+      datasetKey: process.env.DATASET_KEY,
+      limit: "1000",
+      employee_ids: jsonData.map((row: any) => `${row.NIK}`),
+    };
+
+    console.log(payload);
+    console.log("keluar payload");
+
+    // Prepare Basic Auth
+    const username = process.env.BASIC_AUTH_USERNAME || "no";
+    const password = process.env.BASIC_AUTH_PASSWORD || "no";
+    const basicAuth = Buffer.from(`${username}:${password}`).toString("base64");
+
+    // Fetch employee data from API
+    const getAssessee = await axios.post<any, AxiosResponse<{ employee_data: DataEmpDarwin[] }>>(
+      `${process.env.DARWIN_BASE_URL}`,
+      payload,
+      {
+        headers: {
+          Authorization: `Basic ${basicAuth}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    console.log("fetch berhasil");
+    console.log(getAssessee);
+    console.log(getAssessee.data.employee_data);
+
+    // Create a map of found employee IDs for quick lookup
+    const foundEmployees = new Map(getAssessee.data.employee_data.map((emp: any) => [emp.employee_id, emp]));
+
+    // Process each row and update status
+    const processedData = jsonData.map<XLSAssessee & { Status: string }>((row: any) => {
+      const employee: any = foundEmployees.get(row.NIK);
+
+      if (employee) {
+        return {
+          ...row,
+          Status: "Success",
+          Name: employee.full_name,
+          Email: employee.company_email_id,
+        };
+      } else {
+        return {
+          ...row,
+          Status: "Failed",
+          Name: null,
+          Email: null,
+        };
+      }
+    });
+
+    // Prepare data for database insertion
+    const assesseeData = processedData
+      .filter((row: any) => row.Status === "Success")
+      .map((row: any) => ({
+        id: uuid(),
+        batch_id: validatedId,
+        assessee_nik: row.NIK,
+        assessee_name: row.Name,
+        assessee_email: row.Email,
+      }));
+
+    const not_found_data = processedData
+      .filter((row) => row.Status === "Failed")
+      .map((row) => ({
+        id: uuid(),
+        batch_id: validatedId,
+        assessee_nik: row.NIK,
+        assessee_name: row.Name,
+        assessee_email: row.Email,
+      }));
+
+    // Validate and add assessees to database
+    if (assesseeData.length > 0) {
+      const validatedAssessee = Validation.validate(BatchValidation.ASSESSEE, assesseeData);
+      await addAssessee(validatedAssessee);
+    }
+
+    // // Prepare workbook for response
+    // const updatedWorksheet = XLSX.utils.json_to_sheet(processedData);
+    // const updatedWorkbook = XLSX.utils.book_new();
+    // XLSX.utils.book_append_sheet(updatedWorkbook, updatedWorksheet, "Assessees");
+    //
+    // // Set response headers for Excel file download
+    // res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    // res.setHeader("Content-Disposition", "attachment; filename=processed_assessees.xlsx");
+    //
+    // // Convert workbook to buffer and send
+    // const excelBuffer = XLSX.write(updatedWorkbook, { type: "buffer", bookType: "xlsx" });
+    // res.send(excelBuffer);
+
+    res.status(200).send({
+      message: "Success!",
+      not_found: not_found_data,
+    });
+  } catch (e) {
+    next(e);
+  }
+};
+
+export const handleGetAssesseebyDarwin = async (
+  req: Request<{ nik: string }, {}, {}>,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { nik } = req.params;
+    const result = await getDarwinUser(nik);
+    res.status(200).send(result);
+  } catch (error) {
+    next(error);
   }
 };
 

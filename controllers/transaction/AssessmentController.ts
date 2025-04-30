@@ -18,6 +18,8 @@ import {
   getQuestionsBySeriesId,
   getSeriesBySubtestId,
   getSubtestDurationById,
+  getSubtestExampleData,
+  getSubtestExampleisTaken,
   getSubtestIdbyProgressId,
   getSubtestNamebyId,
   getTakenQuestions,
@@ -26,6 +28,7 @@ import {
   storeLog,
   storeTakenQuestions,
   updateAssessmentStart,
+  updateExampleTaken,
 } from "#dep/models/transactions/AssessmentModel";
 import { Validation } from "#dep/validation/Validation";
 import { getQuestion } from "#dep/models/QuestionModel";
@@ -40,7 +43,7 @@ import fs from "fs";
 import path from "path";
 import moment from "moment";
 import "moment-timezone/index";
-import axios from "axios";
+import axios, { isAxiosError } from "axios";
 import { PP_ID, TERMS_ID } from "#dep/constant";
 
 const handleAssessmentToken = async (token: string) => {
@@ -114,8 +117,6 @@ export const handleGetBatchDetail = async (req: Request, res: Response, next: Ne
 
     // Check existing progress
     const progressDet = await getProgressDetail(progressHead.id);
-    console.log("test");
-    console.log(progressDet);
     if (progressDet) {
       res.status(200).send({
         message: "Assessment progress already exists!",
@@ -124,8 +125,6 @@ export const handleGetBatchDetail = async (req: Request, res: Response, next: Ne
     } else {
       // Get all tests from group test
       const tests = await getTestIdByGroupTestId(batch.grouptest_id);
-      console.log(batch.grouptest_id);
-      console.log(tests);
       if (!tests || tests.length === 0) {
         throw new ResponseError(404, "No tests found in this group");
       }
@@ -441,7 +440,7 @@ export const handleStoreAnswer = async (req: Request, res: Response, next: NextF
     console.log("Parsed shouldBeFinishedAt:", shouldBeFinishedAt.format());
 
     // Jika waktu sudah habis, lempar error
-    if (now.isAfter(shouldBeFinishedAt)) throw new ResponseError(404, "Time's Out!");
+    if (now.isAfter(shouldBeFinishedAt)) throw new ResponseError(401, "Time's Out!");
 
     const questionType = await checkQuestionType(question_id);
     console.log(questionType);
@@ -485,6 +484,7 @@ export const handleSubmissionConfirmation = async (req: Request, res: Response, 
       await assessmentSubmission(det_id, payload);
       res.status(200).json({
         message: "Success!",
+        test_id: checkSubmission.test_id,
       });
     }
   } catch (e) {
@@ -579,6 +579,7 @@ export const handleStoringLog = async (req: Request, res: Response, next: NextFu
       created_at: moment(),
       user_id: tokenDecode.user_id,
       log: req.body.log,
+      log_code: req.body.log_code,
     };
 
     console.log(payload);
@@ -590,5 +591,48 @@ export const handleStoringLog = async (req: Request, res: Response, next: NextFu
     });
   } catch (e) {
     next(e);
+  }
+};
+
+export const handleSubtestExampleisTaken = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const result = await getSubtestExampleisTaken(id);
+    res.status(200).send(result);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send({
+      message: (error as Error).message,
+    });
+  }
+};
+
+export const handleGetSubtestExampleData = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const result = await getSubtestExampleData(id);
+    res.status(200).send(result);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send({
+      message: (error as Error).message,
+    });
+  }
+};
+
+export const handleUpdateExampleTaken = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const result = await updateExampleTaken(id);
+    if (result) {
+      res.status(200).send({
+        message: "Example Taken updated",
+      });
+    } else {
+      throw new Error("Error");
+    }
+  } catch (error) {
+    console.error(error);
+    next(error);
   }
 };
