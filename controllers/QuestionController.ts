@@ -164,9 +164,11 @@ export const handleCreateQuestion = async (req: Request, res: Response): Promise
 
     console.log("ini payload", payload);
     const result = await createQuestion(payload);
-
+    // return res.status(200).send({
+    //   message : 'Test'
+    // })
     return res.status(200).send({
-      message: `Success create question`,
+      message: `Question successfully created`,
       id: result,
     });
   } catch (error: any) {
@@ -207,7 +209,7 @@ export const handleUpdateQuestion = async (req: Request, res: Response): Promise
     const result = await updateQuestion(payload, id);
 
     return res.status(200).send({
-      message: `Success edit question`,
+      message: `Question successfully edited`,
       id: result,
     });
   } catch (error: any) {
@@ -273,7 +275,7 @@ export const handleGetQuestionById = async (req: Request, res: Response) => {
     const result = await getQuestionById(id);
 
     const answers: AnswerResponse[] = [];
-    ["a", "b", "c", "d", "e"].forEach((choice) => {
+    ["a", "b", "c", "d", "e", "f", "g"].forEach((choice) => {
       const textKey = `answer_choice_${choice}_text`;
       const imageKey = `answer_choice_${choice}_image_url`;
       const pointKey = `key_answer_point_${choice}`;
