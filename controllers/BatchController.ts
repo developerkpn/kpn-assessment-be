@@ -550,6 +550,7 @@ export const handleGetAssesseebyDarwin = async (
   try {
     const { nik } = req.params;
     const result = await getDarwinUser(nik);
+    console.log(result);
     res.status(200).send(result);
   } catch (error) {
     next(error);
@@ -571,13 +572,22 @@ export const handlePreviewBatchTemplateEmail = async (req: Request, res: Respons
   }
 };
 
-export const handleCreateBatchToken = async (batchId: string, startPeriod: any, endPeriod: any, userId: string) => {
+export const handleCreateBatchToken = async (
+  batchId: string,
+  startPeriod: any,
+  endPeriod: any,
+  userId: string,
+  assesseeEmail: string,
+  type: string
+) => {
   try {
     const batchTokenPayload = {
       user_id: userId,
       batch_id: batchId,
       start_period: startPeriod,
       end_period: endPeriod,
+      email: assesseeEmail,
+      type: type,
     };
 
     const token = sign(batchTokenPayload, process.env.SECRETJWT as Secret);
@@ -596,17 +606,21 @@ export const handlePublishBatch = async (req: Request, res: Response, next: Next
     const assesseeList = await getBatchAssesses(validatedId);
     console.log(batchDetail);
     console.log(batchDetail.status);
+    console.log("assesseenya batch");
+    console.log(assesseeList);
     if (batchDetail.status !== "Draft") {
       throw new ResponseError(400, "Batch's already submitted");
     }
 
     const progressHead = await Promise.all(
-      assesseeList.map(async (assessee) => {
+      assesseeList.map(async (assessee: any) => {
         const token = await handleCreateBatchToken(
           validatedId,
           batchDetail.start_period,
           batchDetail.end_period,
-          assessee.assessee_nik
+          assessee.assessee_nik,
+          assessee.assessee_email,
+          batchDetail.type
         );
 
         await handleSendEmail(validatedId, token, assessee.assessee_email);
