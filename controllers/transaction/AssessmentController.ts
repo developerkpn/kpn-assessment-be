@@ -45,8 +45,9 @@ import moment from "moment";
 import "moment-timezone/index";
 import axios, { isAxiosError } from "axios";
 import { PP_ID, TERMS_ID } from "#dep/constant";
+import { checkRegisteredExternalAssessee } from "#dep/models/transactions/AssesseeModel";
 
-const handleAssessmentToken = async (token: string) => {
+export const handleAssessmentToken = async (token: string) => {
   try {
     const tokenDecode = verify(token, process.env.SECRETJWT as Secret);
     return tokenDecode;
@@ -87,7 +88,7 @@ export const handleGetAssesseeProfile = async (req: Request, res: Response, next
     console.log(password);
     const basicAuth = Buffer.from(`${username}:${password}`).toString("base64");
     console.log(basicAuth);
-    const getAssessee = await axios.post(`${process.env.DARWIN_BASE_URL}`, payload, {
+    const getAssessee = await axios.post(`${process.env.DARWIN_EMPLOYEE_BASE_URL}`, payload, {
       headers: {
         Authorization: `Basic ${basicAuth}`, // Menambahkan header Authorization
         "Content-Type": "application/json",
@@ -634,5 +635,13 @@ export const handleUpdateExampleTaken = async (req: Request, res: Response, next
   } catch (error) {
     console.error(error);
     next(error);
+  }
+};
+
+export const handleEntryAssesse = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const token = req.params.token;
+  } catch (e) {
+    next(e);
   }
 };
