@@ -3,6 +3,7 @@ declare namespace Express {
     userDecode?: {
       user_id: string;
       role_id: string;
+      email?: string;
       permission: Array<{
         menu_id: number;
         fcreate: boolean;
