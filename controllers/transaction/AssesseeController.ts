@@ -27,7 +27,7 @@ export const handleAssesseeEntry = async (req: Request, res: Response, next: Nex
       const externalAssesseeInformation = await checkRegisteredExternalAssessee(tokenInformation.email);
       console.log("halo 1");
       console.log(externalAssesseeInformation);
-      const isRegistered = externalAssesseeInformation.length > 0 === undefined ? true : false;
+      const isRegistered = externalAssesseeInformation.length > 0 ? true : false;
       console.log(isRegistered);
       res.status(200).send({
         message: "Success!",
