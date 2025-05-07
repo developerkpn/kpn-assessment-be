@@ -12,6 +12,7 @@ import {
   getAssessmentTest,
   getBatchByAssessment,
   getFinishAt,
+  getPointPerQuestion,
   getProgressDetail,
   getProgressHead,
   getQuestionAssessment,
@@ -482,6 +483,8 @@ export const handleSubmissionConfirmation = async (req: Request, res: Response, 
         submit_at: new Date(),
         status: "Completed",
       };
+
+      await countSubTest(det_id);
       await assessmentSubmission(det_id, payload);
       res.status(200).json({
         message: "Success!",
@@ -490,6 +493,18 @@ export const handleSubmissionConfirmation = async (req: Request, res: Response, 
     }
   } catch (e) {
     next(e);
+  }
+};
+
+export const countSubTest = async (detId: string) => {
+  try {
+    console.log(detId);
+    const points = await getPointPerQuestion(detId);
+
+    console.log(points);
+    return points;
+  } catch (err) {
+    throw err;
   }
 };
 
