@@ -30,11 +30,13 @@ export const handleCreateSubTest = async (req: Request, res: Response, next: Nex
       is_duration: validatedRequest.is_duration,
       subtest_duration: validatedRequest.subtest_duration,
       intro_desc: validatedRequest.intro_desc,
-      report_description: validatedRequest.report_description,
+      subtest_desc: validatedRequest.subtest_desc,
       series_example_id: validatedRequest.series_example_id,
       created_by: creator,
       created_at: date,
     };
+
+    console.log(subtestHeaderRequest);
 
     const subtestDetailRequest = validatedRequest.series.map((prev: any) => ({
       ...prev,
@@ -86,7 +88,7 @@ export const handleUpdateSubTest = async (req: Request, res: Response, next: Nex
       updated_by: updatedBy,
       updated_at: updatedAt,
       intro_desc: validatedRequest.intro_desc,
-      report_description: validatedRequest.report_description,
+      subtest_desc: validatedRequest.subtest_desc,
       series_example_id: validatedRequest.series_example_id,
     };
 
