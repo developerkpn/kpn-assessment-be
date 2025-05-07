@@ -17,7 +17,7 @@ export class SubTestValidation {
     ),
     intro_desc: z.string().min(1),
     // report_description: z.string().trim().min(1),
-    series_example_id: z.string().uuid(),
+    series_example_id: z.string().uuid().optional().nullable(),
   });
   // .superRefine((data, ctx) => {
   //   if (data.is_duration && !data.subtest_duration) {
