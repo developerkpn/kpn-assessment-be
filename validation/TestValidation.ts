@@ -5,16 +5,20 @@ export class TestValidation {
     test_name: z.string().trim().min(1).max(128),
     test_code: z.string().trim().min(1).max(16).toUpperCase(),
     category_id: z.number().positive(),
-    summary_type: z.enum(["SUBTEST", "CATEGORY"], {
-      errorMap: () => ({
-        message: "Summary Type must value either 'SUBTEST' OR 'CATEGORY'",
-      }),
-    }),
-    summary_formula: z.enum(["SUM", "AVG"], {
-      errorMap: () => ({
-        message: "Summary Formula must value either 'SUM' OR 'AVG'",
-      }),
-    }),
+    summary_type: z
+      .enum(["SUBTEST", "CATEGORY"], {
+        errorMap: () => ({
+          message: "Summary Type must value either 'SUBTEST' OR 'CATEGORY'",
+        }),
+      })
+      .optional(),
+    summary_formula: z
+      .enum(["SUM", "AVG"], {
+        errorMap: () => ({
+          message: "Summary Formula must value either 'SUM' OR 'AVG'",
+        }),
+      })
+      .optional(),
     description: z.string().trim().min(1),
     subtests: z.array(
       z.object({

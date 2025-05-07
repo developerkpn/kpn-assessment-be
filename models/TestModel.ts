@@ -23,6 +23,8 @@ export const createTest = async (payloadHeader: any, payloadDetail: any[]) => {
     console.log(error.message);
     await client.query(TRANS.ROLLBACK);
     throw error;
+  } finally {
+    client.release();
   }
 };
 
