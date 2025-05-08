@@ -59,7 +59,10 @@ export const handleAssessmentToken = async (token: string) => {
 
 export const handleGetAssessmentsByUserId = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const userNIK = req.params.nik;
+    let userNIK = req.params.nik;
+    if (req.user_type == "external") {
+      userNIK = req.userDecode?.user_id as string;
+    }
     const data = await getAssessmentByUserNIK(userNIK);
     res.status(200).send({
       message: "Success!",

@@ -1,6 +1,6 @@
 import { db } from "#dep/config/connection";
 import { TRANSACTION, TRANSACTION as TRANS } from "#dep/config/transaction";
-import { deleteQuery, insertQuery, updateQuery } from "#dep/helper/queryBuilder";
+import { ClientAction, deleteQuery, insertQuery, updateQuery } from "#dep/helper/queryBuilder";
 import { ResponseError } from "#dep/error/response-error";
 import { Secret, sign, verify } from "jsonwebtoken";
 import { accessExpiry, refreshExpiry } from "#dep/constant";
@@ -32,7 +32,7 @@ export const storeExternalAssesseeAccount = async (payload: any) => {
   const client = await db.connect();
   try {
     await client.query(TRANS.BEGIN);
-    const [Q, V] = insertQuery("mst_user_extern", payload, "email");
+    const [Q, V] = updateQuery("mst_user_extern", payload, { email: payload.email });
     const result = await client.query(Q, V);
     await client.query(TRANS.COMMIT);
     return result.rows[0];
@@ -80,9 +80,8 @@ export const loginExternalAssessee = async (email: string, password: string) => 
       { expiresIn: refreshExpiry }
     );
 
-    await client.query(TRANS.COMMIT);
-    // const [insertToken, valueToken] = updateQuery("mst_user_extern", { refresh_token: refreshToken }, { id: data.id });
-    // await client.query(insertToken, valueToken);
+    const [insertToken, valueToken] = updateQuery("mst_user_extern", { refresh_token: refreshToken }, { id: data.id });
+    await client.query(insertToken, valueToken);
     await client.query(TRANS.COMMIT);
     console.log(data);
     if (data) {
@@ -109,21 +108,53 @@ export const getAssesseeExternalProfile = async (id: string) => {
     const result = await client.query(
       `
         SELECT 
-        name, 
+        name,
         email, 
         age, 
+        TO_CHAR(date_of_birth, 'YYYY-MM-DD') as date_of_birth,
         gender, 
         phone, 
-        education
+        education,
+        institution
         FROM mst_user_extern
-        WHERE id = $1
+        WHERE id = $1 or email = $1
         `,
       [id]
     );
-    return result.rows[0];
+    return result?.rows[0] ?? null;
   } catch (e) {
     throw e;
+  } finally {
+    client.release();
   }
+};
+
+export const getAssesseeExternalbyEmail = async (email: string) => {
+  return await ClientAction(async (client) => {
+    try {
+      const result = await client.query(
+        `
+          SELECT 
+          name, 
+          email, 
+          password,
+          age, 
+          gender, 
+          phone, 
+          education
+          FROM mst_user_extern
+          WHERE email = $1
+          `,
+        [email]
+      );
+
+      return result?.rows[0].password
+        ? { is_exist: true, data: result?.rows[0] }
+        : { is_exist: false, data: result?.rows[0] };
+    } catch (error) {
+      throw error;
+    }
+  });
 };
 
 export const getExternalDashboard = async (email: string) => {

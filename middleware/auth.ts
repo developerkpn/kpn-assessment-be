@@ -1,8 +1,9 @@
 import { Permission, TokenPayload } from "#dep/types/AdminTypes";
 import { NextFunction, Request, Response } from "express";
-import { Secret, verify } from "jsonwebtoken";
+import { decode, JwtPayload, Secret, verify } from "jsonwebtoken";
 import { verifyPermission } from "#dep/models/AdminWebModel";
 import AuthModel from "#dep/models/AuthModel";
+import { getAssesseeExternalProfile } from "#dep/models/transactions/AssesseeModel";
 
 export const isAuth = (req: Request, res: Response, next: NextFunction): any => {
   const authHeaders = req.headers.Authorization || req.headers.authorization;
@@ -47,7 +48,19 @@ export const isAuthDarwin = async (req: Request, res: Response, next: NextFuncti
       });
       return;
     }
-    const result = await AuthModel.CheckTokenDarwin(token);
+    const decode_token = decode(token, { complete: true }) as JwtPayload;
+    req.user_type = "internal";
+    if (decode_token) {
+      const user_extern = await getAssesseeExternalProfile(decode_token.payload.user_id);
+      if (user_extern) {
+        req.user_type = "external";
+        req.userDecode = {
+          user_id: decode_token.payload.user_id,
+        };
+      }
+    } else {
+      await AuthModel.CheckTokenDarwin(token);
+    }
     next();
   } catch (error) {
     if ((error as Error).message == "Forbidden") {
