@@ -47,12 +47,12 @@ export class SubTestValidation {
       subtest_duration: z
         .string()
         .regex(/^(?:[0-1][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$/, "Invalid time format. Must be hh:mm:ss")
-        .nullable()
-        .optional(),
+        .optional()
+        .nullable(),
       // is_active: z.boolean().optional(),
       intro_desc: z.string().trim().min(1).optional().nullable(),
       // report_description: z.string().trim().min(1).optional(),
-      series_example_id: z.string().uuid().optional(),
+      series_example_id: z.string().uuid().optional().nullable(),
       deleted_series: z
         .array(
           z
