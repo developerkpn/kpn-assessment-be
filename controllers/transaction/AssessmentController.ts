@@ -195,6 +195,7 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
     let response;
     // Kalo ada dia berarti udah pernah diambil
     if (checkQuestionIsAlreadyTaken && isDuration.is_duration === true) {
+      console.log("udah pernah ngambil ada duration");
       console.log("Masuk hey 1");
       console.log("Keluar");
 
@@ -283,6 +284,7 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
       };
     } else if (checkQuestionIsAlreadyTaken && isDuration.is_duration === false) {
       // Ambil data pertanyaan yang sudah diambil
+      console.log("udah pernah ngambil no duration");
       const takenQuestion: any[] = await getTakenQuestions(progressDetailId);
       console.log(takenQuestion);
 
@@ -335,6 +337,7 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
       };
     } else if (!checkQuestionIsAlreadyTaken && isDuration.is_duration === false) {
       // Get and randomize series
+      console.log("belom pernah ngambil with duration");
       const seriesList: any[] = await getSeriesBySubtestId(subtest.subtest_id);
       const choosenSeriesId = seriesList[Math.floor(Math.random() * seriesList.length)].series_id;
 
@@ -412,7 +415,7 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
 
       await updateAssessmentStart(progressDetailId, updatePayload);
     } else if (!checkQuestionIsAlreadyTaken && isDuration.is_duration === true) {
-      console.log("Masuk hey 2");
+      console.log("Blom pernah ngambil dan no duration");
       // Ambil durasi
       const subtestDurations: any = await getSubtestDurationById(subtest.subtest_id);
       console.log("test duration");
@@ -495,7 +498,7 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
       // Membuat payload untuk update assessment (mengonversi kembali ke objek Date jika diperlukan)
       const updatePayload = {
         taken_at: takenAt.toDate(),
-        should_be_finished_at: subtestDuration,
+        should_be_finished_at: shouldBeFinishedAt.toDate(),
         status: "In Progress",
       };
 
