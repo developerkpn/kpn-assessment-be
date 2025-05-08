@@ -190,9 +190,11 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
     const isDuration = await getSubtestDurationById(subtest.subtest_id);
 
     console.log(checkQuestionIsAlreadyTaken);
+    console.log("check duration");
+    console.log(isDuration);
     let response;
     // Kalo ada dia berarti udah pernah diambil
-    if (checkQuestionIsAlreadyTaken && isDuration === true) {
+    if (checkQuestionIsAlreadyTaken && isDuration.is_duration === true) {
       console.log("Masuk hey 1");
       console.log("Keluar");
 
@@ -201,7 +203,7 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
       console.log("Current time:", now.format());
 
       // Ambil waktu selesai dari database (sudah dalam zona +07:00)
-      const finishAtFromDB = await getFinishAt(subtest.subtest_id);
+      const finishAtFromDB = await getFinishAt(progressDetailId);
       console.log("Raw finishAt from DB:", finishAtFromDB);
 
       // Langsung parse tanpa .utc()
@@ -220,7 +222,7 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
 
       // Hitung sisa durasi dalam detik
       const remainingDurationSeconds = shouldBeFinishedAt.diff(now, "seconds");
-      console.log("Remaining seconds:", remainingDurationSeconds);
+      console.log("Remaining seconds: ada duration udah ambil", remainingDurationSeconds);
 
       // Konversi ke format "hh:mm:ss"
       const remainingDurationFormatted = moment.utc(remainingDurationSeconds * 1000).format("HH:mm:ss");
@@ -279,7 +281,7 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
           };
         }),
       };
-    } else if (checkQuestionIsAlreadyTaken && isDuration === false) {
+    } else if (checkQuestionIsAlreadyTaken && isDuration.is_duration === false) {
       // Ambil data pertanyaan yang sudah diambil
       const takenQuestion: any[] = await getTakenQuestions(progressDetailId);
       console.log(takenQuestion);
@@ -331,7 +333,7 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
           };
         }),
       };
-    } else if (!checkQuestionIsAlreadyTaken && isDuration === false) {
+    } else if (!checkQuestionIsAlreadyTaken && isDuration.is_duration === false) {
       // Get and randomize series
       const seriesList: any[] = await getSeriesBySubtestId(subtest.subtest_id);
       const choosenSeriesId = seriesList[Math.floor(Math.random() * seriesList.length)].series_id;
@@ -409,11 +411,12 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
       };
 
       await updateAssessmentStart(progressDetailId, updatePayload);
-    } else if (!checkQuestionIsAlreadyTaken && isDuration === true) {
+    } else if (!checkQuestionIsAlreadyTaken && isDuration.is_duration === true) {
       console.log("Masuk hey 2");
       // Ambil durasi
       const subtestDurations: any = await getSubtestDurationById(subtest.subtest_id);
-
+      console.log("test duration");
+      console.log(subtestDurations);
       // Get and randomize series
       const seriesList: any[] = await getSeriesBySubtestId(subtest.subtest_id);
       const choosenSeriesId = seriesList[Math.floor(Math.random() * seriesList.length)].series_id;
@@ -574,7 +577,7 @@ export const handleStoreAnswer = async (req: Request, res: Response, next: NextF
       console.log("Current time:", now.format());
 
       // Ambil waktu selesai dari database (sudah dalam zona +07:00)
-      const finishAtFromDB = await getFinishAt(subtest.subtest_id);
+      const finishAtFromDB = await getFinishAt(det_id);
       console.log("Raw finishAt from DB:", finishAtFromDB);
 
       // Langsung parse tanpa .utc()
