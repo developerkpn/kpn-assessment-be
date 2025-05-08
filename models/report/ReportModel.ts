@@ -43,7 +43,6 @@ export const assignReportDesign = async (reportHead: any, reportIntro: any, repo
     await client.query(introQ, introV);
     const [detailQ, detailV] = insertQuery("report_test_detail", reportDetail);
     await client.query(detailQ, detailV);
-
     await client.query(TRANS.COMMIT);
   } catch (e) {
     console.error(e);
@@ -57,6 +56,9 @@ export const assignReportDesign = async (reportHead: any, reportIntro: any, repo
 export const generateReportForSpecificAssessee = async (assesseeId: any) => {
   const client = await db.connect();
   try {
+    await client.query(TRANS.BEGIN);
+
+    await client.query(TRANS.COMMIT);
   } catch (e) {
     console.error(e);
     await client.query(TRANS.ROLLBACK);
