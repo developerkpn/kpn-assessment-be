@@ -1,6 +1,12 @@
 import { Request, Response, NextFunction } from "express";
-import { generateReportForWholeBatch, getBatchInformationForReport } from "#dep/models/report/ReportModel";
+import {
+  assignReportDesign,
+  generateReportForWholeBatch,
+  getBatchInformationForReport,
+} from "#dep/models/report/ReportModel";
 import ExcelJS from "exceljs";
+import { v7 as uuid } from "uuid";
+
 /**
  * Controller to get batch information with test count by category
  */
@@ -76,6 +82,35 @@ export const handleGetBatchInformationForReport = async (req: Request, res: Resp
     });
   } catch (e) {
     console.error("Error in handleGetSimpleTestDetailsByCategory:", e);
+    next(e);
+  }
+};
+
+export const handleCreateReportForBatch = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const body: any = req.body;
+    const reportId = uuid();
+    const headPayload = {
+      id: reportId,
+    };
+
+    const introPayload = body.intro.map((prev: any) => ({
+      ...prev,
+      id: uuid(),
+      report_id: reportId,
+    }));
+
+    const detailPayload = body.details.map((prev: any) => ({
+      ...prev,
+      id: uuid(),
+      report_id: reportId,
+    }));
+
+    await assignReportDesign(headPayload, introPayload, detailPayload);
+    await res.status(200).send({
+      message: "Success!",
+    });
+  } catch (e) {
     next(e);
   }
 };
