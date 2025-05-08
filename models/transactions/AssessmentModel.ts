@@ -495,7 +495,7 @@ export const getFinishAt = async (detId: string) => {
       `
       SELECT should_be_finished_at 
       FROM t_progress_batch_det
-      WHERE subtest_id = $1
+      WHERE id = $1
         `,
       [detId]
     );
