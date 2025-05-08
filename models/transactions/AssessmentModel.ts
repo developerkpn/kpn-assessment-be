@@ -261,7 +261,7 @@ export const getQuestionAssessment = async (questionIds: string[]) => {
                 answer_choice_e_text,
                 answer_choice_e_image_url,
                 answer_choice_f_text,
-                answer_choice_f_image_url
+                answer_choice_f_image_url,
                 answer_choice_g_text,
                 answer_choice_g_image_url
             FROM mst_question_answer
@@ -269,6 +269,9 @@ export const getQuestionAssessment = async (questionIds: string[]) => {
             `,
       [questionIds]
     );
+
+    console.log("cek coy databasenya");
+    console.log(result.rows);
 
     return result.rows;
   } catch (error) {
