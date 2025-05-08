@@ -123,6 +123,8 @@ export const getAssesseeExternalProfile = async (id: string) => {
     return result.rows[0];
   } catch (e) {
     throw e;
+  } finally {
+    client.release();
   }
 };
 
