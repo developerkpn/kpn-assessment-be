@@ -50,7 +50,7 @@ export const getAvailableSubTestForGroupTest = async (grouptestId: string) => {
     console.error(error);
     throw error;
   } finally {
-    client.release;
+    client.release();
   }
 };
 
@@ -72,7 +72,7 @@ export const createGroupTest = async (
     await client.query(TRANS.ROLLBACK);
     throw error;
   } finally {
-    client.release;
+    client.release();
   }
 };
 
