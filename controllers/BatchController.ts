@@ -641,6 +641,8 @@ export const handlePublishBatch = async (req: Request, res: Response, next: Next
     console.log("Berhasil masuk");
     console.log(emailCCList);
     await Promise.all(emailCCList.map((email: any) => handleSendCCEmail(validatedId, email.cc_email)));
+    const status = "Published";
+    await publishBatch(validatedId, status);
     console.log("send response");
     res.status(200).send({
       message: "Batch is successfully published and email's sent to assessee",
