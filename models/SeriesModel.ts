@@ -162,6 +162,7 @@ export const getSeriesDetail = async (id: string) => {
         q.q_input_text,
         q.q_input_image_url,
         q.answer_type,
+        c.id AS category_id,
         c.category_name,
         c.category_code,
 
@@ -218,6 +219,21 @@ export const getSeriesDetail = async (id: string) => {
       throw new Error("Series not found or no questions available.");
     }
 
+    // Membuat set unik untuk kategori dari semua pertanyaan
+    const uniqueCategories: any = {};
+    result.rows.forEach((row) => {
+      if (row.category_id) {
+        uniqueCategories[row.category_id] = {
+          category_id: row.category_id,
+          category_name: row.category_name,
+          category_code: row.category_code,
+        };
+      }
+    });
+
+    // Konversi uniqueCategories menjadi array
+    const categoriesArray = Object.values(uniqueCategories);
+
     const seriesDetail = {
       id: result.rows[0].series_id,
       series_name: result.rows[0].series_name,
@@ -227,14 +243,14 @@ export const getSeriesDetail = async (id: string) => {
       created_at: result.rows[0].created_date,
       updated_by: result.rows[0].updated_by,
       updated_date: result.rows[0].updated_date,
+      categories: categoriesArray,
       questions: result.rows.map((row) => ({
         id: row.detail_id,
         question_id: row.question_id,
-        sequence: row.q_seq,
-        layout_type: row.q_layout_type,
         input_text: row.q_input_text,
         input_image_url: row.q_input_image_url,
         answer_type: row.answer_type,
+        category_id: row.category_id,
         category_name: row.category_name,
         category_code: row.category_code,
         answers: [
@@ -246,8 +262,6 @@ export const getSeriesDetail = async (id: string) => {
           { text: row.answer_choice_f_text, image: row.answer_choice_f_image_url, point: row.key_answer_point_f },
           { text: row.answer_choice_g_text, image: row.answer_choice_g_image_url, point: row.key_answer_point_g },
         ],
-        category_id: row.category_id,
-        question_code: row.question_code,
         added_by: row.added_by,
         added_at: row.added_at,
       })),
@@ -261,7 +275,6 @@ export const getSeriesDetail = async (id: string) => {
     client.release();
   }
 };
-
 export const deleteQuestionFromSeries = async (seriesId: string, questionId: string, updatePayload: any) => {
   const client = await db.connect();
   try {
