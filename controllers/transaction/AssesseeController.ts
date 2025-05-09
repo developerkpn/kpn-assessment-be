@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { handleAssessmentToken } from "#dep/controllers/transaction/AssessmentController";
 import {
   checkRegisteredExternalAssessee,
+  getAssesseeExternalbyEmail,
   getAssesseeExternalProfile,
   getExternalDashboard,
   loginExternalAssessee,
@@ -10,6 +11,10 @@ import {
 } from "#dep/models/transactions/AssesseeModel";
 import { hashPassword } from "#dep/helper/auth/password";
 import { v7 as uuid } from "uuid";
+import { ClientAction } from "#dep/helper/queryBuilder";
+import { ResponseError } from "#dep/error/response-error";
+import { Secret, verify, sign, decode, JwtPayload } from "jsonwebtoken";
+import { accessExpiry } from "#dep/constant";
 
 export const handleAssesseeEntry = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -44,19 +49,18 @@ export const handleAssesseeEntry = async (req: Request, res: Response, next: Nex
 export const handleExternalRegistration = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const registration = req.body;
-    const hashedPassword = await hashPassword(req.body.password);
+    const hashedPassword = await hashPassword(req.body.new_password);
     const payload = {
-      id: uuid(),
       email: req.body.email,
       name: req.body.name,
       password: hashedPassword,
-      age: req.body.age,
-      gender: req.body.gender,
-      phone: req.body.phone,
-      education: req.body.education,
-      institution: req.body.institution,
+      age: req.body.age ?? null,
+      gender: req.body.gender ?? null,
+      phone: req.body.phone ?? null,
+      education: req.body.education ?? null,
+      institution: req.body.institution ?? null,
     };
-    console.log(payload);
+
     const result = await storeExternalAssesseeAccount(payload);
     res.status(201).send({
       message: "Success!",
@@ -86,7 +90,7 @@ export const handleExternalLogin = async (req: Request, res: Response, next: Nex
 
 export const handleGetExternalAssesseeInformation = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const id = String(req.userDecode?.user_id);
+    const id = req.userDecode?.user_id as string;
     const profile = await getAssesseeExternalProfile(id);
 
     res.status(200).send({
@@ -117,7 +121,7 @@ export const handleUpdateExternalAssesseeInformation = async (req: Request, res:
     const id = String(req.userDecode?.user_id);
     const payload = {
       name: req.body.name,
-      age: req.body.age,
+      date_of_birth: req.body.date_of_birth,
       gender: req.body.gender,
       phone: req.body.phone,
       education: req.body.education,
@@ -132,6 +136,63 @@ export const handleUpdateExternalAssesseeInformation = async (req: Request, res:
   } catch (e) {
     next(e);
   }
+};
+
+export const handleCheckExternUser = async (
+  req: Request<{ email: string }, {}, {}, {}>,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { email } = req.params;
+    const result = await getAssesseeExternalbyEmail(email);
+    res.status(200).send(result);
+  } catch (error) {
+    console.error(error);
+    next(error);
+  }
+};
+
+export const handleResetToken = async (req: Request, res: Response, next: NextFunction) => {
+  return await ClientAction(async (client) => {
+    if (!req.headers.authorization) {
+      throw new ResponseError(403, "Forbidden");
+    }
+    const token_auth = req.headers.authorization.split(" ")[2];
+    const decoded_token = decode(token_auth, { complete: true });
+    const user_data = decoded_token?.payload as JwtPayload;
+    const user_id = user_data.user_id;
+    if (!user_id) {
+      throw new ResponseError(403, "Forbidden");
+    }
+
+    try {
+      const { rows: check_res_token } = await client.query(
+        `select refresh_token, user_id, email from mst_user_extern where user_id = $1`,
+        [user_id]
+      );
+      const ref_token = check_res_token[0].refresh_token;
+      if (!ref_token) {
+        throw new ResponseError(403, "Forbidden");
+      }
+      const verif_token = verify(ref_token, process.env.SECRETJWT as Secret);
+      const new_access_tok = sign(
+        {
+          user_id: check_res_token[0].user_id,
+          email: check_res_token[0].email,
+        },
+        process.env.SECRETJWT as Secret,
+        {
+          expiresIn: accessExpiry,
+        }
+      );
+      res.status(200).send({
+        access_token: new_access_tok,
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
 };
 
 export const handleExternalAssesseeLogout = async (req: Request, res: Response, next: NextFunction) => {

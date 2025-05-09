@@ -2,9 +2,9 @@ declare namespace Express {
   interface Request {
     userDecode?: {
       user_id: string;
-      role_id: string;
+      role_id?: string;
       email?: string;
-      permission: Array<{
+      permission?: Array<{
         menu_id: number;
         fcreate: boolean;
         fread: boolean;
@@ -12,5 +12,6 @@ declare namespace Express {
         fdelete: boolean;
       }>;
     };
+    user_type?: string;
   }
 }

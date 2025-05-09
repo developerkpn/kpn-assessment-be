@@ -39,6 +39,8 @@ import moment from "moment";
 import axios, { AxiosResponse } from "axios";
 import { axiosDarwin } from "#dep/config/axiosDarwin";
 import { DataEmpDarwin, XLSAssessee } from "#dep/types/MasterDataTypes";
+import { ClientAction, insertQuery } from "#dep/helper/queryBuilder";
+import { TRANSACTION } from "#dep/config/transaction";
 export const handleCreateBatch = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const validatedRequest = Validation.validate(BatchValidation.CREATE, req.body);
@@ -139,19 +141,64 @@ export const handleCreateBatch = async (req: Request, res: Response, next: NextF
 
     //Batch Asssessee
     const batchAssessee = validatedRequest.assessees;
-    const assessee = batchAssessee.map((row: any) => {
-      const assesseeId = uuid();
-      const result = {
-        id: assesseeId,
-        batch_id: batchId,
-        assessee_nik: row.assessee_nik ? row.assessee_nik : assesseeId,
-        assessee_name: row.assessee_name,
-        assessee_email: row.assessee_email,
-      };
-      return result;
-    });
-
-    console.log(assessee);
+    let assessee = [];
+    if (validatedRequest.type == "internal") {
+      assessee = batchAssessee.map((row: any) => {
+        const assesseeId = uuid();
+        const result = {
+          id: assesseeId,
+          batch_id: batchId,
+          assessee_nik: row.assessee_nik ? row.assessee_nik : assesseeId,
+          assessee_name: row.assessee_name,
+          assessee_email: row.assessee_email,
+        };
+        return result;
+      });
+    } else {
+      const emails = batchAssessee.map((value: any) => value.assessee_email.trim());
+      const emailq = emails.join(`','`);
+      const result_email = await ClientAction<Map<string, any>>(async (client) => {
+        try {
+          const { rows } = await client.query(`select email, id from mst_user_extern where email in ('${emailq}')`);
+          const map_emails = new Map(rows.map((value: any) => [value.email, value]));
+          return map_emails;
+        } catch (error) {
+          throw new ResponseError(400, "Error");
+        }
+      });
+      const result_assessee = await ClientAction<any>(async (client) => {
+        let assessee_ext = [];
+        try {
+          await client.query(TRANSACTION.BEGIN);
+          for (const ass of batchAssessee) {
+            const data_ext = result_email.get(ass.assessee_email);
+            const uid = uuid();
+            const payload = {
+              name: ass.assessee_name,
+              email: ass.assessee_email,
+              id: uuid(),
+            };
+            if (!data_ext) {
+              const [valIns, queIns] = insertQuery("mst_user_extern", payload);
+              await client.query(valIns, queIns);
+            }
+            assessee_ext.push({
+              id: uid,
+              batch_id: batchId,
+              assessee_nik: data_ext ? data_ext.id : payload.id,
+              assessee_name: ass.assessee_name,
+              assessee_email: ass.assessee_email,
+            });
+          }
+          await client.query(TRANSACTION.COMMIT);
+          return assessee_ext;
+        } catch (error) {
+          await client.query(TRANSACTION.ROLLBACK);
+          throw error;
+        }
+      });
+      assessee = result_assessee;
+    }
 
     await createBatch(batchHeadPayload, batchCode, ccEmails, assessee);
 
