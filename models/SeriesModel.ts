@@ -110,11 +110,14 @@ export const getSeriesbyID = async (id: string) => {
   try {
     const client = await db.connect();
     try {
-      const { rows: series_data_get }: QueryResult<SeriesDataCreate> = await client.query(
+      const { rows: sr_dt }: QueryResult<SeriesDataCreate> = await client.query(
         `
         select
           ms.*,
-          msd.questions_id
+          msd.questions_id,
+          cat.category_id,
+          cat.category_name,
+          cat.category_code
         from
           mst_series ms
         left join (
@@ -127,11 +130,31 @@ export const getSeriesbyID = async (id: string) => {
             series_id
         ) msd on
           msd.series_id = ms.id
+        left join (
+         select
+            distinct mqa.category_id,
+            det.series_id,
+            mc.category_code,
+            mc.category_name
+        from
+          mst_series_det det
+        left join mst_question_answer mqa on
+          mqa.id = det.question_id
+        left join mst_category mc on
+          mc.id = mqa.category_id
+        ) cat on cat.series_id = ms.id
         where ms.id = $1
+
         `,
         [id]
       );
-      return series_data_get[0];
+
+      return {
+        series_name: sr_dt[0].series_name,
+        series_code: sr_dt[0].series_code,
+        questions_id: sr_dt[0].questions_id,
+        category_id: sr_dt.map((value) => value.category_id),
+      };
     } catch (error) {
       throw error;
     } finally {
