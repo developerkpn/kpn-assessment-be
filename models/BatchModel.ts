@@ -447,6 +447,7 @@ export const getBatchCCEmail = async (id: string) => {
 
     return result.rows;
   } catch (e) {
+    throw e;
   } finally {
     client.release();
   }
@@ -530,6 +531,7 @@ export const getBatchCode = async (tmCode: string, buCode: string, month: string
     return result.rows[0];
   } catch (e) {
   } finally {
+    client.release();
   }
 };
 
@@ -571,5 +573,7 @@ export const getFMandBUCode = async (fmId: string, buId: string) => {
   } catch (e) {
     console.log(e);
     throw e;
+  } finally {
+    client.release();
   }
 };

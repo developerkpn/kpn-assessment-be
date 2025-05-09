@@ -189,10 +189,16 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
 
     // Cek apakah ada det_id pada t_store_answer
     const checkQuestionIsAlreadyTaken = await checkSubTestIsTaken(progressDetailId);
+    // check apakah subtest memiliki durasi
+    const isDuration = await getSubtestDurationById(subtest.subtest_id);
+
     console.log(checkQuestionIsAlreadyTaken);
+    console.log("check duration");
+    console.log(isDuration);
     let response;
     // Kalo ada dia berarti udah pernah diambil
-    if (checkQuestionIsAlreadyTaken) {
+    if (checkQuestionIsAlreadyTaken && isDuration.is_duration === true) {
+      console.log("udah pernah ngambil ada duration");
       console.log("Masuk hey 1");
       console.log("Keluar");
 
@@ -201,7 +207,7 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
       console.log("Current time:", now.format());
 
       // Ambil waktu selesai dari database (sudah dalam zona +07:00)
-      const finishAtFromDB = await getFinishAt(subtest.subtest_id);
+      const finishAtFromDB = await getFinishAt(progressDetailId);
       console.log("Raw finishAt from DB:", finishAtFromDB);
 
       // Langsung parse tanpa .utc()
@@ -220,7 +226,7 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
 
       // Hitung sisa durasi dalam detik
       const remainingDurationSeconds = shouldBeFinishedAt.diff(now, "seconds");
-      console.log("Remaining seconds:", remainingDurationSeconds);
+      console.log("Remaining seconds: ada duration udah ambil", remainingDurationSeconds);
 
       // Konversi ke format "hh:mm:ss"
       const remainingDurationFormatted = moment.utc(remainingDurationSeconds * 1000).format("HH:mm:ss");
@@ -244,6 +250,7 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
       response = {
         det_id: progressDetailId,
         duration: remainingDurationFormatted,
+        is_duration: true,
         subtest_name: subtestName.subtest_name,
         questions: questions.map((q: any) => {
           // Cari taken question yang sesuai berdasarkan question_id
@@ -278,11 +285,144 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
           };
         }),
       };
-    } else {
-      console.log("Masuk hey 2");
+    } else if (checkQuestionIsAlreadyTaken && isDuration.is_duration === false) {
+      // Ambil data pertanyaan yang sudah diambil
+      console.log("udah pernah ngambil no duration");
+      const takenQuestion: any[] = await getTakenQuestions(progressDetailId);
+      console.log(takenQuestion);
+
+      // Ambil question_id dari takenQuestion
+      const questionIds = takenQuestion.map((q: any) => q.question_id);
+      console.log(questionIds);
+
+      // Ambil detail pertanyaan dari daftar question_id
+      const questions = await getQuestionAssessment(questionIds);
+      console.log(questions);
+
+      console.log(subtest);
+      response = {
+        det_id: progressDetailId,
+        duration: null,
+        is_duration: false,
+        subtest_name: subtestName.subtest_name,
+        questions: questions.map((q: any) => {
+          // Cari taken question yang sesuai berdasarkan question_id
+          const taken = takenQuestion.find((t: any) => t.question_id === q.id);
+
+          return {
+            question_id: q.id,
+            subtest_id: subtest.subtest_id,
+            input: {
+              text: q.q_input_text,
+              image_url: q.q_input_image_url,
+            },
+            answer_type: q.answer_type,
+            choices: {
+              a: { text: q.answer_choice_a_text, image_url: q.answer_choice_a_image_url },
+              b: { text: q.answer_choice_b_text, image_url: q.answer_choice_b_image_url },
+              c: { text: q.answer_choice_c_text, image_url: q.answer_choice_c_image_url },
+              d: { text: q.answer_choice_d_text, image_url: q.answer_choice_d_image_url },
+              e: { text: q.answer_choice_e_text, image_url: q.answer_choice_e_image_url },
+              f: { text: q.answer_choice_f_text, image_url: q.answer_choice_f_image_url },
+              g: { text: q.answer_choice_g_text, image_url: q.answer_choice_g_image_url },
+            },
+            choosen_answer: {
+              a: taken.answer_a,
+              b: taken.answer_b,
+              c: taken.answer_c,
+              d: taken.answer_d,
+              e: taken.answer_e,
+              f: taken.answer_f,
+              g: taken.answer_g,
+            },
+          };
+        }),
+      };
+    } else if (!checkQuestionIsAlreadyTaken && isDuration.is_duration === false) {
+      // Get and randomize series
+      console.log("belom pernah ngambil with duration");
+      const seriesList: any[] = await getSeriesBySubtestId(subtest.subtest_id);
+      const choosenSeriesId = seriesList[Math.floor(Math.random() * seriesList.length)].series_id;
+
+      console.log(seriesList);
+      console.log(choosenSeriesId);
+      // Get and randomize questions
+      const questionList = await getQuestionsBySeriesId(choosenSeriesId);
+      const shuffledQuestions = questionList.sort(() => Math.random() - 0.5);
+      console.log(questionList);
+      // [
+      //     { question_id: 'bf58979f-e72e-47eb-adb7-cbecf1668792' },
+      //     { question_id: 'bf58979f-e72e-47eb-adb7-cbecf1668792' },
+      //     { question_id: 'bf58979f-e72e-47eb-adb7-cbecf1668792' },
+      //     { question_id: '032bd1b3-f1b6-4136-ba3e-1676478580b8' },
+      //     { question_id: 'a83e564e-fae2-47c5-96d4-b01ee40eb647' }
+      // ]
+      console.log(shuffledQuestions);
+
+      // Get detailed question information
+      const questions = await getQuestionAssessment(shuffledQuestions.map((q) => q.question_id));
+      console.log(questions);
+
+      const storeQuestion = questionList.map((question: any) => ({
+        ...question,
+        id: uuid(), // id baru dengan UUID
+        det_id: progressDetailId,
+      }));
+      console.log(questionList);
+      console.log("store the question");
+      console.log(storeQuestion);
+      await storeTakenQuestions(storeQuestion);
+
+      // Format response
+      response = {
+        det_id: progressDetailId,
+        duration: null, // Default 1 hour if not specified
+        is_duration: false,
+        subtest_name: subtestName.subtest_name,
+        questions: questions.map((q: any) => ({
+          question_id: q.id,
+          input: {
+            text: q.q_input_text,
+            image_url: q.q_input_image_url,
+          },
+          answer_type: q.answer_type,
+          choices: {
+            a: { text: q.answer_choice_a_text, image_url: q.answer_choice_a_image_url },
+            b: { text: q.answer_choice_b_text, image_url: q.answer_choice_b_image_url },
+            c: { text: q.answer_choice_c_text, image_url: q.answer_choice_c_image_url },
+            d: { text: q.answer_choice_d_text, image_url: q.answer_choice_d_image_url },
+            e: { text: q.answer_choice_e_text, image_url: q.answer_choice_e_image_url },
+            f: { text: q.answer_choice_f_text, image_url: q.answer_choice_f_image_url },
+            g: { text: q.answer_choice_g_text, image_url: q.answer_choice_g_image_url },
+          },
+          choosen_answer: {
+            a: false,
+            b: false,
+            c: false,
+            d: false,
+            e: false,
+            f: false,
+            g: false,
+          },
+        })),
+      };
+
+      // Menggunakan moment.js untuk menangani tanggal dan waktu
+      const takenAt = moment(); // waktu saat ini
+
+      // Membuat payload untuk update assessment (mengonversi kembali ke objek Date jika diperlukan)
+      const updatePayload = {
+        taken_at: takenAt.toDate(),
+        status: "In Progress",
+      };
+
+      await updateAssessmentStart(progressDetailId, updatePayload);
+    } else if (!checkQuestionIsAlreadyTaken && isDuration.is_duration === true) {
+      console.log("Blom pernah ngambil dan no duration");
       // Ambil durasi
       const subtestDurations: any = await getSubtestDurationById(subtest.subtest_id);
-
+      console.log("test duration");
+      console.log(subtestDurations);
       // Get and randomize series
       const seriesList: any[] = await getSeriesBySubtestId(subtest.subtest_id);
       const choosenSeriesId = seriesList[Math.floor(Math.random() * seriesList.length)].series_id;
@@ -320,6 +460,7 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
       response = {
         det_id: progressDetailId,
         duration: subtestDurations.subtest_duration, // Default 1 hour if not specified
+        is_duration: true,
         subtest_name: subtestName.subtest_name,
         questions: questions.map((q: any) => ({
           question_id: q.id,
@@ -354,6 +495,7 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
       // Mengonversi string durasi ("00:30:00") menjadi objek duration
       const subtestDuration = moment.duration(subtestDurations.subtest_duration);
       // Menambahkan durasi ke waktu pengambilan
+
       const shouldBeFinishedAt = moment(takenAt).add(subtestDuration);
       console;
       // Membuat payload untuk update assessment (mengonversi kembali ke objek Date jika diperlukan)
@@ -431,42 +573,65 @@ export const handleStoreAnswer = async (req: Request, res: Response, next: NextF
       throw new ResponseError(400, "Sub Test's already submitted!");
     }
 
-    // Cek apakah durasi sudah habis
-    // Ambil waktu sekarang
-    const now = moment();
-    console.log("Current time:", now.format());
+    // check apakah subtest memiliki durasi
+    const isDuration = await getSubtestDurationById(subtest.subtest_id);
 
-    // Ambil waktu selesai dari database (sudah dalam zona +07:00)
-    const finishAtFromDB = await getFinishAt(subtest.subtest_id);
-    console.log("Raw finishAt from DB:", finishAtFromDB);
+    if (isDuration.is_duration === true) {
+      // Cek apakah durasi sudah habis
+      // Ambil waktu sekarang
+      const now = moment();
+      console.log("Current time:", now.format());
 
-    // Langsung parse tanpa .utc()
-    const shouldBeFinishedAt = moment.utc(finishAtFromDB.should_be_finished_at).tz("Asia/Jakarta");
-    console.log("Parsed shouldBeFinishedAt:", shouldBeFinishedAt.format());
+      // Ambil waktu selesai dari database (sudah dalam zona +07:00)
+      const finishAtFromDB = await getFinishAt(det_id);
+      console.log("Raw finishAt from DB:", finishAtFromDB);
 
-    // Jika waktu sudah habis, lempar error
-    if (now.isAfter(shouldBeFinishedAt)) throw new ResponseError(401, "Time's Out!");
+      // Langsung parse tanpa .utc()
+      const shouldBeFinishedAt = moment.utc(finishAtFromDB.should_be_finished_at).tz("Asia/Jakarta");
+      console.log("Parsed shouldBeFinishedAt:", shouldBeFinishedAt.format());
 
-    const questionType = await checkQuestionType(question_id);
-    console.log(questionType);
-    if (questionType.answer_type === "single") {
-      // Ambil semua nilai jawaban (misal answer_a, answer_b, dll)
-      const answerValues = Object.values(answer);
-      // Hitung jumlah jawaban yang bernilai true
-      const trueCount = answerValues.filter((val) => val === true).length;
-      console.log("total true");
-      console.log(trueCount);
-      if (trueCount > 1) {
-        throw new ResponseError(400, "Single choice answer");
+      // Jika waktu sudah habis, lempar error
+      if (now.isAfter(shouldBeFinishedAt)) throw new ResponseError(401, "Time's Out!");
+
+      const questionType = await checkQuestionType(question_id);
+      console.log(questionType);
+      if (questionType.answer_type === "single") {
+        // Ambil semua nilai jawaban (misal answer_a, answer_b, dll)
+        const answerValues = Object.values(answer);
+        // Hitung jumlah jawaban yang bernilai true
+        const trueCount = answerValues.filter((val) => val === true).length;
+        console.log("total true");
+        console.log(trueCount);
+        if (trueCount > 1) {
+          throw new ResponseError(400, "Single choice answer");
+        }
       }
-    }
-    // Jika tipe soal multi choice, tidak perlu validasi khusus
+      // Jika tipe soal multi choice, tidak perlu validasi khusus
 
-    // Simpan jawaban ke database (misalnya melalui fungsi storeAnswer)
-    await storeAnswer(det_id, question_id, { ...answer });
+      // Simpan jawaban ke database (misalnya melalui fungsi storeAnswer)
+      await storeAnswer(det_id, question_id, { ...answer });
+    } else {
+      const questionType = await checkQuestionType(question_id);
+      console.log(questionType);
+      if (questionType.answer_type === "single") {
+        // Ambil semua nilai jawaban (misal answer_a, answer_b, dll)
+        const answerValues = Object.values(answer);
+        // Hitung jumlah jawaban yang bernilai true
+        const trueCount = answerValues.filter((val) => val === true).length;
+        console.log("total true");
+        console.log(trueCount);
+        if (trueCount > 1) {
+          throw new ResponseError(400, "Single choice answer");
+        }
+      }
+      // Jika tipe soal multi choice, tidak perlu validasi khusus
+
+      // Simpan jawaban ke database (misalnya melalui fungsi storeAnswer)
+      await storeAnswer(det_id, question_id, { ...answer });
+    }
 
     res.status(200).json({
-      message: "Jawaban berhasil disimpan.",
+      message: "Answer's successfully submitted",
     });
   } catch (e) {
     next(e);

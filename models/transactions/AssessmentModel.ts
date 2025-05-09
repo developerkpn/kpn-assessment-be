@@ -164,7 +164,7 @@ export const getSubtestDurationById = async (subtestId: string) => {
   try {
     const duration = await client.query(
       `
-        SELECT subtest_duration
+        SELECT subtest_duration, is_duration
         FROM mst_subtest_head
         WHERE id = $1
         `,
@@ -259,12 +259,19 @@ export const getQuestionAssessment = async (questionIds: string[]) => {
                 answer_choice_d_text,
                 answer_choice_d_image_url,
                 answer_choice_e_text,
-                answer_choice_e_image_url
+                answer_choice_e_image_url,
+                answer_choice_f_text,
+                answer_choice_f_image_url,
+                answer_choice_g_text,
+                answer_choice_g_image_url
             FROM mst_question_answer
             WHERE id = ANY($1)
             `,
       [questionIds]
     );
+
+    console.log("cek coy databasenya");
+    console.log(result.rows);
 
     return result.rows;
   } catch (error) {
@@ -491,7 +498,7 @@ export const getFinishAt = async (detId: string) => {
       `
       SELECT should_be_finished_at 
       FROM t_progress_batch_det
-      WHERE subtest_id = $1
+      WHERE id = $1
         `,
       [detId]
     );
