@@ -480,7 +480,7 @@ export const getAssesseeByDarwinNIKBatch = async (nikList: string[]) => {
     const basicAuth = Buffer.from(`${username}:${password}`).toString("base64");
     console.log("Basic Auth:", basicAuth);
 
-    const getAssessee: any = await axios.post(`${process.env.DARWIN_EMPLOYEE_BASE_URL}`, payload, {
+    const getAssessee: any = await axios.post(`${process.env.DARWIN_BASE_URL}/employee`, payload, {
       headers: {
         Authorization: `Basic ${basicAuth}`,
         "Content-Type": "application/json",
