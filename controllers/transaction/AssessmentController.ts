@@ -92,7 +92,7 @@ export const handleGetAssesseeProfile = async (req: Request, res: Response, next
     console.log(password);
     const basicAuth = Buffer.from(`${username}:${password}`).toString("base64");
     console.log(basicAuth);
-    const getAssessee = await axios.post(`${process.env.DARWIN_EMPLOYEE_BASE_URL}`, payload, {
+    const getAssessee = await axios.post(`${process.env.DARWIN_BASE_URL}/employee`, payload, {
       headers: {
         Authorization: `Basic ${basicAuth}`, // Menambahkan header Authorization
         "Content-Type": "application/json",

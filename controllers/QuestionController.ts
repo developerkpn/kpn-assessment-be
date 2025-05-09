@@ -252,6 +252,7 @@ export const handleGetQuestion = async (req: Request, res: Response) => {
         answer_type: item.answer_type,
         created_by: item.created_by,
         answers: answers,
+        created_at: item.created_date,
       };
     });
 
