@@ -46,6 +46,7 @@ export const getQuestion = async (categoryId?: number) => {
       FROM mst_question_answer q
       LEFT JOIN mst_admin_web a ON q.created_by = a.id
       LEFT JOIN mst_category c ON q.category_id = c.id
+      ORDER BY created_by DESC
     `;
 
     const values: any[] = [];
