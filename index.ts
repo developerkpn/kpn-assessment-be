@@ -13,10 +13,10 @@ import credentials from "./middleware/credential";
 import router from "./routes";
 import { errorMiddleware } from "#dep/middleware/errorMiddleware";
 const app = express();
-const servOption = {
-  cert: fs.readFileSync("./ssl/cert.pem"),
-  key: fs.readFileSync("./ssl/key.pem"),
-};
+// const servOption = {
+//   cert: fs.readFileSync("./ssl/cert.pem"),
+//   key: fs.readFileSync("./ssl/key.pem"),
+// };
 
 const corsOption: CorsOptions = {
   origin: function (req, callback) {
@@ -46,11 +46,11 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(router);
-app.use(errorMiddleware);
 app.use(express.static(path.join(__dirname, "public/build")));
 app.get("/*$", (req, res) => {
   res.sendFile(path.join(__dirname, "public/build", "index.html"));
 });
+app.use(errorMiddleware);
 
 // app.listen(process.env.PORT as unknown as number, "0.0.0.0", () => {
 //   console.log(`App running on ${process.env.PORT}`);
