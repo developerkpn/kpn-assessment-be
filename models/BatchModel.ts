@@ -3,18 +3,27 @@ import { TRANSACTION as TRANS } from "#dep/config/transaction";
 import { deleteQuery, insertQuery, updateQuery } from "#dep/helper/queryBuilder";
 import { ResponseError } from "#dep/error/response-error";
 import { async } from "rxjs";
+import { Validation } from "#dep/validation/Validation";
+import { BatchValidation } from "#dep/validation/BatchValidation";
+import { v7 as uuid } from "uuid";
+import axios from "axios";
 import { axiosDarwin } from "#dep/config/axiosDarwin";
 import { AxiosResponse } from "axios";
 import { DataEmpDarwin } from "#dep/types/MasterDataTypes";
 
-export const createBatch = async (headerPayload: any) => {
+export const createBatch = async (headerPayload: any, batchCodePayload: any, ccPayload: any, assesseePayload: any) => {
   const client = await db.connect();
   try {
     await client.query(TRANS.BEGIN);
-    const [headerQ, headerV] = insertQuery("t_batch_head", headerPayload, "batch_code");
-    const headerResult = await client.query(headerQ, headerV);
+    const [headerQ, headerV] = insertQuery("t_batch_head", headerPayload, "id");
+    await client.query(headerQ, headerV);
+    const [codeQ, codeV] = insertQuery("t_batch_code", batchCodePayload);
+    await client.query(codeQ, codeV);
+    const [emailQ, emailV] = insertQuery("t_batch_cc", ccPayload);
+    await client.query(emailQ, emailV);
+    const [assesseeQ, assesseeV] = insertQuery("t_batch_assessee", assesseePayload);
+    await client.query(assesseeQ, assesseeV);
     await client.query(TRANS.COMMIT);
-    return headerResult.rows[0].batch_code;
   } catch (error) {
     console.error(error);
     await client.query(TRANS.ROLLBACK);
@@ -33,6 +42,8 @@ export const getBatch = async () => {
                 h.id,
                 h.batch_name,
                 h.batch_code,
+                h.type,
+                h.status,
                 g.grouptest_code,
                 COUNT(d.id) AS total_assessee,
                 h.start_period,
@@ -50,7 +61,7 @@ export const getBatch = async () => {
             LEFT JOIN
                 mst_function_menu f ON h.function_id = f.id     
             GROUP BY 
-                h.id, h.batch_name, h.batch_code, g.grouptest_code, 
+                h.id, h.batch_name, h.batch_code, g.grouptest_code, h.type, h.status,
                 h.start_period, h.end_period, b.bu_code, f.fm_code
             ORDER BY 
                 h.created_at DESC           
@@ -66,15 +77,56 @@ export const getBatch = async () => {
   }
 };
 
-export const updateBatch = async (id: string, updatePayload: any) => {
+export const updateBatch = async (
+  id: string,
+  batchHeadPayload: any,
+  deletedCCEmailByRolePayload: any,
+  deletedCCEmailByEmailPayload: any,
+  selectedNewCCEmailPayload: any,
+  deletedAssesseePayload: any,
+  selectedNewAssesseePayload: any
+) => {
   const client = await db.connect();
   try {
     await client.query(TRANS.BEGIN);
-    const [headerQ, headerV] = updateQuery("t_batch_head", updatePayload, { id: id }, "batch_code");
-    const result = await client.query(headerQ, headerV);
-    if (result.rowCount === 0) throw new ResponseError(404, `Batch with ID ${id} is not found`);
+    console.log("masuk 1");
+    const [headerQ, headerV] = updateQuery("t_batch_head", batchHeadPayload, { id: id }, "batch_code");
+    const header = await client.query(headerQ, headerV);
+    if (header.rowCount === 0) throw new ResponseError(404, `Batch with ID ${id} is not found`);
+    console.log("masuk 2");
+    if (deletedCCEmailByEmailPayload.length > 0) {
+      for (const item of deletedCCEmailByEmailPayload) {
+        const [Q, V] = deleteQuery("t_batch_cc", item);
+        await client.query(Q, V);
+      }
+    }
+    console.log("masuk 3");
+    if (deletedCCEmailByRolePayload.length > 0) {
+      for (const item of deletedCCEmailByRolePayload) {
+        const [Q, V] = deleteQuery("t_batch_cc", item);
+        await client.query(Q, V);
+      }
+    }
+    console.log("masuk 4");
+    if (deletedAssesseePayload.length > 0) {
+      for (const item of deletedAssesseePayload) {
+        const [Q, V] = deleteQuery("t_batch_cc", item);
+        await client.query(Q, V);
+      }
+    }
+    console.log("masuk 5");
+    console.log(selectedNewCCEmailPayload);
+    if (selectedNewCCEmailPayload.length > 0) {
+      const [Q, V] = insertQuery("t_batch_cc", selectedNewCCEmailPayload);
+      await client.query(Q, V);
+    }
+    console.log("masuk 6");
+    if (selectedNewAssesseePayload.length > 0) {
+      const [Q, V] = insertQuery("t_batch_assessee", selectedNewAssesseePayload);
+      await client.query(Q, V);
+    }
+    console.log("masuk 7");
     await client.query(TRANS.COMMIT);
-    return result.rows[0].batch_code;
   } catch (error) {
     console.error(error);
     await client.query(TRANS.ROLLBACK);
@@ -159,6 +211,7 @@ export const getBatchDetail = async (id: string) => {
                 h.is_screenshot,
                 h.description,
                 h.status,
+                h.type,
                 COUNT(d.id) AS assessee_count
                 FROM 
                     t_batch_head h 
@@ -182,7 +235,9 @@ export const getBatchDetail = async (id: string) => {
                     h.is_camera,
                     h.is_mic,
                     h.is_screenshot,
-                    h.description      
+                    h.description,
+                    h.status,
+                    h.type      
            `,
       [id]
     );
@@ -201,7 +256,7 @@ export const getBatchDetail = async (id: string) => {
 
     const data = {
       batch: batchDetail,
-      email: ccEmail,
+      cc_email: ccEmail,
     };
 
     return data;
@@ -392,6 +447,132 @@ export const getBatchCCEmail = async (id: string) => {
 
     return result.rows;
   } catch (e) {
+    throw e;
+  } finally {
+    client.release();
+  }
+};
+
+export const getAssesseeByDarwinNIK = async (assesseeNIK: string | string[]) => {
+  // Convert single NIK to array if needed
+  console.log("check file");
+  console.log(Array.isArray(assesseeNIK));
+  const nikList = Array.isArray(assesseeNIK) ? assesseeNIK : [assesseeNIK];
+  console.log(nikList);
+  return getAssesseeByDarwinNIKBatch(nikList);
+};
+
+export const getAssesseeByDarwinNIKBatch = async (nikList: string[]) => {
+  try {
+    const payload = {
+      api_key: process.env.API_KEY,
+      datasetKey: process.env.DATASET_KEY,
+      employee_ids: nikList,
+    };
+
+    console.log("Payload:", payload);
+
+    // Encode Basic Auth (username:password) to Base64
+    const username = process.env.BASIC_AUTH_USERNAME || "no";
+    console.log("Username:", username);
+    const password = process.env.BASIC_AUTH_PASSWORD || "no";
+    console.log("Password:", password);
+    const basicAuth = Buffer.from(`${username}:${password}`).toString("base64");
+    console.log("Basic Auth:", basicAuth);
+
+    const getAssessee: any = await axios.post(`${process.env.DARWIN_BASE_URL}/employee`, payload, {
+      headers: {
+        Authorization: `Basic ${basicAuth}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    console.log("check");
+    console.log(getAssessee);
+
+    if (getAssessee.data.status === 0) {
+      throw new ResponseError(404, "Assessee's not found");
+    }
+
+    console.log("Response received:");
+    console.log("Employee data count:", getAssessee.data.employee_data.length);
+
+    const assessee = getAssessee.data.employee_data.map((row: any) => {
+      const result = {
+        assessee_nik: row.employee_id,
+        assessee_name: row.full_name,
+        assessee_email: row.company_email_id,
+      };
+      return result;
+    });
+
+    console.log("Processed assessee data:", assessee);
+
+    return assessee;
+  } catch (e) {
+    throw e;
+  }
+};
+
+export const getBatchCode = async (tmCode: string, buCode: string, month: string, year: string) => {
+  const client = await db.connect();
+  try {
+    const result = await client.query(
+      `
+        SELECT 
+        batch
+        FROM t_batch_code
+        WHERE tm_code = $1 AND bu_code = $2 AND month = $3 AND year = $4
+        ORDER BY taken_at DESC
+    `,
+      [tmCode, buCode, month, year]
+    );
+
+    return result.rows[0];
+  } catch (e) {
+  } finally {
+    client.release();
+  }
+};
+
+export const getFMandBUCode = async (fmId: string, buId: string) => {
+  const client = await db.connect();
+  try {
+    console.log(fmId, buId);
+    const fmCode: any = await client.query(
+      `
+        SELECT
+          fm_code
+        FROM
+          mst_function_menu
+        WHERE 
+          id = $1
+        `,
+      [fmId]
+    );
+
+    const buCode: any = await client.query(
+      `
+         SELECT 
+            bu_code
+         FROM
+            mst_business_unit
+         WHERE
+            id = $1
+        `,
+      [buId]
+    );
+
+    const result = {
+      fmCode: fmCode.rows[0].fm_code,
+      buCode: buCode.rows[0].bu_code,
+    };
+
+    console.log(result);
+    return result;
+  } catch (e) {
+    console.log(e);
+    throw e;
   } finally {
     client.release();
   }

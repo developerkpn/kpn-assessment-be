@@ -164,7 +164,7 @@ export const getSubtestDurationById = async (subtestId: string) => {
   try {
     const duration = await client.query(
       `
-        SELECT subtest_duration
+        SELECT subtest_duration, is_duration
         FROM mst_subtest_head
         WHERE id = $1
         `,
@@ -259,12 +259,19 @@ export const getQuestionAssessment = async (questionIds: string[]) => {
                 answer_choice_d_text,
                 answer_choice_d_image_url,
                 answer_choice_e_text,
-                answer_choice_e_image_url
+                answer_choice_e_image_url,
+                answer_choice_f_text,
+                answer_choice_f_image_url,
+                answer_choice_g_text,
+                answer_choice_g_image_url
             FROM mst_question_answer
             WHERE id = ANY($1)
             `,
       [questionIds]
     );
+
+    console.log("cek coy databasenya");
+    console.log(result.rows);
 
     return result.rows;
   } catch (error) {
@@ -491,7 +498,7 @@ export const getFinishAt = async (detId: string) => {
       `
       SELECT should_be_finished_at 
       FROM t_progress_batch_det
-      WHERE subtest_id = $1
+      WHERE id = $1
         `,
       [detId]
     );
@@ -715,5 +722,85 @@ export const updateExampleTaken = async (subtest_id: string) => {
     }
   } catch (error) {
     throw error;
+  }
+};
+
+export const getPointPerQuestion = async (detId: string) => {
+  const client = await db.connect();
+  try {
+    await client.query("BEGIN");
+    console.log("masuk 1");
+    // 1. Ambil semua jawaban yang tersimpan untuk detId ini
+    const resAnswers = await client.query(
+      `SELECT id, question_id, answer_a, answer_b, answer_c, answer_d, answer_e, answer_f, answer_g
+       FROM t_store_answer
+       WHERE det_id = $1`,
+      [detId]
+    );
+    const storeAnswers = resAnswers.rows;
+    if (storeAnswers.length === 0) {
+      await client.query("ROLLBACK");
+      return [];
+    }
+
+    console.log("masuk 2");
+    // 2. Ambil key points dari mst_question_answer untuk semua question_id
+    const questionIds = Array.from(new Set(storeAnswers.map((r) => r.question_id)));
+    const resKeys = await client.query(
+      `SELECT id AS question_id, key_answer_point_a, key_answer_point_b, key_answer_point_c,
+              key_answer_point_d, key_answer_point_e, key_answer_point_f, key_answer_point_g
+       FROM mst_question_answer
+       WHERE id = ANY($1)`,
+      [questionIds]
+    );
+    const keyMap = resKeys.rows.reduce((acc, row) => {
+      acc[row.question_id] = row;
+      return acc;
+    }, {} as Record<string, any>);
+
+    console.log("masuk 3");
+    const results: { id: string; question_id: string; totalPoint: number }[] = [];
+
+    // 3. Hitung dan update per jawaban
+    for (const ans of storeAnswers) {
+      const key = keyMap[ans.question_id] || {};
+      let total = 0;
+
+      // opsi a sampai g
+      for (const letter of ["a", "b", "c", "d", "e", "f", "g"] as const) {
+        const answered = ans[`answer_${letter}`];
+        const point = key[`key_answer_point_${letter}`] || 0;
+        if (answered && point) total += Number(point);
+      }
+
+      // update point di t_store_answer
+      await client.query(`UPDATE t_store_answer SET point = $1 WHERE id = $2`, [total, ans.id]);
+
+      results.push({ id: ans.id, question_id: ans.question_id, totalPoint: total });
+    }
+
+    // Hitung total agregat sum untuk subtest
+    const sumSubTest = await client.query(
+      `
+        SELECT SUM(point) AS point 
+        FROM t_store_answer
+        WHERE det_id = $1
+        GROUP BY det_id
+        `,
+      [detId]
+    );
+
+    console.log(sumSubTest.rows[0].point);
+    const [sumQ, sumV] = updateQuery("t_progress_batch_det", { sum_point: sumSubTest.rows[0].point }, { id: detId });
+    await client.query(sumQ, sumV);
+    console.log("sumSubTest");
+    console.log(sumSubTest.rows[0]);
+    await client.query("COMMIT");
+    return results;
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
   }
 };

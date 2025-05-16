@@ -8,6 +8,7 @@ export type User = {
 
 export type TokenPayload = {
   user_id: string;
+  email?: string;
   role_id: string;
   permission: Array<{
     menu_id: number;

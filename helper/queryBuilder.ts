@@ -1,10 +1,8 @@
 import { Criteria } from "#dep/types/MasterDataTypes";
+import { db } from "#dep/config/connection";
+import { Client, PoolClient } from "pg";
 
-export const insertQuery = (
-  table: string,
-  values: any,
-  returning: string | null = null
-): [string, string[]] => {
+export const insertQuery = (table: string, values: any, returning: string | null = null): [string, string[]] => {
   let valuesArray = [];
 
   // Check if values is an array or a single object
@@ -121,4 +119,19 @@ export const updateCriteriaQuery = (editedCriteria: Criteria[]) => {
   query += ` WHERE cr.id = u.id;`;
 
   return query;
+};
+
+export const ClientAction = async <T>(callback: (client: PoolClient) => Promise<T>): Promise<T> => {
+  try {
+    const client = await db.connect();
+    try {
+      return await callback(client);
+    } catch (error) {
+      throw error;
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    throw error;
+  }
 };

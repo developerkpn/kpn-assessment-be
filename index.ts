@@ -31,6 +31,8 @@ const corsOption: CorsOptions = {
   exposedHeaders: ["set-cookie"],
 };
 
+app.use(cors(corsOption));
+
 app.use("/api/static", express.static("uploads"));
 app.use((req, res, next) => {
   if (req.path.startsWith("/api/static")) {
@@ -39,7 +41,6 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(cors(corsOption));
 app.use(credentials);
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -50,7 +51,7 @@ app.use(express.static(path.join(__dirname, "public/build")));
 app.get("/*$", (req, res) => {
   res.sendFile(path.join(__dirname, "public/build", "index.html"));
 });
-//
+
 // app.listen(process.env.PORT as unknown as number, "0.0.0.0", () => {
 //   console.log(`App running on ${process.env.PORT}`);
 // });

@@ -110,11 +110,14 @@ export const getSeriesbyID = async (id: string) => {
   try {
     const client = await db.connect();
     try {
-      const { rows: series_data_get }: QueryResult<SeriesDataCreate> = await client.query(
+      const { rows: sr_dt }: QueryResult<SeriesDataCreate> = await client.query(
         `
         select
           ms.*,
-          msd.questions_id
+          msd.questions_id,
+          cat.category_id,
+          cat.category_name,
+          cat.category_code
         from
           mst_series ms
         left join (
@@ -127,11 +130,31 @@ export const getSeriesbyID = async (id: string) => {
             series_id
         ) msd on
           msd.series_id = ms.id
+        left join (
+         select
+            distinct mqa.category_id,
+            det.series_id,
+            mc.category_code,
+            mc.category_name
+        from
+          mst_series_det det
+        left join mst_question_answer mqa on
+          mqa.id = det.question_id
+        left join mst_category mc on
+          mc.id = mqa.category_id
+        ) cat on cat.series_id = ms.id
         where ms.id = $1
+
         `,
         [id]
       );
-      return series_data_get[0];
+
+      return {
+        series_name: sr_dt[0].series_name,
+        series_code: sr_dt[0].series_code,
+        questions_id: sr_dt[0].questions_id,
+        category_id: sr_dt.map((value) => value.category_id),
+      };
     } catch (error) {
       throw error;
     } finally {
@@ -162,6 +185,7 @@ export const getSeriesDetail = async (id: string) => {
         q.q_input_text,
         q.q_input_image_url,
         q.answer_type,
+        c.id AS category_id,
         c.category_name,
         c.category_code,
 
@@ -175,12 +199,18 @@ export const getSeriesDetail = async (id: string) => {
         q.answer_choice_d_image_url,
         q.answer_choice_e_text,
         q.answer_choice_e_image_url,
+        q.answer_choice_f_text,
+        q.answer_choice_f_image_url,
+        q.answer_choice_g_text,
+        q.answer_choice_g_image_url,
 
         q.key_answer_point_a,
         q.key_answer_point_b,
         q.key_answer_point_c,
         q.key_answer_point_d,
         q.key_answer_point_e,
+        q.key_answer_point_f,
+        q.key_answer_point_g,
 
         q.category_id,
         
@@ -212,6 +242,21 @@ export const getSeriesDetail = async (id: string) => {
       throw new Error("Series not found or no questions available.");
     }
 
+    // Membuat set unik untuk kategori dari semua pertanyaan
+    const uniqueCategories: any = {};
+    result.rows.forEach((row) => {
+      if (row.category_id) {
+        uniqueCategories[row.category_id] = {
+          category_id: row.category_id,
+          category_name: row.category_name,
+          category_code: row.category_code,
+        };
+      }
+    });
+
+    // Konversi uniqueCategories menjadi array
+    const categoriesArray = Object.values(uniqueCategories);
+
     const seriesDetail = {
       id: result.rows[0].series_id,
       series_name: result.rows[0].series_name,
@@ -221,14 +266,14 @@ export const getSeriesDetail = async (id: string) => {
       created_at: result.rows[0].created_date,
       updated_by: result.rows[0].updated_by,
       updated_date: result.rows[0].updated_date,
+      categories: categoriesArray,
       questions: result.rows.map((row) => ({
         id: row.detail_id,
         question_id: row.question_id,
-        sequence: row.q_seq,
-        layout_type: row.q_layout_type,
         input_text: row.q_input_text,
         input_image_url: row.q_input_image_url,
         answer_type: row.answer_type,
+        category_id: row.category_id,
         category_name: row.category_name,
         category_code: row.category_code,
         answers: [
@@ -236,10 +281,10 @@ export const getSeriesDetail = async (id: string) => {
           { text: row.answer_choice_b_text, image: row.answer_choice_b_image_url, point: row.key_answer_point_b },
           { text: row.answer_choice_c_text, image: row.answer_choice_c_image_url, point: row.key_answer_point_c },
           { text: row.answer_choice_d_text, image: row.answer_choice_d_image_url, point: row.key_answer_point_d },
-          { text: row.answer_choice_e_text, image: row.answer_choice_e_image_url, point: row.key_answer_point_a },
+          { text: row.answer_choice_e_text, image: row.answer_choice_e_image_url, point: row.key_answer_point_e },
+          { text: row.answer_choice_f_text, image: row.answer_choice_f_image_url, point: row.key_answer_point_f },
+          { text: row.answer_choice_g_text, image: row.answer_choice_g_image_url, point: row.key_answer_point_g },
         ],
-        category_id: row.category_id,
-        question_code: row.question_code,
         added_by: row.added_by,
         added_at: row.added_at,
       })),
@@ -253,7 +298,6 @@ export const getSeriesDetail = async (id: string) => {
     client.release();
   }
 };
-
 export const deleteQuestionFromSeries = async (seriesId: string, questionId: string, updatePayload: any) => {
   const client = await db.connect();
   try {

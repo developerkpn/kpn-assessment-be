@@ -73,10 +73,12 @@ export type SeriesHeader = {
   series_name: string;
   series_code: string;
   category_id: string;
+  category_name: string;
+  category_code: string;
 };
 
 export type SeriesDataCreate = SeriesHeader & {
-  question_id: string[];
+  questions_id: string[];
 };
 
 // QUESTION
