@@ -53,17 +53,15 @@ export const handleCreateTest = async (req: Request, res: Response, next: NextFu
   }
 };
 
-export const handleGetTest = async (req: Request, res: Response) => {
+export const handleGetTest = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const result = await getTest();
     res.status(200).send({
       message: `Success!`,
       data: result,
     });
-  } catch (error: any) {
-    res.status(500).send({
-      message: error.message,
-    });
+  } catch (e) {
+    next(e);
   }
 };
 
@@ -128,10 +126,8 @@ export const handleGetTestDetail = async (req: Request, res: Response, next: Nex
       message: "Success!",
       data: result,
     });
-  } catch (error: any) {
-    res.status(500).send({
-      message: error.message,
-    });
+  } catch (e) {
+    next(e);
   }
 };
 

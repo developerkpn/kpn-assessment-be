@@ -44,38 +44,32 @@ export const handleCreateSeries = async (req: Request, res: Response, next: Next
     res.status(200).send({
       message: `Series with code ${result} is created successfully!`,
     });
-  } catch (error: any) {
-    res.status(500).send({
-      message: error.message,
-    });
+  } catch (e) {
+    next(e);
   }
 };
 
-export const handleGetSeries = async (req: Request, res: Response) => {
+export const handleGetSeries = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const result = await getSeries();
     res.status(200).send({
       message: "Success!",
       data: result,
     });
-  } catch (error: any) {
-    res.status(500).send({
-      message: error.message,
-    });
+  } catch (e) {
+    next(e);
   }
 };
 
-export const handleDeleteSeries = async (req: Request, res: Response) => {
+export const handleDeleteSeries = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const validatedId = Validation.validate(SeriesValidation.ID, req.params.id);
     const result = await deleteSeries(validatedId);
     res.status(200).send({
       message: `Series's with code ${result} deleted successfully!`,
     });
-  } catch (error: any) {
-    res.status(500).send({
-      message: error.message,
-    });
+  } catch (e) {
+    next(e);
   }
 };
 
@@ -109,10 +103,8 @@ export const handleUpdateSeries = async (req: Request, res: Response, next: Next
     res.status(200).send({
       message: `Series with code ${result} is updated successfully!`,
     });
-  } catch (error: any) {
-    res.status(500).send({
-      message: error.message,
-    });
+  } catch (e) {
+    next(e);
   }
 };
 
@@ -156,7 +148,7 @@ export const handleGetAvailableQuestionForSeries = async (req: Request, res: Res
   }
 };
 
-export const handleDeleteQuestionFromSeries = async (req: Request, res: Response) => {
+export const handleDeleteQuestionFromSeries = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const validatedSeriesId = Validation.validate(SeriesValidation.ID, req.params.id);
     const validatedQuestionId = Validation.validate(SeriesValidation.ID, req.params.questionId);
@@ -173,9 +165,7 @@ export const handleDeleteQuestionFromSeries = async (req: Request, res: Response
     res.status(200).send({
       message: "Success Delete Question!",
     });
-  } catch (error: any) {
-    res.status(500).send({
-      message: error.message,
-    });
+  } catch (e) {
+    next(e);
   }
 };

@@ -561,11 +561,17 @@ export const handleReportPersonal = async (req: Request, res: Response, next: Ne
     const assesseeId = req.body.assessee_id;
     const assesseeEmail = req.body.assessee_email;
 
+    // Get Report Guide
+    const guideId = REPORT_GUIDE_ID;
+    const guide = await getReportGuide(guideId);
     // Cek batch type
     const { batch } = await getBatchDetail(batchId);
     // Get Profilenya
     const assessee = batch.type === "internal" ? getDarwinUser(assesseeId) : getAssesseeExternalProfile(assesseeEmail);
+
     console.log(assessee);
+
+    // Detail
     // const assessee = {
     //   assessee_name: "Test",
     //   assessee_age: "",
@@ -583,6 +589,26 @@ export const handleReportPersonal = async (req: Request, res: Response, next: Ne
     // // Generate intronya
     // const report = await report;
     // Generate dahulu detailnya
+
+    res.status(200).send({
+      message: `Success!`,
+      data: {
+        report_guide: {
+          content: "Hello World!",
+        },
+        profile: {
+          assessee_name: "John Doe",
+          assessee_age: 22,
+          assessee_gender: "Male",
+          test_date: "15/05/2025",
+          work_location: "KPN Corp",
+        },
+        intro: {},
+        detail: {},
+        proctoring: {},
+        log: {},
+      },
+    });
   } catch (e) {
     throw e;
   }
@@ -591,15 +617,44 @@ export const handleReportPersonal = async (req: Request, res: Response, next: Ne
 export const handleReportPersonalIntro = async (req: Request, res: Response, next: NextFunction) => {
   try {
     /*
-    by summary
     {
+    {
+      category_id
+      category_name
+      category_code
+      category_norm
+      summary_view
+      summary_type
+      summary_formula
+      tests: [
+        {
+          test_id
+          test_name
+          test_code
+          test_description
+          result
+        }
+      ]
+    }
      by_summary: {
       category_id
       category_name
       category_code
-      criteria
-      test
+      category_norm
+      test: [
+      {
+        test_id
+        test_name
+        test_code
+        test_description
+        result
       }
+      by_detail: {
+        subtest_id
+        subtest_name
+        subtest_code
+        subtest_description
+        result
      }
     * */
   } catch (e) {
@@ -607,8 +662,11 @@ export const handleReportPersonalIntro = async (req: Request, res: Response, nex
   }
 };
 
-export const handleReportPersonalDetail = async (req: Request, res: Response, next: NextFunction) => {
+export const handleReportPersonalDetail = async (testId: string, type: string, formula: string) => {
   try {
+    let detail;
+
+    return detail;
     /*
     by subtest
     {
