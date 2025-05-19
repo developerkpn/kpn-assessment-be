@@ -47,9 +47,10 @@ export const getCriteria = async () => {
   try {
     const result = await client.query(
       `
-    SELECT cr.*, v.value_code, v.value_name, v.id AS value_id
+    SELECT cr.*, v.value_code, v.value_name, v.id AS value_id, cl.id as color_id, cl.name as color_name, cl.hex_code 
     FROM mst_criteria cr
     JOIN mst_value v ON cr.category_fk = v.id
+    LEFT JOIN mst_criteria_color cl ON cr.color_id = cl.id
     ORDER BY v.created_date DESC, v.value_name DESC, cr.minimum_score ASC
     `
     );
@@ -128,9 +129,20 @@ export const getCriteriaDetail = async (id: string) => {
   try {
     const result = await client.query(
       `
-      SELECT v.id AS value_id, v.value_name, v.value_code, cr.criteria_name, cr.minimum_score, cr.maximum_score, cr.description, cr.criteria_color
+      SELECT 
+        v.id AS value_id, 
+        v.value_name, 
+        v.value_code, 
+        cr.criteria_name, 
+        cr.minimum_score, 
+        cr.maximum_score, 
+        cr.description, 
+        cr.color_id, 
+        cl.name as color_name,
+        cl.hex_code
       FROM mst_value v
       LEFT JOIN mst_criteria cr ON v.id = cr.category_fk
+      LEFT JOIN mst_criteria_color cl ON cr.color_id = cl.id
       WHERE v.id = $1
       ORDER BY cr.minimum_score ASC
       `,

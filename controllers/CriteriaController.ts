@@ -186,7 +186,9 @@ export const handleGetCriteriaDetail = async (req: Request, res: Response, next:
               minimum_score: row.minimum_score,
               maximum_score: row.maximum_score,
               description: row.description,
-              criteria_color: row.criteria_color,
+              color_id: row.color_id,
+              color_name: row.color_name,
+              hex_code: row.hex_code,
             });
           }
           return acc;
