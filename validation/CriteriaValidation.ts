@@ -49,7 +49,7 @@ export class CriteriaValidation {
             .min(0, { message: "Maximum score must be 0 or greater." })
         ),
         description: z.string().trim().min(1, { message: "Description is required. Please enter a description." }),
-        criteria_color: z.string().trim().length(7, { message: "Criteria color should be hexadecimal" }),
+        color_id: z.number().positive(),
       })
       .refine((data) => data.maximum_score > data.minimum_score, {
         message: "Maximum score must be greater than minimum score.",
