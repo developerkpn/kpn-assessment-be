@@ -52,7 +52,10 @@ export const getBatchInformationForReport = async (batchId: string) => {
           c.*, 
           g.*, 
           t.*,
-          s.*
+          s.id as subtest_id,
+          s.subtest_name,
+          s.subtest_code,
+          s.is_criteria
         FROM t_batch_head b
         LEFT JOIN mst_grouptest_det g ON b.grouptest_id = g.grouptest_id
         LEFT JOIN mst_test_head t ON g.test_id = t.id
@@ -102,9 +105,11 @@ export const getReportDesignDetail = async (batchId: string) => {
       `
         SELECT
           h.*,
-          i.*
+          i.*,
+          d.*
         FROM report_head h
         LEFT JOIN report_test_intro i ON h.id = i.report_id
+        LEFT JOIN report test_detail d ON h.id = d.report_id
         WHERE h.batch_id = $1
         `,
       [batchId]
@@ -294,7 +299,7 @@ export const getPersonalReportData = async (batchId: string, assesseeEmail: any,
       result = await client.query(
         `
         SELECT *
-        FROM test_result_by_subtest
+        FROM test_result_by_category
         WHERE assessee_email = $1 AND batch_id = $2
         `,
         [assesseeEmail, batchId]

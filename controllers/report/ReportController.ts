@@ -89,6 +89,7 @@ export const handleGetBatchInformationForReport = async (req: Request, res: Resp
 
       // Add subtest to the test with only required fields
       groupedTests[categoryCode][testId].subtests.push({
+        id: test.subtest_id,
         name: test.subtest_name,
         code: test.subtest_code,
         is_criteria: test.is_criteria,
@@ -153,6 +154,7 @@ export const handleCreateReportForBatch = async (req: Request, res: Response, ne
       batch_id: body.batch_id,
     };
 
+    console.log(body);
     console.log("Masuk create");
 
     const introPayload = body.intro.map((prev: any) => ({
@@ -197,7 +199,7 @@ export const handleGetReportDesignDetail = async (req: Request, res: Response, n
     const reportDesign = await getReportDesignDetail(batchId);
     console.log("get report design");
     console.log(reportDesign);
-
+    console.log("putus");
     // Transform the response to the desired format
     const transformedResponse = transformResponseFormat(batchInformation, reportDesign);
 
@@ -604,25 +606,26 @@ export const handleReportPersonal = async (req: Request, res: Response, next: Ne
     "message": "Success!",
     "data": {
         "batch": {
-            "name": "Assessment Eksternal 13 Mei 2025",
-            "code": "OD/DWS/MAY/2025/13"
+            "name": "Report Personal Testing 19 Mei 1",
+            "code": "OD/DWS/MAY/2025/23"
         },
         "categories": [
             {
                 "id": 37,
                 "name": "Kognitif",
                 "code": "KOGS",
-                "summary_view": "bar",
-                "summary_type": "summary",
-                "summary_formula": "avg",
                 "tests": [
                     {
                         "id": "50b2e9e8-5601-4e53-b2ed-e0bd5455aa90",
                         "name": "Kognitif Test 13 Mei",
                         "code": "KGT13MEI",
-                        "summary_view": "bar",
-                        "summary_type": "subtest",
-                        "summary_formula": "sum"
+                        "subtests": [
+                            {
+                                "name": "Matematika Dasar Subtest 13 Mei",
+                                "code": "MTKD13MEI",
+                                "is_criteria": null
+                            }
+                        ]
                     }
                 ],
                 "testCount": 1
@@ -631,17 +634,85 @@ export const handleReportPersonal = async (req: Request, res: Response, next: Ne
                 "id": 35,
                 "name": "Personality",
                 "code": "PERSONALITY",
-                "summary_view": "bar",
-                "summary_type": "detail",
-                "summary_formula": "sum",
                 "tests": [
                     {
                         "id": "c760f05c-d156-468d-a8f3-7fb0a86753e5",
                         "name": "Personality Test 13 Mei",
                         "code": "PT13MEI",
-                        "summary_view": "bar",
-                        "summary_type": "category",
-                        "summary_formula": "sum"
+                        "subtests": [
+                            {
+                                "name": "DISC Subtest 13 Mei",
+                                "code": "DISC13MEI",
+                                "is_criteria": null
+                            }
+                        ]
+                    }
+                ],
+                "testCount": 1
+            },
+            {
+                "id": 28,
+                "name": "Ini Category Name May25",
+                "code": "NOEL",
+                "tests": [
+                    {
+                        "id": "bb15b5bf-f59d-42f8-83fa-9a005a445404",
+                        "name": "TEST 2 7 MEI2025",
+                        "code": "7MEI20252",
+                        "subtests": [
+                            {
+                                "name": "Subtest 1 7 Mei 2025",
+                                "code": "7MEI20251",
+                                "is_criteria": null
+                            },
+                            {
+                                "name": "Subtest 2 7 Mei 2025",
+                                "code": "7MEI20252",
+                                "is_criteria": null
+                            }
+                        ]
+                    },
+                    {
+                        "id": "8750d642-337c-405e-957b-c805ea7fe678",
+                        "name": "TEST 1 7 MEI2025",
+                        "code": "7MEI20251",
+                        "subtests": [
+                            {
+                                "name": "Subtest 1 7 Mei 2025",
+                                "code": "7MEI20251",
+                                "is_criteria": null
+                            },
+                            {
+                                "name": "Subtest 2 7 Mei 2025",
+                                "code": "7MEI20252",
+                                "is_criteria": null
+                            }
+                        ]
+                    }
+                ],
+                "testCount": 2
+            },
+            {
+                "id": 29,
+                "name": "Contoh KPT",
+                "code": "CKPT",
+                "tests": [
+                    {
+                        "id": "454b50b8-6ac2-43ad-a681-a28f148b4768",
+                        "name": "test subtest wo duration",
+                        "code": "TWOS",
+                        "subtests": [
+                            {
+                                "name": "test wo duration",
+                                "code": "TWO2",
+                                "is_criteria": null
+                            },
+                            {
+                                "name": "test wo duration",
+                                "code": "TWO",
+                                "is_criteria": null
+                            }
+                        ]
                     }
                 ],
                 "testCount": 1
@@ -649,77 +720,87 @@ export const handleReportPersonal = async (req: Request, res: Response, next: Ne
         ]
     }
 }
-    * */
-    const resultBySubtest = await getPersonalReportData(batchId, assesseeEmail, "subtest");
-    console.log(resultBySubtest);
-    /*
 
-    * */
-    // const reportDataBySubtest = await gePersonalReportBySubtest
-    {
-    }
-    // Cek ada test apa aja
-    {
-    }
-    // Cek tipe summarynya apa
-    // Kalo by Subtest dia ambil getBySubtest
-    // Kelola by formulanya
-    // Dapatkan hasilnya
-    // Ambil criteria subtestnya
-    // Cocokkan batasannya
+    // // Cek dulu apakah test tersebut summarynya by
+    // * */
+    // if (reportDesign.detail.test.summary_type === "subtest") {
+    //   const resultBySubtest = await getPersonalReportData(batchId, assesseeEmail, "subtest");
+    //   console.log("result by subtest");
+    //   console.log(resultBySubtest);
+    //
+    // } else if ()
+    //
+    // console.log("result by category");
+    // const resultByCategory = await getPersonalReportData(batchId, assesseeEmail, "category");
+    // console.log(resultByCategory);
+    // /*
 
-    {
-      category_test_id: 1;
-      category_test_name: 1;
-      category_test_code: 1;
-      test_id: 1;
-      test_name: 1;
-      test_code: "abc";
-      result: {
-        test_point: 80;
-        result_criteria: "High";
-        description: "Mendapatkan skor tinggi";
-      }
-      norm: [
-        {
-          criteria_name: "Low",
-          min_value: 0,
-          max_value: 30,
-        },
-        {
-          criteria_name: "Mid",
-          min_value: 31,
-          max_value: 60,
-        },
-        {
-          criteria_name: "High",
-          min_value: 61,
-          max_value: 100,
-        },
-      ];
-      subtests: [
-        {
-          subtest_id: "uuid",
-          subtest_name: "Subtest 1",
-          subtest_code: "ABC",
-          result: {
-            subtest_point: 50,
-            subtest_criteria: "Medium",
-            criteria_color: "hex_code",
-          },
-        },
-        {
-          subtest_id: "uuid",
-          subtest_name: "Subtest 1",
-          subtest_code: "ABC",
-          result: {
-            subtest_point: 50,
-            subtest_criteria: "Medium",
-            criteria_color: "hex_code",
-          },
-        },
-      ];
-    }
+    // * */
+    // // const reportDataBySubtest = await gePersonalReportBySubtest
+    // {
+    // }
+    // // Cek ada test apa aja
+    // {
+    // }
+    // // Cek tipe summarynya apa
+    // // Kalo by Subtest dia ambil getBySubtest
+    // // Kelola by formulanya
+    // // Dapatkan hasilnya
+    // // Ambil criteria subtestnya
+    // // Cocokkan batasannya
+    //
+    // {
+    //   category_test_id: 1;
+    //   category_test_name: 1;
+    //   category_test_code: 1;
+    //   test_id: 1;
+    //   test_name: 1;
+    //   test_code: "abc";
+    //   result: {
+    //     test_point: 80;
+    //     result_criteria: "High";
+    //     description: "Mendapatkan skor tinggi";
+    //   }
+    //   norm: [
+    //     {
+    //       criteria_name: "Low",
+    //       min_value: 0,
+    //       max_value: 30,
+    //     },
+    //     {
+    //       criteria_name: "Mid",
+    //       min_value: 31,
+    //       max_value: 60,
+    //     },
+    //     {
+    //       criteria_name: "High",
+    //       min_value: 61,
+    //       max_value: 100,
+    //     },
+    //   ];
+    //   subtests: [
+    //     {
+    //       subtest_id: "uuid",
+    //       subtest_name: "Subtest 1",
+    //       subtest_code: "ABC",
+    //       result: {
+    //         subtest_point: 50,
+    //         subtest_criteria: "Medium",
+    //         criteria_color: "hex_code",
+    //       },
+    //     },
+    //     {
+    //       subtest_id: "uuid",
+    //       subtest_name: "Subtest 1",
+    //       subtest_code: "ABC",
+    //       result: {
+    //         subtest_point: 50,
+    //         subtest_criteria: "Medium",
+    //         criteria_color: "hex_code",
+    //       },
+    //     },
+    //   ];
+    // }
 
     //Kalo dia by category
     // ambil getByCategory
@@ -777,7 +858,10 @@ export const handleReportPersonal = async (req: Request, res: Response, next: Ne
 
     res.status(200).send({
       message: `Success!`,
-      data: resultBySubtest,
+      data: {
+        // subtest: resultBySubtest,
+        // category: resultByCategory,
+      },
       // data: {
       //   report_guide: {
       //     content: guide.content,
