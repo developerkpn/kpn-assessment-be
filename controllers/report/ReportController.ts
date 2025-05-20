@@ -3,6 +3,7 @@ import {
   assignReportDesign,
   generateReportForWholeBatch,
   getBatchInformationForReport,
+  getPersonalReportData,
   getReportDesignDetail,
   getReportGuide,
   // storeReportGuide,
@@ -54,7 +55,7 @@ export const handleGetBatchInformationForReport = async (req: Request, res: Resp
     const batchId = req.params.batchId;
     const allTests = await getBatchInformationForReport(batchId);
 
-    // Group tests by category
+    // Group tests by category and test
     const testsByCategory: any = {};
 
     // Add special category for uncategorized tests
@@ -64,35 +65,54 @@ export const handleGetBatchInformationForReport = async (req: Request, res: Resp
       tests: [],
     };
 
-    console.log("Cek All Test");
-    console.log(allTests);
+    // First pass: Group tests by category and then by test ID
+    const groupedTests: Record<string, Record<string, any>> = {};
 
     allTests.forEach((test) => {
-      // Focus on essential test information
-      const testInfo = {
-        id: test.test_id,
-        name: test.test_name,
-        code: test.test_code,
-      };
+      const categoryCode = test.category_code || "uncategorized";
+      const testId = test.test_id;
 
-      if (test.category_code) {
-        // Create category if it doesn't exist
-        if (!testsByCategory[test.category_code]) {
-          testsByCategory[test.category_code] = {
-            id: test.category_id,
-            name: test.category_name,
-            code: test.category_code,
-            tests: [],
-          };
-        }
-
-        // Add test to appropriate category
-        testsByCategory[test.category_code].tests.push(testInfo);
-      } else {
-        // Add to uncategorized
-        testsByCategory["uncategorized"].tests.push(testInfo);
+      // Initialize category if needed
+      if (!groupedTests[categoryCode]) {
+        groupedTests[categoryCode] = {};
       }
+
+      // Initialize test if needed
+      if (!groupedTests[categoryCode][testId]) {
+        groupedTests[categoryCode][testId] = {
+          id: testId,
+          name: test.test_name,
+          code: test.test_code,
+          subtests: [],
+        };
+      }
+
+      // Add subtest to the test with only required fields
+      groupedTests[categoryCode][testId].subtests.push({
+        name: test.subtest_name,
+        code: test.subtest_code,
+        is_criteria: test.is_criteria,
+      });
     });
+
+    // Second pass: Organize into the final format
+    for (const [categoryCode, testsMap] of Object.entries(groupedTests)) {
+      // Skip if category is uncategorized and has no tests
+      if (categoryCode === "uncategorized" && Object.keys(testsMap).length === 0) {
+        continue;
+      }
+
+      // Get category details from any test in this category
+      const categoryInfo = allTests.find((test) => test.category_code === categoryCode);
+
+      testsByCategory[categoryCode] = {
+        id: categoryInfo?.category_id || null,
+        name: categoryInfo?.category_name || "Uncategorized",
+        code: categoryCode,
+        tests: Object.values(testsMap),
+        testCount: Object.keys(testsMap).length,
+      };
+    }
 
     // Remove uncategorized category if empty
     if (testsByCategory["uncategorized"].tests.length === 0) {
@@ -101,11 +121,6 @@ export const handleGetBatchInformationForReport = async (req: Request, res: Resp
 
     // Convert to array format
     const categories = Object.values(testsByCategory);
-
-    // Add test count to each category
-    categories.forEach((category: any) => {
-      category.testCount = category.tests.length;
-    });
 
     // Batch basic info
     const batchInfo =
@@ -124,7 +139,7 @@ export const handleGetBatchInformationForReport = async (req: Request, res: Resp
       },
     });
   } catch (e) {
-    console.error("Error in handleGetSimpleTestDetailsByCategory:", e);
+    console.error("Error in handleGetBatchInformationForReport:", e);
     next(e);
   }
 };
@@ -557,57 +572,228 @@ function formatDate(date: Date): string {
 
 export const handleReportPersonal = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    console.log("masuk coys");
     const batchId = req.body.batch_id;
     const assesseeId = req.body.assessee_id;
     const assesseeEmail = req.body.assessee_email;
-
     // Get Report Guide
     const guideId = REPORT_GUIDE_ID;
     const guide = await getReportGuide(guideId);
+    console.log(guide);
     // Cek batch type
     const { batch } = await getBatchDetail(batchId);
     // Get Profilenya
-    const assessee = batch.type === "internal" ? getDarwinUser(assesseeId) : getAssesseeExternalProfile(assesseeEmail);
+    const assessee: any =
+      batch.type === "internal" ? await getDarwinUser(assesseeId) : await getAssesseeExternalProfile(assesseeEmail);
 
     console.log(assessee);
 
-    // Detail
-    // const assessee = {
-    //   assessee_name: "Test",
-    //   assessee_age: "",
-    // }
-    //
-    // Cek tipe batch dulu
-    // Kalo dia batch internal cek ke darwin
-    // Kalo dia batch external cek ke mst_user_externo
-    // const assesseeProfile =
-    // // Cek report designnya
-    // const reportDetail = ;
-    //
-    // // Generate report detail
-    //
+    const assesseeProfile = {
+      assessee_name: assessee.assessee_name,
+      assessee_age: assessee.assessee_age,
+      assessee_gender: assessee.assessee_gender,
+      work_location: assessee.work_location,
+    };
+
+    // Cek report design Detail
+    const reportDesign = await getReportDesignDetail(batchId);
+    console.log("Cek report design");
+    console.log(reportDesign);
+    /*
+    {
+    "message": "Success!",
+    "data": {
+        "batch": {
+            "name": "Assessment Eksternal 13 Mei 2025",
+            "code": "OD/DWS/MAY/2025/13"
+        },
+        "categories": [
+            {
+                "id": 37,
+                "name": "Kognitif",
+                "code": "KOGS",
+                "summary_view": "bar",
+                "summary_type": "summary",
+                "summary_formula": "avg",
+                "tests": [
+                    {
+                        "id": "50b2e9e8-5601-4e53-b2ed-e0bd5455aa90",
+                        "name": "Kognitif Test 13 Mei",
+                        "code": "KGT13MEI",
+                        "summary_view": "bar",
+                        "summary_type": "subtest",
+                        "summary_formula": "sum"
+                    }
+                ],
+                "testCount": 1
+            },
+            {
+                "id": 35,
+                "name": "Personality",
+                "code": "PERSONALITY",
+                "summary_view": "bar",
+                "summary_type": "detail",
+                "summary_formula": "sum",
+                "tests": [
+                    {
+                        "id": "c760f05c-d156-468d-a8f3-7fb0a86753e5",
+                        "name": "Personality Test 13 Mei",
+                        "code": "PT13MEI",
+                        "summary_view": "bar",
+                        "summary_type": "category",
+                        "summary_formula": "sum"
+                    }
+                ],
+                "testCount": 1
+            }
+        ]
+    }
+}
+    * */
+    const resultBySubtest = await getPersonalReportData(batchId, assesseeEmail, "subtest");
+    console.log(resultBySubtest);
+    /*
+
+    * */
+    // const reportDataBySubtest = await gePersonalReportBySubtest
+    {
+    }
+    // Cek ada test apa aja
+    {
+    }
+    // Cek tipe summarynya apa
+    // Kalo by Subtest dia ambil getBySubtest
+    // Kelola by formulanya
+    // Dapatkan hasilnya
+    // Ambil criteria subtestnya
+    // Cocokkan batasannya
+
+    {
+      category_test_id: 1;
+      category_test_name: 1;
+      category_test_code: 1;
+      test_id: 1;
+      test_name: 1;
+      test_code: "abc";
+      result: {
+        test_point: 80;
+        result_criteria: "High";
+        description: "Mendapatkan skor tinggi";
+      }
+      norm: [
+        {
+          criteria_name: "Low",
+          min_value: 0,
+          max_value: 30,
+        },
+        {
+          criteria_name: "Mid",
+          min_value: 31,
+          max_value: 60,
+        },
+        {
+          criteria_name: "High",
+          min_value: 61,
+          max_value: 100,
+        },
+      ];
+      subtests: [
+        {
+          subtest_id: "uuid",
+          subtest_name: "Subtest 1",
+          subtest_code: "ABC",
+          result: {
+            subtest_point: 50,
+            subtest_criteria: "Medium",
+            criteria_color: "hex_code",
+          },
+        },
+        {
+          subtest_id: "uuid",
+          subtest_name: "Subtest 1",
+          subtest_code: "ABC",
+          result: {
+            subtest_point: 50,
+            subtest_criteria: "Medium",
+            criteria_color: "hex_code",
+          },
+        },
+      ];
+    }
+
+    //Kalo dia by category
+    // ambil getByCategory
+    // Ambil category
+    // Ambil criteria tiap category
+    // Cocokkan hasilnya
+
+    {
+      category_test_id: 1;
+      category_test_name: 1;
+      category_test_code: 1;
+      test_id: 1;
+      test_name: 1;
+      test_code: "abc";
+      test_description: "Ini Test";
+      result: {
+        test_point: 80;
+        result_criteria: "High";
+        description: "Mendapatkan skor tinggi";
+      }
+      subtests: [
+        {
+          subtest_id: "uuid",
+          subtest_name: "Subtest",
+          subtest_code: "Subtest Code",
+          result: [
+            {
+              category_id: 1,
+              category_name: "Openness",
+              category_code: "O",
+              category_point: 20,
+              description: "Orang ini open banget",
+            },
+            {
+              category_id: 2,
+              category_name: "C",
+              category_code: "C",
+              category_point: 20,
+              description: "Orang ini ceria banget",
+            },
+            {
+              category_id: 3,
+              category_name: "E",
+              category_code: "E",
+              category_point: 20,
+              description: "Orang ini ember bocor banget",
+            },
+          ],
+        },
+      ];
+    }
     // // Generate intronya
     // const report = await report;
     // Generate dahulu detailnya
 
     res.status(200).send({
       message: `Success!`,
-      data: {
-        report_guide: {
-          content: "Hello World!",
-        },
-        profile: {
-          assessee_name: "John Doe",
-          assessee_age: 22,
-          assessee_gender: "Male",
-          test_date: "15/05/2025",
-          work_location: "KPN Corp",
-        },
-        intro: {},
-        detail: {},
-        proctoring: {},
-        log: {},
-      },
+      data: resultBySubtest,
+      // data: {
+      //   report_guide: {
+      //     content: guide.content,
+      //   },
+      //   profile: {
+      //     assessee_name: "John Doe",
+      //     assessee_age: 22,
+      //     assessee_gender: "Male",
+      //     test_date: "15/05/2025",
+      //     work_location: "KPN Corp",
+      //   },
+      //   intro: {},
+      //   detail: {},
+      // //   proctoring: {},
+      // //   log: {},
+      // },
     });
   } catch (e) {
     throw e;

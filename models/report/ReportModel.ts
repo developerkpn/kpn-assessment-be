@@ -7,6 +7,7 @@ import { async } from "rxjs";
 export const getReportGuide = async (reportGuideId: string) => {
   const client = await db.connect();
   try {
+    console.log(reportGuideId);
     const result = await client.query(
       `
         SELECT content, created_at, created_by 
@@ -15,7 +16,7 @@ export const getReportGuide = async (reportGuideId: string) => {
         `,
       [reportGuideId]
     );
-
+    console.log(result.rows);
     return result.rows[0];
   } catch (e) {
     console.log(e);
@@ -50,13 +51,16 @@ export const getBatchInformationForReport = async (batchId: string) => {
           b.*,
           c.*, 
           g.*, 
-          t.*
+          t.*,
+          s.*
         FROM t_batch_head b
         LEFT JOIN mst_grouptest_det g ON b.grouptest_id = g.grouptest_id
         LEFT JOIN mst_test_head t ON g.test_id = t.id
         LEFT JOIN mst_category c ON t.category_id = c.id
+        LEFT JOIN mst_test_det td ON t.id = td.test_id
+        LEFT JOIN mst_subtest_head s ON td.subtest_id = s.id 
         WHERE b.id = $1
-        GROUP BY b.id, g.id, t.id, c.id
+        GROUP BY b.id, g.id, t.id, c.id, s.id
         ORDER BY b.created_at DESC
         `,
       [batchId]
@@ -222,6 +226,34 @@ export const generateReportForWholeBatch = async (batchId: string) => {
   }
 };
 
+export const getExternalAssesseeProfile = async (assesseeEmail: string) => {
+  const client = await db.connect();
+  try {
+    const assessee = await client.query(
+      `
+        SELECT 
+          name,
+          email,
+          gender,
+          phone,
+          education,
+          institution,
+          date_of_birth
+        FROM mst_user_extern
+        WHERE email = $1
+        `,
+      [assesseeEmail]
+    );
+
+    return assessee.rows[0];
+  } catch (e) {
+    console.log(e);
+    throw e;
+  } finally {
+    client.release();
+  }
+};
+
 export const getAssesseeProfile = async (assesseeId: string) => {
   const client = await db.connect();
   try {
@@ -236,29 +268,40 @@ export const storeReporDesign = async (introPayload: any, detailPayload: any) =>
   } catch (e) {}
 };
 
-// export const checkReportDesign = async (reportId: string) => {
-//   const client = await db.connect();
-//   try {
-//     const
-//   } catch (e) {
-//   } finally {
-//   }
-// };
-
-export const getAssesseePersonalReport = async (batchId: string, assesseeEmail: any) => {
+export const checkReportDesign = async (reportId: string) => {
   const client = await db.connect();
   try {
-    const result = await client.query(
-      `
+  } catch (e) {
+  } finally {
+    client.release();
+  }
+};
+
+export const getPersonalReportData = async (batchId: string, assesseeEmail: any, type: string) => {
+  const client = await db.connect();
+  try {
+    let result;
+    if (type === "subtest") {
+      result = await client.query(
+        `
         SELECT *
-        FROM report_head h
-        LEFT JOIN report_test_intro i ON h.id = i.report_id  
-        LEFT JOIN report_test_detail d ON h.id = d.report_id
-        WHERE h.batch_id = $1
+        FROM test_result_by_subtest
+        WHERE assessee_email = $1 AND batch_id = $2
         `,
-      [batchId]
-    );
-    return result.rows;
+        [assesseeEmail, batchId]
+      );
+    } else if (type === "category") {
+      result = await client.query(
+        `
+        SELECT *
+        FROM test_result_by_subtest
+        WHERE assessee_email = $1 AND batch_id = $2
+        `,
+        [assesseeEmail, batchId]
+      );
+    }
+
+    return result?.rows;
   } catch (e) {
     console.log(e);
     throw e;
