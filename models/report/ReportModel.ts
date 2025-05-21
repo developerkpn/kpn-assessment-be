@@ -109,7 +109,7 @@ export const getReportDesignDetail = async (batchId: string) => {
           d.*
         FROM report_head h
         LEFT JOIN report_test_intro i ON h.id = i.report_id
-        LEFT JOIN report test_detail d ON h.id = d.report_id
+        LEFT JOIN report_test_detail d ON h.id = d.report_id
         WHERE h.batch_id = $1
         `,
       [batchId]
@@ -282,7 +282,7 @@ export const checkReportDesign = async (reportId: string) => {
   }
 };
 
-export const getPersonalReportData = async (batchId: string, assesseeEmail: any, type: string) => {
+export const getPersonalReportData = async (batchId: string, assesseeEmail: any, type: string, testId: string) => {
   const client = await db.connect();
   try {
     let result;
@@ -291,9 +291,9 @@ export const getPersonalReportData = async (batchId: string, assesseeEmail: any,
         `
         SELECT *
         FROM test_result_by_subtest
-        WHERE assessee_email = $1 AND batch_id = $2
+        WHERE assessee_email = $1 AND batch_id = $2 AND test_id = $3
         `,
-        [assesseeEmail, batchId]
+        [assesseeEmail, batchId, testId]
       );
     } else if (type === "category") {
       result = await client.query(
@@ -307,6 +307,51 @@ export const getPersonalReportData = async (batchId: string, assesseeEmail: any,
     }
 
     return result?.rows;
+  } catch (e) {
+    console.log(e);
+    throw e;
+  } finally {
+    client.release();
+  }
+};
+
+export const getTestCriteriaModel = async (testId: string) => {
+  const client = await db.connect();
+  try {
+    const result = await client.query(
+      `
+        SELECT
+          ct.id
+         FROM mst_test_head t
+         LEFT JOIN mst_category c ON t.category_id = c.id
+         LEFT JOIN mst_value ct ON c.criteria_id = ct.id
+         WHERE t.id = $1
+        `,
+      [testId]
+    );
+    return result.rows[0];
+  } catch (e) {
+    console.log(e);
+    throw e;
+  } finally {
+    client.release();
+  }
+};
+
+export const getCategoryCriteriaModel = async (categoryId: string) => {
+  const client = await db.connect();
+  try {
+    const result = await client.query(
+      `
+        SELECT
+          ct.id
+         FROM mst_category c
+         LEFT JOIN mst_value ct ON c.criteria_id = ct.id
+         WHERE c.id = $1
+        `,
+      [categoryId]
+    );
+    return result.rows[0];
   } catch (e) {
     console.log(e);
     throw e;

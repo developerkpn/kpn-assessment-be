@@ -3,9 +3,11 @@ import {
   assignReportDesign,
   generateReportForWholeBatch,
   getBatchInformationForReport,
+  getCategoryCriteriaModel,
   getPersonalReportData,
   getReportDesignDetail,
   getReportGuide,
+  getTestCriteriaModel,
   // storeReportGuide,
   updateReportGuide,
 } from "#dep/models/report/ReportModel";
@@ -889,7 +891,21 @@ function formatDate(date: Date): string {
 //   }
 // };
 
-const getSubtestCriteria = async (criteriaId: string) => {
+const countSubTestFormula = async () => {};
+
+const countDetailFormula = "";
+
+const countIntroFormula = "";
+
+const proceedDetail = "";
+
+const proceedIntro = "";
+
+const proceeedProfile = "";
+
+const proceedGuide = "";
+
+const getCriteriaForReport = async (criteriaId: string) => {
   try {
     const rawData = await getCriteriaDetail(criteriaId);
 
@@ -921,9 +937,21 @@ const getSubtestCriteria = async (criteriaId: string) => {
   }
 };
 
+const getTestCriteria = async (testId: string) => {
+  const testCriteria = await getTestCriteriaModel(testId);
+  const getCriteria = await getCriteriaForReport(testCriteria.id);
+  return getCriteria;
+};
+
+const getCategoryCriteriaReport = async (categoryId: string) => {
+  const categoryCriteria = await getCategoryCriteriaModel(categoryId);
+  const getCriteria = await getCriteriaForReport(categoryCriteria.id);
+  return getCriteria;
+};
+
 export const handleReportPersonal = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    console.log("masuk coys");
+    console.log("Processing personal report request");
     const batchId = req.body.batch_id;
     const assesseeId = req.body.assessee_id;
     const assesseeEmail = req.body.assessee_email;
@@ -931,16 +959,13 @@ export const handleReportPersonal = async (req: Request, res: Response, next: Ne
     // Get Report Guide
     const guideId = REPORT_GUIDE_ID;
     const guide = await getReportGuide(guideId);
-    console.log(guide);
 
-    // Cek batch type
+    // Check batch type
     const { batch } = await getBatchDetail(batchId);
 
-    // Get Profilenya
+    // Get Assessee Profile
     const assessee =
       batch.type === "internal" ? await getDarwinUser(assesseeId) : await getAssesseeExternalProfile(assesseeEmail);
-
-    console.log(assessee);
 
     const assesseeProfile = {
       assessee_name: assessee.assessee_name,
@@ -954,167 +979,273 @@ export const handleReportPersonal = async (req: Request, res: Response, next: Ne
     // Transform the response to the desired format
     const reportDesign = transformResponseFormat(batchInformation, design);
 
-    // Memproses data berdasarkan kategori dan subtest
-    const categoryResults: any = [];
+    // Define the types for intro and detail results arrays
+    const detailResults: Array<any> = [];
+    const introResults: Array<any> = [];
 
-    let detail;
-
-    // Loop melalui semua kategori dalam reportDesign
+    // Process all categories in the reportDesign
     for (const category of reportDesign.categories) {
-      const categoryData: any = {
-        category_test_id: category.id,
-        category_test_name: category.name,
-        category_test_code: category.code,
+      const categoryData: {
+        category_id: string | number;
+        category_name: string;
+        category_code: string;
+        summary_type: string;
+        summary_view: string;
+        summary_formula: string;
+        tests: Array<any>; // Define tests as Array<any> to allow pushing any test objects
+        subtests: Array<any>; // Define subtests as Array<any>
+      } = {
+        category_id: category.id,
+        category_name: category.name,
+        category_code: category.code,
+        summary_type: category.summary_type || "summary",
+        summary_view: category.summary_view || "bar",
+        summary_formula: category.summary_formula || "sum",
         tests: [],
+        subtests: [],
       };
 
-      // Loop melalui semua test dalam kategori
+      // Process all tests in this category for the intro section
+      for (const test of category.tests) {
+        // Create a simplified test object for the intro section
+        const introTest = {
+          id: test.id,
+          name: test.name,
+          description: test.description || "No description available",
+          result: {},
+        };
+
+        // Get test criteria to determine overall test score and norm
+        const testCriteria = await getTestCriteria(test.id);
+
+        // For intro section, we just need basic test information
+        if (test.summary_type === "subtest") {
+          // Get overall test score for intro section
+          const subtestResultsArray = await getPersonalReportData(batchId, assesseeEmail, "subtest", test.id);
+
+          // Calculate test point based on summary formula
+          let testPoint = 0;
+          if (subtestResultsArray && subtestResultsArray.length > 0) {
+            if (test.summary_formula === "sum") {
+              testPoint = subtestResultsArray.reduce((total, subtest) => {
+                return total + (Number(subtest.subtest_point) || 0);
+              }, 0);
+            } else if (test.summary_formula === "average") {
+              testPoint =
+                subtestResultsArray.reduce((total, subtest) => {
+                  return total + (Number(subtest.subtest_point) || 0);
+                }, 0) / (subtestResultsArray.length || 1);
+            }
+          }
+
+          // Add norm information to the intro test
+          introTest.result = {
+            test_point: testPoint,
+            norm: testCriteria.criterias.map((criteria: any) => ({
+              id: criteria.id,
+              criteria_name: criteria.criteria_name,
+              minimum_score: Number(criteria.minimum_score),
+              maximum_score: Number(criteria.maximum_score),
+            })),
+          };
+        } else if (test.summary_type === "category") {
+          // For category-based tests in intro, we may need less detailed info
+          introTest.result = {
+            type: test.name, // Simplified for category tests
+          };
+        }
+
+        categoryData.tests.push(introTest);
+      }
+
+      introResults.push(categoryData);
+
+      // Now process detailed information for each test
       for (const test of category.tests) {
         let testResult;
 
-        // Check summary type untuk menentukan jenis data yang diambil
+        // Process based on summary type
         if (test.summary_type === "subtest") {
-          console.log("cek test");
-          console.log(test);
-          // Dapatkan data report untuk subtest
-          /*
-          [
-  {
-    batch_id: '0196e6ab-81e3-7110-8519-e342df7968c6',
-    grouptest_id: '808f0c0d-bfca-4489-8f2f-ee33cae7c9b1',
-    test_id: '50b2e9e8-5601-4e53-b2ed-e0bd5455aa90',
-    test_name: 'Kognitif Test 13 Mei',
-    test_code: 'KGT13MEI',
-    subtest_id: '47ea2220-4bf9-4a0d-bc6e-a1342e388b19',
-    subtest_name: 'Matematika Dasar Subtest 13 Mei',
-    subtest_code: 'MTKD13MEI',
-    criteria_id: null,
-    assessee_name: 'Muhammad Ilham Hakim',
-    assessee_email: 'muhammadilhamhakimsuherman@gmail.com',
-    assessee_nik: '0196c7b3-d9d6-7331-8f13-e335696f6aed',
-    progress_head_id: '0196e6ab-8567-7110-851a-3a8a3497efea',
-    assessee_id: '0196c7b3-d9d6-7331-8f13-e335696f6aed',
-    det_id: '0196e6ac-2a57-7110-851a-505ef2b0a506',
-    taken_test_id: '50b2e9e8-5601-4e53-b2ed-e0bd5455aa90',
-    taken_subtest_id: '47ea2220-4bf9-4a0d-bc6e-a1342e388b19',
-    status: 'Completed',
-    taken_at: 2025-05-20T06:46:13.367Z,
-    should_be_finished_at: 2025-05-20T07:46:13.367Z,
-    submit_at: 2025-05-20T06:46:23.314Z,
-    subtest_point: '20',
-    test_point: '20'
-  }
-]
-          * */
-          const subtestResults: any = await getPersonalReportData(batchId, assesseeEmail, "subtest", test.id);
-          console.log("cek subtest result");
-          console.log(subtestResults);
-          // Dapatkan kriteria untuk subtest
-          const subtestCriteria: any = await getSubtestCriteria(subtestResults);
+          // Get detailed subtest data
+          const subtestResultsArray: any = await getPersonalReportData(batchId, assesseeEmail, "subtest", test.id);
 
-          // Proses setiap subtest dan cocokkan dengan kriteria yang sesuai
-          const processedSubtests = subtestResults.subtests.map((subtest: any) => {
-            // Temukan kriteria yang cocok berdasarkan nilai subtest_point
-            const matchingCriteria = subtestCriteria.criteria.find((criteria: any) => {
-              return subtest.subtest_point >= criteria.minimum_score && subtest.subtest_point <= criteria.maximum_score;
+          // Process each subtest and match with appropriate criteria
+          const processedSubtests = [];
+
+          for (const subtestResult of subtestResultsArray) {
+            // Get criteria for this subtest
+            const subtestCriteria = await getCriteriaForReport(subtestResult.criteria_id);
+
+            // Convert subtest_point to number
+            const subtestPoint = Number(subtestResult.subtest_point) || 0;
+
+            // Find matching criteria based on score
+            const matchingCriteria = subtestCriteria.criterias.find((criteria: any) => {
+              return subtestPoint >= Number(criteria.minimum_score) && subtestPoint <= Number(criteria.maximum_score);
             });
 
-            return {
-              subtest_id: subtest.subtest_id,
-              subtest_name: subtest.subtest_name,
-              subtest_code: subtest.subtest_code,
+            processedSubtests.push({
+              subtest_id: subtestResult.subtest_id,
+              subtest_name: subtestResult.subtest_name,
+              subtest_code: subtestResult.subtest_code,
+              description:
+                subtestResult.description ||
+                "Lorem Ipsum is simply dummy text of the printing and typesetting industry.",
               result: {
-                subtest_point: subtest.subtest_point,
+                subtest_point: subtestPoint,
                 subtest_criteria: matchingCriteria ? matchingCriteria.criteria_name : "Undefined",
                 criteria_color: matchingCriteria ? matchingCriteria.hex_code : "#CCCCCC",
-                description: matchingCriteria ? matchingCriteria.description : "No description available",
+                categories: [], // Empty array for categories as specified in expected output
               },
-            };
+            });
+          }
+
+          // Get test criteria for overall result
+          const testCriteria = await getTestCriteria(test.id);
+
+          // Calculate overall test score
+          let testPoint = 0;
+          if (test.summary_formula === "sum") {
+            testPoint = processedSubtests.reduce((total, subtest) => {
+              return total + subtest.result.subtest_point;
+            }, 0);
+          } else if (test.summary_formula === "average") {
+            testPoint =
+              processedSubtests.reduce((total, subtest) => {
+                return total + subtest.result.subtest_point;
+              }, 0) / (processedSubtests.length || 1);
+          }
+
+          // Find matching test criteria
+          const matchingTestCriteria = testCriteria.criterias.find((criteria: any) => {
+            return testPoint >= Number(criteria.minimum_score) && testPoint <= Number(criteria.maximum_score);
           });
 
-          // Dapatkan kriteria test untuk menentukan hasil keseluruhan test
-          //   const testCriteria = await getTestCriteria(test.id);
-          //
-          //   // Hitung total skor berdasarkan summary_formula
-          //   let testPoint = 0;
-          //   if (test.summary_formula === "sum") {
-          //     testPoint = processedSubtests.reduce((total: number, subtest: any) => {
-          //       return total + subtest.result.subtest_point;
-          //     }, 0);
-          //   } else if (test.summary_formula === "average") {
-          //     testPoint =
-          //       processedSubtests.reduce((total: number, subtest: any) => {
-          //         return total + subtest.result.subtest_point;
-          //       }, 0) / processedSubtests.length;
-          //   }
-          //
-          //   // Temukan kriteria test yang sesuai dengan testPoint
-          //   const matchingTestCriteria = testCriteria.find((criteria: any) => {
-          //     return testPoint >= criteria.minimum_score && testPoint <= criteria.maximum_score;
-          //   });
-          //
-          //   testResult = {
-          //     test_point: testPoint,
-          //     result_criteria: matchingTestCriteria ? matchingTestCriteria.criteria_name : "Undefined",
-          //     description: matchingTestCriteria ? matchingTestCriteria.description : "No description available",
-          //     norm: testCriteria.map((criteria: any) => ({
-          //       criteria_name: criteria.criteria_name,
-          //       minimum_score: criteria.minimum_score,
-          //       maximum_score: criteria.maximum_score,
-          //       color: criteria.hex_code,
-          //     })),
-          //     subtests: processedSubtests,
-          //   };
-          // } else if (test.summary_type === "category") {
-          //   // Dapatkan data report untuk kategori
-          //   const categoryResults: any = await getPersonalReportData(batchId, assesseeEmail, "category", test.id);
-          //
-          //   // Format for category type is different from subtest type
-          //   const processedCategories = categoryResults.categories.map((category: any) => {
-          //     return {
-          //       category_id: category.category_id,
-          //       category_name: category.category_name,
-          //       category_code: category.category_code,
-          //       category_point: category.category_point,
-          //       description: category.description,
-          //       color: category.hex_code,
-          //     };
-          //   });
-          //
-          //   testResult = {
-          //     categories: processedCategories,
-          //   };
+          testResult = {
+            test_point: testPoint,
+            criteria: matchingTestCriteria ? matchingTestCriteria.criteria_name : "Undefined",
+            description: matchingTestCriteria ? matchingTestCriteria.description : "No description available",
+            norm: testCriteria.criterias.map((criteria: any) => ({
+              id: criteria.id,
+              criteria_name: criteria.criteria_name,
+              minimum_score: Number(criteria.minimum_score),
+              maximum_score: Number(criteria.maximum_score),
+            })),
+          };
+
+          // Create the detailed test object
+          const detailTest = {
+            category_id: category.id,
+            category_name: category.name,
+            category_code: category.code,
+            test_id: test.id,
+            test_name: test.name,
+            test_code: test.code,
+            taken_at: new Date().toISOString(),
+            summary_type: test.summary_type,
+            summary_view: test.summary_view,
+            summary_formula: test.summary_formula,
+            result: testResult,
+            subtests: processedSubtests,
+          };
+
+          detailResults.push(detailTest);
+        } else if (test.summary_type === "category") {
+          // Fetch all categories for this test
+          const fetchedCategoryResults = await getPersonalReportData(batchId, assesseeEmail, "category", test.id);
+
+          if (!Array.isArray(fetchedCategoryResults)) {
+            throw new Error("Expected array from getPersonalReportData for category");
+          }
+
+          // Process categories for this test
+          const processedCategories = await Promise.all(
+            fetchedCategoryResults.map(async (item) => {
+              const categoryId = item.category_id;
+              if (!categoryId) {
+                throw new Error("Missing category_id in category result");
+              }
+
+              // Get criteria for this category
+              const criteriaCategory = await getCategoryCriteriaReport(categoryId);
+
+              // Convert category_point to number
+              const categoryPoint = Number(item.category_point) || 0;
+
+              // Find matching criteria based on score
+              let matchingCriteria = null;
+              if (criteriaCategory && Array.isArray(criteriaCategory.criterias)) {
+                matchingCriteria = criteriaCategory.criterias.find((criteria) => {
+                  const min = Number(criteria.minimum_score) || 0;
+                  const max = Number(criteria.maximum_score) || Infinity;
+                  return categoryPoint >= min && categoryPoint <= max;
+                });
+              }
+
+              return {
+                category_id: item.category_id,
+                category_name: item.category_name || "Unknown Category",
+                category_code: item.category_code || "",
+                category_point: categoryPoint,
+                description: matchingCriteria ? matchingCriteria.description : "No matching criteria found",
+                color: matchingCriteria ? matchingCriteria.hex_code : "#CCCCCC",
+              };
+            })
+          );
+
+          // Create a subtest entry for category-based test
+          const subtest = {
+            subtest_id: test.id, // Using test ID as subtest ID for simplicity
+            subtest_name: test.name,
+            subtest_code: test.code,
+            result: {
+              subtest_point: null,
+              subtest_criteria: null,
+              criteria_color: null,
+              categories: processedCategories,
+            },
+          };
+
+          // Create the detailed test object
+          const detailTest = {
+            test_id: test.id,
+            test_name: test.name,
+            test_code: test.code,
+            taken_at: new Date().toISOString(),
+            summary_type: test.summary_type,
+            summary_view: test.summary_view,
+            summary_formula: test.summary_formula,
+            result: {
+              test_point: null,
+              criteria: null,
+              description: null,
+            },
+            norm: [],
+            subtests: [subtest],
+          };
+
+          detailResults.push(detailTest);
         } else {
-          throw new ResponseError(400, "There's invalid summary type in a test");
+          throw new ResponseError(400, "Invalid summary type in test");
         }
-
-        const testData = {
-          test_id: test.id,
-          test_name: test.name,
-          test_code: test.code,
-          test_description: test.description || "Deskripsi test",
-          summary_type: test.summary_type,
-          summary_formula: test.summary_formula,
-          summary_view: test.summary_view,
-          result: testResult,
-        };
-
-        categoryData.tests.push(testData);
       }
-
-      categoryResults.push(categoryData);
     }
 
-    // Generate report dengan data profil dan hasil test
+    // Generate final report data
     const reportData = {
-      report_guide: {
-        content: guide.content,
-      },
       profile: {
         ...assesseeProfile,
         test_date: new Date().toLocaleDateString("id-ID"),
       },
-      results: categoryResults,
+      guide: {
+        content: guide.content,
+      },
+      batch: {
+        name: batch.name,
+        code: batch.code || `${batch.type.toUpperCase()}/${batch.id}`,
+      },
+      intro: introResults,
+      detail: detailResults,
     };
 
     res.status(200).send({
@@ -1125,6 +1256,478 @@ export const handleReportPersonal = async (req: Request, res: Response, next: Ne
     next(e);
   }
 };
+
+// export const handleReportPersonal = async (req: Request, res: Response, next: NextFunction) => {
+//   try {
+//     console.log("masuk coys");
+//     const batchId = req.body.batch_id;
+//     const assesseeId = req.body.assessee_id;
+//     const assesseeEmail = req.body.assessee_email;
+//
+//     // Get Report Guide
+//     const guideId = REPORT_GUIDE_ID;
+//     const guide = await getReportGuide(guideId);
+//     console.log(guide);
+//
+//     // Cek batch type
+//     const { batch } = await getBatchDetail(batchId);
+//
+//     // Get Profilenya
+//     const assessee =
+//       batch.type === "internal" ? await getDarwinUser(assesseeId) : await getAssesseeExternalProfile(assesseeEmail);
+//
+//     console.log(assessee);
+//
+//     const assesseeProfile = {
+//       assessee_name: assessee.assessee_name,
+//       assessee_age: assessee.assessee_age,
+//       assessee_gender: assessee.assessee_gender,
+//       work_location: assessee.work_location,
+//     };
+//
+//     const batchInformation = await getBatchInformationForReport(batchId);
+//     const design = await getReportDesignDetail(batchId);
+//     // Transform the response to the desired format
+//     const reportDesign = transformResponseFormat(batchInformation, design);
+//
+//     // Memproses data berdasarkan kategori dan subtest
+//     const categoryResults: any = [];
+//
+//     // Loop melalui semua kategori dalam reportDesign
+//     for (const category of reportDesign.categories) {
+//       const categoryData: any = {
+//         category_test_id: category.id,
+//         category_test_name: category.name,
+//         category_test_code: category.code,
+//         tests: [],
+//       };
+//
+//       // Loop melalui semua test dalam kategori
+//       for (const test of category.tests) {
+//         let testResult;
+//
+//         // Check summary type untuk menentukan jenis data yang diambil
+//         if (test.summary_type === "subtest") {
+//           console.log("cek test");
+//           console.log(test);
+//
+//           // Dapatkan data report untuk subtest
+//           const subtestResultsArray: any = await getPersonalReportData(batchId, assesseeEmail, "subtest", test.id);
+//           console.log("cek subtest result");
+//           console.log(subtestResultsArray);
+//
+//           // Proses setiap subtest dan cocokkan dengan kriteria yang sesuai
+//           const processedSubtests = [];
+//
+//           for (const subtestResult of subtestResultsArray) {
+//             // Dapatkan kriteria untuk subtest
+//             const subtestCriteria: any = await getCriteriaForReport(subtestResult.criteria_id);
+//             console.log("cek subtest criteria 1");
+//             console.log(subtestCriteria);
+//             // Nilai subtest_point bisa berupa string, konversi ke number
+//             const subtestPoint = Number(subtestResult.subtest_point) || 0;
+//
+//             // Temukan kriteria yang cocok berdasarkan nilai subtest_point
+//             const matchingCriteria = subtestCriteria.criterias.find((criteria: any) => {
+//               return subtestPoint >= Number(criteria.minimum_score) && subtestPoint <= Number(criteria.maximum_score);
+//             });
+//
+//             processedSubtests.push({
+//               subtest_id: subtestResult.subtest_id,
+//               subtest_name: subtestResult.subtest_name,
+//               subtest_code: subtestResult.subtest_code,
+//               description: "Lorem Ipsum is simply dummy text of the printing and typesetting industry.", // Bisa diganti dengan deskripsi dari API jika tersedia
+//               result: {
+//                 subtest_point: subtestPoint,
+//                 subtest_criteria: matchingCriteria ? matchingCriteria.criteria_name : "Undefined",
+//                 criteria_color: matchingCriteria ? matchingCriteria.hex_code : "#CCCCCC",
+//                 categories: [], // Sesuai dengan struktur yang diinginkan
+//               },
+//             });
+//           }
+//
+//           console.log("coba masuk sini");
+//           // Dapatkan kriteria test untuk menentukan hasil keseluruhan test
+//           const testCriteria: any = await getTestCriteria(test.id);
+//           console.log(testCriteria);
+//           console.log("test criteria");
+//           // Hitung total skor berdasarkan summary_formula
+//           let testPoint = 0;
+//           if (test.summary_formula === "sum") {
+//             testPoint = processedSubtests.reduce((total: number, subtest: any) => {
+//               return total + subtest.result.subtest_point;
+//             }, 0);
+//           } else if (test.summary_formula === "average") {
+//             testPoint =
+//               processedSubtests.reduce((total: number, subtest: any) => {
+//                 return total + subtest.result.subtest_point;
+//               }, 0) / processedSubtests.length || 1; // Prevent division by zero
+//           }
+//
+//           // Temukan kriteria test yang sesuai dengan testPoint
+//           const matchingTestCriteria = testCriteria.criterias.find((criteria: any) => {
+//             return testPoint >= Number(criteria.minimum_score) && testPoint <= Number(criteria.maximum_score);
+//           });
+//
+//           testResult = {
+//             test_point: testPoint,
+//             criteria: matchingTestCriteria ? matchingTestCriteria.criteria_name : "Undefined",
+//             description: matchingTestCriteria ? matchingTestCriteria.description : "No description available",
+//             norm: testCriteria.criterias.map((criteria: any) => ({
+//               id: criteria.id,
+//               criteria_name: criteria.criteria_name,
+//               minimum_score: Number(criteria.minimum_score),
+//               maximum_score: Number(criteria.maximum_score),
+//             })),
+//             subtests: processedSubtests,
+//           };
+//         } else if (test.summary_type === "category") {
+//           console.log("Processing test with category summary type:", test.name);
+//
+//           // Fetch all categories for this test
+//           const fetchedCategoryResults: any = await getPersonalReportData(batchId, assesseeEmail, "category", test.id);
+//           console.log("Raw category results:", fetchedCategoryResults);
+//
+//           // Validate if response is an array
+//           if (!Array.isArray(fetchedCategoryResults)) {
+//             throw new Error("Expected array from getPersonalReportData for category");
+//           }
+//
+//           // Process each category in the array
+//           const processedCategories = await Promise.all(
+//             fetchedCategoryResults.map(async (item) => {
+//               // Ensure category_id is available
+//               const categoryId = item.category_id;
+//               if (!categoryId) {
+//                 throw new Error("Missing category_id in category result");
+//               }
+//
+//               console.log(`Processing category ID: ${categoryId}, Name: ${item.category_name}`);
+//
+//               // Get criteria for this category
+//               const criteriaCategory = await getCategoryCriteriaReport(categoryId);
+//               console.log(`Criteria for category ${categoryId}:`, criteriaCategory);
+//
+//               // Ensure criteriaCategory has a "criterias" property
+//               if (!criteriaCategory || !Array.isArray(criteriaCategory.criterias)) {
+//                 console.warn(`No criteria found for category ${categoryId}, using default values`);
+//                 return {
+//                   category_id: item.category_id,
+//                   category_name: item.category_name || "Unknown Category",
+//                   category_code: item.category_code || "",
+//                   category_point: Number(item.category_point) || 0,
+//                   description: "No criteria defined for this category",
+//                   color: "#CCCCCC", // Default gray color
+//                 };
+//               }
+//
+//               // Convert category_point to Number
+//               const categoryPoint = Number(item.category_point) || 0;
+//
+//               // Find matching criteria based on score
+//               const matchingCriteria = criteriaCategory.criterias.find((criteria: any) => {
+//                 const min = Number(criteria.minimum_score) || 0;
+//                 const max = Number(criteria.maximum_score) || Infinity;
+//                 return categoryPoint >= min && categoryPoint <= max;
+//               });
+//
+//               // Return object with description and color from matching criteria
+//               return {
+//                 category_id: item.category_id,
+//                 category_name: item.category_name || "Unknown Category",
+//                 category_code: item.category_code || "",
+//                 category_point: categoryPoint,
+//                 description: matchingCriteria ? matchingCriteria.description : "No matching criteria found",
+//                 color: matchingCriteria ? matchingCriteria.hex_code : "#CCCCCC", // Default color if no match
+//                 criteria_details: matchingCriteria || null, // Include full criteria details if needed
+//               };
+//             })
+//           );
+//
+//           // Save final result with all processed categories
+//           testResult = {
+//             categories: processedCategories,
+//           };
+//         } else {
+//           throw new ResponseError(400, "There's invalid summary type in a test");
+//         }
+//
+//         const testData = {
+//           category_id: test.category_id, // Changed from category.id to test.category_id
+//           category_name: test.category_name, // Changed from category.name
+//           category_code: test.category_code, // Changed from category.code
+//           test_id: test.id,
+//           test_name: test.name,
+//           test_code: test.code,
+//           taken_at: new Date().toISOString(),
+//           summary_type: test.summary_type,
+//           summary_view: test.summary_view,
+//           summary_formula: test.summary_formula,
+//           result: testResult,
+//         };
+//
+//         categoryResults.push(testData);
+//       }
+//
+//       // Generate report dengan data profil dan hasil test
+//       const reportData = {
+//         report_guide: {
+//           content: guide.content,
+//         },
+//         profile: {
+//           ...assesseeProfile,
+//           test_date: new Date().toLocaleDateString("id-ID"),
+//         },
+//         detail: categoryResults,
+//       };
+//
+//       res.status(200).send({
+//         message: "Success!",
+//         data: reportData,
+//       });
+//     }
+//   } catch (e) {
+//     next(e);
+//   }
+// };
+
+// export const handleReportPersonal = async (req: Request, res: Response, next: NextFunction) => {
+//   try {
+//     console.log("masuk coys");
+//     const batchId = req.body.batch_id;
+//     const assesseeId = req.body.assessee_id;
+//     const assesseeEmail = req.body.assessee_email;
+//
+//     // Get Report Guide
+//     const guideId = REPORT_GUIDE_ID;
+//     const guide = await getReportGuide(guideId);
+//     console.log(guide);
+//
+//     // Cek batch type
+//     const { batch } = await getBatchDetail(batchId);
+//
+//     // Get Profilenya
+//     const assessee =
+//       batch.type === "internal" ? await getDarwinUser(assesseeId) : await getAssesseeExternalProfile(assesseeEmail);
+//
+//     console.log(assessee);
+//
+//     const assesseeProfile = {
+//       assessee_name: assessee.assessee_name,
+//       assessee_age: assessee.assessee_age,
+//       assessee_gender: assessee.assessee_gender,
+//       work_location: assessee.work_location,
+//     };
+//
+//     const batchInformation = await getBatchInformationForReport(batchId);
+//     const design = await getReportDesignDetail(batchId);
+//     // Transform the response to the desired format
+//     const reportDesign = transformResponseFormat(batchInformation, design);
+//
+//     // Memproses data berdasarkan kategori dan subtest
+//     const categoryResults: any = [];
+//
+//     let detail;
+//
+//     // Loop melalui semua kategori dalam reportDesign
+//     for (const category of reportDesign.categories) {
+//       const categoryData: any = {
+//         category_test_id: category.id,
+//         category_test_name: category.name,
+//         category_test_code: category.code,
+//         tests: [],
+//       };
+//
+//       // Loop melalui semua test dalam kategori
+//       for (const test of category.tests) {
+//         let testResult;
+//
+//         // Check summary type untuk menentukan jenis data yang diambil
+//         if (test.summary_type === "subtest") {
+//           console.log("cek test");
+//           console.log(test);
+//           // Dapatkan data report untuk subtest
+//           /*
+//           [
+//   {
+//     batch_id: '0196e6ab-81e3-7110-8519-e342df7968c6',
+//     grouptest_id: '808f0c0d-bfca-4489-8f2f-ee33cae7c9b1',
+//     test_id: '50b2e9e8-5601-4e53-b2ed-e0bd5455aa90',
+//     test_name: 'Kognitif Test 13 Mei',
+//     test_code: 'KGT13MEI',
+//     subtest_id: '47ea2220-4bf9-4a0d-bc6e-a1342e388b19',
+//     subtest_name: 'Matematika Dasar Subtest 13 Mei',
+//     subtest_code: 'MTKD13MEI',
+//     criteria_id: null,
+//     assessee_name: 'Muhammad Ilham Hakim',
+//     assessee_email: 'muhammadilhamhakimsuherman@gmail.com',
+//     assessee_nik: '0196c7b3-d9d6-7331-8f13-e335696f6aed',
+//     progress_head_id: '0196e6ab-8567-7110-851a-3a8a3497efea',
+//     assessee_id: '0196c7b3-d9d6-7331-8f13-e335696f6aed',
+//     det_id: '0196e6ac-2a57-7110-851a-505ef2b0a506',
+//     taken_test_id: '50b2e9e8-5601-4e53-b2ed-e0bd5455aa90',
+//     taken_subtest_id: '47ea2220-4bf9-4a0d-bc6e-a1342e388b19',
+//     status: 'Completed',
+//     taken_at: 2025-05-20T06:46:13.367Z,
+//     should_be_finished_at: 2025-05-20T07:46:13.367Z,
+//     submit_at: 2025-05-20T06:46:23.314Z,
+//     subtest_point: '20',
+//     test_point: '20'
+//   }
+// ]
+//           * */
+//           console.log(test);
+//           const subtestResults: any = await getPersonalReportData(batchId, assesseeEmail, "subtest", test.id);
+//           console.log("cek subtest result");
+//           console.log(subtestResults);
+//           /*
+//           [
+//   {
+//     batch_id: '0196e6ab-81e3-7110-8519-e342df7968c6',
+//     grouptest_id: '808f0c0d-bfca-4489-8f2f-ee33cae7c9b1',
+//     test_id: '50b2e9e8-5601-4e53-b2ed-e0bd5455aa90',
+//     test_name: 'Kognitif Test 13 Mei',
+//     test_code: 'KGT13MEI',
+//     subtest_id: '47ea2220-4bf9-4a0d-bc6e-a1342e388b19',
+//     subtest_name: 'Matematika Dasar Subtest 13 Mei',
+//     subtest_code: 'MTKD13MEI',
+//     criteria_id: '3e18c96c-f4a9-49ef-aec9-ad3f28d59b86',
+//     assessee_name: 'Muhammad Ilham Hakim',
+//     assessee_email: 'muhammadilhamhakimsuherman@gmail.com',
+//     assessee_nik: '0196c7b3-d9d6-7331-8f13-e335696f6aed',
+//     progress_head_id: '0196e6ab-8567-7110-851a-3a8a3497efea',
+//     assessee_id: '0196c7b3-d9d6-7331-8f13-e335696f6aed',
+//     det_id: '0196e6ac-2a57-7110-851a-505ef2b0a506',
+//     taken_test_id: '50b2e9e8-5601-4e53-b2ed-e0bd5455aa90',
+//     taken_subtest_id: '47ea2220-4bf9-4a0d-bc6e-a1342e388b19',
+//     status: 'Completed',
+//     taken_at: 2025-05-20T06:46:13.367Z,
+//     should_be_finished_at: 2025-05-20T07:46:13.367Z,
+//     submit_at: 2025-05-20T06:46:23.314Z,
+//     subtest_point: '20',
+//     test_point: '20'
+//   }
+// ]
+//
+//           * */
+//           // Olah subtest pada test satu per satu
+//           subtest_point: subtestResults.subtest_points = subtestResults.subtest_points ? subtestResults : 0;
+//           // Dapatkan kriteria untuk subtest
+//           const subtestCriteria: any = await getSubtestCriteria(subtestResults.criteria_id);
+//
+//           // Proses setiap subtest dan cocokkan dengan kriteria yang sesuai
+//           const processedSubtests = subtestResults.subtests.map((subtest: any) => {
+//             // Temukan kriteria yang cocok berdasarkan nilai subtest_point
+//             const matchingCriteria = subtestCriteria.criteria.find((criteria: any) => {
+//               return subtest.subtest_point >= criteria.minimum_score && subtest.subtest_point <= criteria.maximum_score;
+//             });
+//
+//             return {
+//               subtest_id: subtest.subtest_id,
+//               subtest_name: subtest.subtest_name,
+//               subtest_code: subtest.subtest_code,
+//               result: {
+//                 subtest_point: subtest.subtest_point,
+//                 subtest_criteria: matchingCriteria ? matchingCriteria.criteria_name : "Undefined",
+//                 criteria_color: matchingCriteria ? matchingCriteria.hex_code : "#CCCCCC",
+//                 description: matchingCriteria ? matchingCriteria.description : "No description available",
+//               },
+//             };
+//           });
+//
+//           // Dapatkan kriteria test untuk menentukan hasil keseluruhan test
+//           //   const testCriteria = await getTestCriteria(test.id);
+//           //
+//           //   // Hitung total skor berdasarkan summary_formula
+//           //   let testPoint = 0;
+//           //   if (test.summary_formula === "sum") {
+//           //     testPoint = processedSubtests.reduce((total: number, subtest: any) => {
+//           //       return total + subtest.result.subtest_point;
+//           //     }, 0);
+//           //   } else if (test.summary_formula === "average") {
+//           //     testPoint =
+//           //       processedSubtests.reduce((total: number, subtest: any) => {
+//           //         return total + subtest.result.subtest_point;
+//           //       }, 0) / processedSubtests.length;
+//           //   }
+//           //
+//           //   // Temukan kriteria test yang sesuai dengan testPoint
+//           //   const matchingTestCriteria = testCriteria.find((criteria: any) => {
+//           //     return testPoint >= criteria.minimum_score && testPoint <= criteria.maximum_score;
+//           //   });
+//           //
+//           //   testResult = {
+//           //     test_point: testPoint,
+//           //     result_criteria: matchingTestCriteria ? matchingTestCriteria.criteria_name : "Undefined",
+//           //     description: matchingTestCriteria ? matchingTestCriteria.description : "No description available",
+//           //     norm: testCriteria.map((criteria: any) => ({
+//           //       criteria_name: criteria.criteria_name,
+//           //       minimum_score: criteria.minimum_score,
+//           //       maximum_score: criteria.maximum_score,
+//           //       color: criteria.hex_code,
+//           //     })),
+//           //     subtests: processedSubtests,
+//           //   };
+//           // } else if (test.summary_type === "category") {
+//           //   // Dapatkan data report untuk kategori
+//           //   const categoryResults: any = await getPersonalReportData(batchId, assesseeEmail, "category", test.id);
+//           //
+//           //   // Format for category type is different from subtest type
+//           //   const processedCategories = categoryResults.categories.map((category: any) => {
+//           //     return {
+//           //       category_id: category.category_id,
+//           //       category_name: category.category_name,
+//           //       category_code: category.category_code,
+//           //       category_point: category.category_point,
+//           //       description: category.description,
+//           //       color: category.hex_code,
+//           //     };
+//           //   });
+//           //
+//           //   testResult = {
+//           //     categories: processedCategories,
+//           //   };
+//         } else {
+//           throw new ResponseError(400, "There's invalid summary type in a test");
+//         }
+//
+//         const testData = {
+//           test_id: test.id,
+//           test_name: test.name,
+//           test_code: test.code,
+//           test_description: test.description || "Deskripsi test",
+//           summary_type: test.summary_type,
+//           summary_formula: test.summary_formula,
+//           summary_view: test.summary_view,
+//           result: testResult,
+//         };
+//
+//         categoryData.tests.push(testData);
+//       }
+//
+//       categoryResults.push(categoryData);
+//     }
+//
+//     // Generate report dengan data profil dan hasil test
+//     const reportData = {
+//       report_guide: {
+//         content: guide.content,
+//       },
+//       profile: {
+//         ...assesseeProfile,
+//         test_date: new Date().toLocaleDateString("id-ID"),
+//       },
+//       results: categoryResults,
+//     };
+//
+//     res.status(200).send({
+//       message: "Success!",
+//       data: reportData,
+//     });
+//   } catch (e) {
+//     next(e);
+//   }
+// };
 
 // export const handleReportPersonal = async (req: Request, res: Response, next: NextFunction) => {
 //   try {
