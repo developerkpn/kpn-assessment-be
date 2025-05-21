@@ -753,10 +753,13 @@ export const getPointPerQuestion = async (detId: string) => {
        WHERE id = ANY($1)`,
       [questionIds]
     );
-    const keyMap = resKeys.rows.reduce((acc, row) => {
-      acc[row.question_id] = row;
-      return acc;
-    }, {} as Record<string, any>);
+    const keyMap = resKeys.rows.reduce(
+      (acc, row) => {
+        acc[row.question_id] = row;
+        return acc;
+      },
+      {} as Record<string, any>
+    );
 
     console.log("masuk 3");
     const results: { id: string; question_id: string; totalPoint: number }[] = [];

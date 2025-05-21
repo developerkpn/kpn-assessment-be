@@ -2,6 +2,45 @@ import { db } from "#dep/config/connection";
 import { TRANSACTION as TRANS } from "#dep/config/transaction";
 import { deleteQuery, insertQuery, updateQuery } from "#dep/helper/queryBuilder";
 import { ResponseError } from "#dep/error/response-error";
+import { async } from "rxjs";
+
+export const getReportGuide = async (reportGuideId: string) => {
+  const client = await db.connect();
+  try {
+    console.log(reportGuideId);
+    const result = await client.query(
+      `
+        SELECT content, created_at, created_by 
+        FROM report_guide 
+        WHERE id = $1;
+        `,
+      [reportGuideId]
+    );
+    console.log(result.rows);
+    return result.rows[0];
+  } catch (e) {
+    console.log(e);
+    throw e;
+  } finally {
+    client.release();
+  }
+};
+
+export const updateReportGuide = async (payload: any, reportGuideId: string) => {
+  const client = await db.connect();
+  try {
+    await client.query(TRANS.BEGIN);
+    const [Q, V] = updateQuery("report_guide", payload, { id: reportGuideId });
+    await client.query(Q, V);
+    await client.query(TRANS.COMMIT);
+  } catch (e) {
+    await client.query(TRANS.ROLLBACK);
+    console.log(e);
+    throw e;
+  } finally {
+    client.release();
+  }
+};
 
 export const getBatchInformationForReport = async (batchId: string) => {
   const client = await db.connect();
@@ -12,13 +51,19 @@ export const getBatchInformationForReport = async (batchId: string) => {
           b.*,
           c.*, 
           g.*, 
-          t.*
+          t.*,
+          s.id as subtest_id,
+          s.subtest_name,
+          s.subtest_code,
+          s.is_criteria
         FROM t_batch_head b
         LEFT JOIN mst_grouptest_det g ON b.grouptest_id = g.grouptest_id
         LEFT JOIN mst_test_head t ON g.test_id = t.id
         LEFT JOIN mst_category c ON t.category_id = c.id
+        LEFT JOIN mst_test_det td ON t.id = td.test_id
+        LEFT JOIN mst_subtest_head s ON td.subtest_id = s.id 
         WHERE b.id = $1
-        GROUP BY b.id, g.id, t.id, c.id
+        GROUP BY b.id, g.id, t.id, c.id, s.id
         ORDER BY b.created_at DESC
         `,
       [batchId]
@@ -48,6 +93,73 @@ export const assignReportDesign = async (reportHead: any, reportIntro: any, repo
     console.error(e);
     await client.query(TRANS.ROLLBACK);
     throw e;
+  } finally {
+    client.release();
+  }
+};
+
+export const getReportDesignDetail = async (batchId: string) => {
+  const client = await db.connect();
+  try {
+    const intro = await client.query(
+      `
+        SELECT
+          h.*,
+          i.*,
+          d.*
+        FROM report_head h
+        LEFT JOIN report_test_intro i ON h.id = i.report_id
+        LEFT JOIN report_test_detail d ON h.id = d.report_id
+        WHERE h.batch_id = $1
+        `,
+      [batchId]
+    );
+
+    const detail = await client.query(
+      `
+    SELECT
+        h.*,
+        d.*
+    FROM report_head h
+    LEFT JOIN report_test_intro i ON h.id = i.report_id
+    LEFT JOIN report_test_detail d ON h.id = d.report_id
+    WHERE h.batch_id = $1
+  `,
+      [batchId]
+    );
+
+    const result = {
+      intro: intro.rows,
+      detail: detail.rows,
+    };
+
+    return result;
+  } catch (e) {
+    console.log(e);
+    throw e;
+  } finally {
+    client.release();
+  }
+};
+
+export const updateReportDesignDetail = async (batchId: string, introPayload: any, detailPayload: any) => {
+  const client = await db.connect();
+  try {
+    await client.query(TRANS.BEGIN);
+    const [introQ, introV] = updateQuery("report_test_intro", introPayload, {
+      id: detailPayload.category_id,
+      report_id: detailPayload.report_id,
+    });
+    await client.query(introQ, introV);
+    const [detailQ, detailV] = updateQuery("report_test_detail", detailPayload, {
+      test_id: detailPayload.test_id,
+      report_id: detailPayload.report_id,
+    });
+    await client.query(detailQ, detailV);
+    await client.query(TRANS.COMMIT);
+  } catch (e) {
+    await client.query(TRANS.ROLLBACK);
+    console.error(e);
   } finally {
     client.release();
   }
@@ -111,6 +223,135 @@ export const generateReportForWholeBatch = async (batchId: string) => {
       [batchId]
     );
     return result.rows;
+  } catch (e) {
+    console.log(e);
+    throw e;
+  } finally {
+    client.release();
+  }
+};
+
+export const getExternalAssesseeProfile = async (assesseeEmail: string) => {
+  const client = await db.connect();
+  try {
+    const assessee = await client.query(
+      `
+        SELECT 
+          name,
+          email,
+          gender,
+          phone,
+          education,
+          institution,
+          date_of_birth
+        FROM mst_user_extern
+        WHERE email = $1
+        `,
+      [assesseeEmail]
+    );
+
+    return assessee.rows[0];
+  } catch (e) {
+    console.log(e);
+    throw e;
+  } finally {
+    client.release();
+  }
+};
+
+export const getAssesseeProfile = async (assesseeId: string) => {
+  const client = await db.connect();
+  try {
+  } catch (e) {
+  } finally {
+    client.release();
+  }
+};
+
+export const storeReporDesign = async (introPayload: any, detailPayload: any) => {
+  try {
+  } catch (e) {}
+};
+
+export const checkReportDesign = async (reportId: string) => {
+  const client = await db.connect();
+  try {
+  } catch (e) {
+  } finally {
+    client.release();
+  }
+};
+
+export const getPersonalReportData = async (batchId: string, assesseeEmail: any, type: string, testId: string) => {
+  const client = await db.connect();
+  try {
+    let result;
+    if (type === "subtest") {
+      result = await client.query(
+        `
+        SELECT *
+        FROM test_result_by_subtest
+        WHERE assessee_email = $1 AND batch_id = $2 AND test_id = $3
+        `,
+        [assesseeEmail, batchId, testId]
+      );
+    } else if (type === "category") {
+      result = await client.query(
+        `
+        SELECT *
+        FROM test_result_by_category
+        WHERE assessee_email = $1 AND batch_id = $2
+        `,
+        [assesseeEmail, batchId]
+      );
+    }
+
+    return result?.rows;
+  } catch (e) {
+    console.log(e);
+    throw e;
+  } finally {
+    client.release();
+  }
+};
+
+export const getTestCriteriaModel = async (testId: string) => {
+  const client = await db.connect();
+  try {
+    const result = await client.query(
+      `
+        SELECT
+          ct.id
+         FROM mst_test_head t
+         LEFT JOIN mst_category c ON t.category_id = c.id
+         LEFT JOIN mst_value ct ON c.criteria_id = ct.id
+         WHERE t.id = $1
+        `,
+      [testId]
+    );
+    return result.rows[0];
+  } catch (e) {
+    console.log(e);
+    throw e;
+  } finally {
+    client.release();
+  }
+};
+
+export const getCategoryCriteriaModel = async (categoryId: string) => {
+  const client = await db.connect();
+  try {
+    const result = await client.query(
+      `
+        SELECT
+          ct.id
+         FROM mst_category c
+         LEFT JOIN mst_value ct ON c.criteria_id = ct.id
+         WHERE c.id = $1
+        `,
+      [categoryId]
+    );
+    return result.rows[0];
   } catch (e) {
     console.log(e);
     throw e;

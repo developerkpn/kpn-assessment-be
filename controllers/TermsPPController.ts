@@ -1,11 +1,11 @@
 import { BRIEF_ID, PP_ID, TERMS_ID } from "#dep/constant";
 import { getShortBrief, getTermsPP, updateShortBrief, updateTermsPP } from "#dep/models/TermsPPModel";
 import { BriefRequest, TermsPPRequest } from "#dep/types/MasterDataTypes";
-import { Request, Response } from "express";
+import { NextFunction, Request, Response } from "express";
 import { Validation } from "#dep/validation/Validation";
 import { TermsPPValidation } from "#dep/validation/TermsPPValidation";
 
-export const handleGetTermsPP = async (_req: Request, res: Response) => {
+export const handleGetTermsPP = async (_req: Request, res: Response, next: NextFunction) => {
   let data = { terms: "", pp: "" };
 
   try {
@@ -22,14 +22,12 @@ export const handleGetTermsPP = async (_req: Request, res: Response) => {
       message: `Success get terms & PP`,
       data: data,
     });
-  } catch (error: any) {
-    res.status(500).send({
-      message: error.message,
-    });
+  } catch (error) {
+    next(error);
   }
 };
 
-export const handleUpdateTerms = async (req: Request, res: Response) => {
+export const handleUpdateTerms = async (req: Request, res: Response, next: NextFunction) => {
   const today = new Date();
   const payload: TermsPPRequest = {
     name: req.body.name,
@@ -44,14 +42,12 @@ export const handleUpdateTerms = async (req: Request, res: Response) => {
       message: `Success update terms`,
       id: result,
     });
-  } catch (error: any) {
-    res.status(500).send({
-      message: error.message,
-    });
+  } catch (error) {
+    next(error);
   }
 };
 
-export const handleUpdatePP = async (req: Request, res: Response) => {
+export const handleUpdatePP = async (req: Request, res: Response, next: NextFunction) => {
   const today = new Date();
   const payload: TermsPPRequest = {
     name: req.body.name,
@@ -67,13 +63,11 @@ export const handleUpdatePP = async (req: Request, res: Response) => {
       id: result,
     });
   } catch (error: any) {
-    res.status(500).send({
-      message: error.message,
-    });
+    next(error);
   }
 };
 
-export const handleGetBrief = async (req: Request, res: Response) => {
+export const handleGetBrief = async (req: Request, res: Response, next: NextFunction) => {
   try {
     let result = await getShortBrief();
     res.status(200).send({
@@ -81,13 +75,11 @@ export const handleGetBrief = async (req: Request, res: Response) => {
       data: result,
     });
   } catch (error: any) {
-    res.status(500).send({
-      message: error.message,
-    });
+    next(error);
   }
 };
 
-export const handleUpdateBrief = async (req: Request, res: Response) => {
+export const handleUpdateBrief = async (req: Request, res: Response, next: NextFunction) => {
   const today = new Date();
   const payload: BriefRequest = {
     short_brief_name: req.body.short_brief_name,
@@ -102,8 +94,6 @@ export const handleUpdateBrief = async (req: Request, res: Response) => {
       id: result,
     });
   } catch (error: any) {
-    res.status(500).send({
-      message: error.message,
-    });
+    next(error);
   }
 };

@@ -32,6 +32,7 @@ export const handleCreateSubTest = async (req: Request, res: Response, next: Nex
       intro_desc: validatedRequest.intro_desc,
       subtest_desc: validatedRequest.subtest_desc,
       series_example_id: validatedRequest.series_example_id,
+      criteria_id: validatedRequest.criteria_id,
       created_by: creator,
       created_at: date,
     };
@@ -56,17 +57,15 @@ export const handleCreateSubTest = async (req: Request, res: Response, next: Nex
   }
 };
 
-export const handleGetSubTest = async (req: Request, res: Response) => {
+export const handleGetSubTest = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const result = await getSubTest();
     res.status(200).send({
       message: `Success!`,
       data: result,
     });
-  } catch (error: any) {
-    res.status(500).send({
-      message: error.message,
-    });
+  } catch (e) {
+    next(e);
   }
 };
 
@@ -90,6 +89,7 @@ export const handleUpdateSubTest = async (req: Request, res: Response, next: Nex
       intro_desc: validatedRequest.intro_desc,
       subtest_desc: validatedRequest.subtest_desc,
       series_example_id: validatedRequest.series_example_id,
+      criteria_id: validatedRequest.criteria_id,
     };
 
     console.log("masuk 1");
@@ -150,7 +150,7 @@ export const handleDeleteSubTest = async (req: Request, res: Response, next: Nex
   }
 };
 
-export const handleGetSubTestDetail = async (req: Request, res: Response) => {
+export const handleGetSubTestDetail = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const validatedId = Validation.validate(SubTestValidation.ID, req.params.id);
     const result = await getSubTestDetail(validatedId);
@@ -158,10 +158,8 @@ export const handleGetSubTestDetail = async (req: Request, res: Response) => {
       message: "Success!",
       data: result,
     });
-  } catch (error: any) {
-    res.status(500).send({
-      message: error.message,
-    });
+  } catch (e) {
+    next(e);
   }
 };
 
@@ -179,7 +177,7 @@ export const handleGetAvailableSeriesForSubTest = async (req: Request, res: Resp
   }
 };
 
-export const handleDeleteSeriesFromSubTest = async (req: Request, res: Response) => {
+export const handleDeleteSeriesFromSubTest = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const validatedSubtestId = Validation.validate(SubTestValidation.ID, req.params.id);
     const validatedDetailId = Validation.validate(SubTestValidation.ID, req.params.detailId);
@@ -196,9 +194,7 @@ export const handleDeleteSeriesFromSubTest = async (req: Request, res: Response)
     res.status(200).send({
       message: "Success delete Series from Sub Test!",
     });
-  } catch (error: any) {
-    res.status(500).send({
-      message: error.message,
-    });
+  } catch (e) {
+    next(e);
   }
 };

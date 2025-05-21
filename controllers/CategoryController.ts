@@ -1,12 +1,12 @@
 import { async } from "rxjs";
-import { Request, Response } from "express";
+import { NextFunction, Request, Response } from "express";
 import { createAdmin } from "#dep/models/AdminWebModel";
 import { Validation } from "#dep/validation/Validation";
 import { CategoryValidation } from "#dep/validation/CategoryValidation";
 import { createCategory, deleteCategory, getCategory, updateCategory } from "#dep/models/CategoryModel";
 import { error } from "winston";
 
-export const handleCreateCategory = async (req: Request, res: Response) => {
+export const handleCreateCategory = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const today = new Date();
     const payload = {
@@ -23,28 +23,24 @@ export const handleCreateCategory = async (req: Request, res: Response) => {
       message: `Success create category`,
       category_code: result,
     });
-  } catch (error: any) {
-    res.status(500).send({
-      message: error.message,
-    });
+  } catch (e) {
+    next(e);
   }
 };
 
-export const handleGetCategory = async (req: Request, res: Response) => {
+export const handleGetCategory = async (req: Request, res: Response, next: NextFunction) => {
   try {
     let result = await getCategory();
     res.status(200).send({
       message: `Success get category`,
       data: result,
     });
-  } catch (error: any) {
-    res.status(500).send({
-      message: error.message,
-    });
+  } catch (e) {
+    next(e);
   }
 };
 
-export const handleUpdateCategory = async (req: Request, res: Response) => {
+export const handleUpdateCategory = async (req: Request, res: Response, next: NextFunction) => {
   const id = Number(req.params.id);
   const today = new Date();
   const payload = {
@@ -61,14 +57,12 @@ export const handleUpdateCategory = async (req: Request, res: Response) => {
       message: `Success update category`,
       category_code: result,
     });
-  } catch (error: any) {
-    res.status(500).send({
-      message: error.message,
-    });
+  } catch (e) {
+    next(e);
   }
 };
 
-export const handleDeleteCategory = async (req: Request, res: Response) => {
+export const handleDeleteCategory = async (req: Request, res: Response, next: NextFunction) => {
   const id = Number(req.params.id);
   try {
     const validatedId = Validation.validate(CategoryValidation.ID, id);
@@ -78,9 +72,7 @@ export const handleDeleteCategory = async (req: Request, res: Response) => {
       message: `Success delete category`,
       id: result,
     });
-  } catch (error: any) {
-    res.status(500).send({
-      message: error.message,
-    });
+  } catch (e) {
+    next(e);
   }
 };

@@ -202,7 +202,7 @@ export const getBatchDetail = async (id: string) => {
                 h.created_by,
                 h.updated_by,
                 h.created_at,
-                h.updated_by,
+                h.updated_at,
                 h.start_period,
                 h.end_period,
                 h.email_invitation,
@@ -228,7 +228,7 @@ export const getBatchDetail = async (id: string) => {
                     h.created_by,
                     h.updated_by,
                     h.created_at,
-                    h.updated_by,
+                    h.updated_at,
                     h.start_period,
                     h.end_period,
                     h.email_invitation,
@@ -251,17 +251,77 @@ export const getBatchDetail = async (id: string) => {
       [id]
     );
 
+    const batchAssessees = await client.query(
+      `
+          SELECT
+            a.*,
+            COALESCE(
+              (SELECT COUNT(*) FROM t_progress_batch_det bd 
+               JOIN t_progress_batch_head bh ON bd.head_id = bh.id 
+               WHERE bh.assessee_id = a.assessee_nik AND bh.batch_id = a.batch_id AND bd.status = 'Not Taken'), 0
+            ) as count_not_taken,
+            COALESCE(
+              (SELECT COUNT(*) FROM t_progress_batch_det bd 
+               JOIN t_progress_batch_head bh ON bd.head_id = bh.id 
+               WHERE bh.assessee_id = a.assessee_nik AND bh.batch_id = a.batch_id AND bd.status = 'In Progress'), 0
+            ) as count_in_progress,
+            COALESCE(
+              (SELECT COUNT(*) FROM t_progress_batch_det bd 
+               JOIN t_progress_batch_head bh ON bd.head_id = bh.id 
+               WHERE bh.assessee_id = a.assessee_nik AND bh.batch_id = a.batch_id AND bd.status = 'Completed'), 0
+            ) as count_completed,
+            COALESCE(
+              (SELECT COUNT(*) FROM t_progress_batch_det bd 
+               JOIN t_progress_batch_head bh ON bd.head_id = bh.id 
+               WHERE bh.assessee_id = a.assessee_nik AND bh.batch_id = a.batch_id), 0
+            ) as total_tests
+          FROM t_batch_assessee a
+          WHERE a.batch_id = $1
+        `,
+      [id]
+    );
+
+    // Process assessee status based on test progress
+    const assessees = batchAssessees.rows.map((assessee) => {
+      let status = "Not Taken";
+
+      // Converting string counts to numbers
+      const notTaken = parseInt(assessee.count_not_taken) || 0;
+      const inProgress = parseInt(assessee.count_in_progress) || 0;
+      const completed = parseInt(assessee.count_completed) || 0;
+      const totalTests = parseInt(assessee.total_tests) || 0;
+
+      // If no tests are associated yet or all counts are 0, status is Not Taken
+      if (totalTests === 0 || (notTaken === 0 && inProgress === 0 && completed === 0)) {
+        status = "Not Taken";
+      }
+      // If all tests are completed and there's at least one completed test
+      else if (completed === totalTests && completed > 0) {
+        status = "Completed";
+      }
+      // If any test is in progress, status is In Progress
+      else if (inProgress > 0) {
+        status = "In Progress";
+      }
+
+      return {
+        ...assessee,
+        status,
+      };
+    });
+
     const batchDetail = result.rows[0];
     const ccEmail = ccEmails.rows;
 
     const data = {
       batch: batchDetail,
+      assessees: assessees,
       cc_email: ccEmail,
     };
 
     return data;
   } catch (error) {
-    console.log(error);
+    console.error(error);
     throw error;
   } finally {
     client.release();

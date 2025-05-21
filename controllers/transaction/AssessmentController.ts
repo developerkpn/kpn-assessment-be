@@ -784,10 +784,7 @@ export const handleSubtestExampleisTaken = async (req: Request, res: Response, n
     const result = await getSubtestExampleisTaken(id);
     res.status(200).send(result);
   } catch (error) {
-    console.error(error);
-    res.status(500).send({
-      message: (error as Error).message,
-    });
+    next(error);
   }
 };
 
@@ -797,10 +794,7 @@ export const handleGetSubtestExampleData = async (req: Request, res: Response, n
     const result = await getSubtestExampleData(id);
     res.status(200).send(result);
   } catch (error) {
-    console.error(error);
-    res.status(500).send({
-      message: (error as Error).message,
-    });
+    next(error);
   }
 };
 

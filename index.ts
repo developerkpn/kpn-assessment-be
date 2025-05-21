@@ -51,6 +51,7 @@ app.use(express.static(path.join(__dirname, "public/build")));
 app.get("/*$", (req, res) => {
   res.sendFile(path.join(__dirname, "public/build", "index.html"));
 });
+app.use(errorMiddleware);
 
 // app.listen(process.env.PORT as unknown as number, "0.0.0.0", () => {
 //   console.log(`App running on ${process.env.PORT}`);
