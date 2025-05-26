@@ -127,6 +127,7 @@ export const deleteSubTest = async (id: string) => {
 export const getSubTestDetail = async (id: string) => {
   const client = await db.connect();
   try {
+    console.log("check detail subtest");
     const result = await client.query(
       `
       SELECT
@@ -149,15 +150,15 @@ export const getSubTestDetail = async (id: string) => {
         d.id AS detail_id,
         ad.fullname AS added_by,
         d.added_at,
-        v.value_id,
+        v.id as value_id,
         v.value_name,
         v.value_code,
-        c.criteria_id,
+        c.id as criteria_id,
         c.criteria_name,
-        c.minimun_score,
+        c.minimum_score,
         c.maximum_score,
         c.description,
-        c.criteria_color
+        c.color_id,
         (
           SELECT COUNT(sd.question_id)
           FROM mst_series_det sd
