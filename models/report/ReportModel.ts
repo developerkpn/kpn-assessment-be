@@ -282,7 +282,81 @@ export const checkReportDesign = async (reportId: string) => {
   }
 };
 
-export const getPersonalReportData = async (batchId: string, assesseeEmail: any, type: string, testId: string) => {
+export const getReportDetail = async (batchId: string) => {
+  const client = await db.connect();
+  try {
+    console.log(batchId);
+    const result = await client.query(
+      `
+      SELECT 
+        rh.id as report_id,
+        rtd.test_id,
+        t.test_name,
+        t.test_code,
+        t.description,
+        c.id as category_id,
+        c.category_name,
+        c.category_code,
+        c.criteria_id,
+        rtd.summary_type,
+        rtd.summary_formula,
+        rtd.summary_view
+      FROM t_batch_head bh 
+      LEFT JOIN report_head rh ON bh.id = rh.batch_id 
+      LEFT JOIN report_test_detail rtd ON rh.id = rtd.report_id
+      LEFT JOIN mst_test_head t ON rtd.test_id = t.id
+      LEFT JOIN mst_category c ON t.category_id = c.id
+      WHERE bh.id = $1
+    `,
+      [batchId]
+    );
+
+    console.log("result rows");
+    console.log(result.rows);
+
+    return result.rows;
+  } catch (e) {
+    throw e;
+  }
+};
+
+export const getIntroData = async (batchId: string) => {
+  const client = await db.connect();
+  try {
+    console.log(batchId);
+    const result = await client.query(
+      `
+      SELECT 
+        rh.id as report_id,
+        rtd.category_id,
+        c.category_name,
+        c.category_code,
+        c.criteria_id,
+        rtd.summary_type,
+        rtd.summary_formula,
+        rtd.summary_view
+      FROM t_batch_head bh 
+      LEFT JOIN report_head rh ON bh.id = rh.batch_id 
+      LEFT JOIN report_test_intro rtd ON rh.id = rtd.report_id
+      LEFT JOIN mst_category c ON rtd.category_id = c.id      
+      WHERE bh.id = $1
+    `,
+      [batchId]
+    );
+
+    return result.rows;
+  } catch (e) {
+    throw e;
+  }
+};
+
+export const getPersonalReportData = async (
+  batchId: string,
+  assesseeEmail: any,
+  type: string,
+  testId: string,
+  subtestId?: string
+) => {
   const client = await db.connect();
   try {
     let result;
@@ -296,13 +370,14 @@ export const getPersonalReportData = async (batchId: string, assesseeEmail: any,
         [assesseeEmail, batchId, testId]
       );
     } else if (type === "category") {
+      console.log("masuk model category");
       result = await client.query(
         `
         SELECT *
         FROM test_result_by_category
-        WHERE assessee_email = $1 AND batch_id = $2
+        WHERE assessee_email = $1 AND batch_id = $2 AND test_id = $3
         `,
-        [assesseeEmail, batchId]
+        [assesseeEmail, batchId, testId]
       );
     }
 
@@ -355,6 +430,19 @@ export const getCategoryCriteriaModel = async (categoryId: string) => {
   } catch (e) {
     console.log(e);
     throw e;
+  } finally {
+    client.release();
+  }
+};
+
+export const storeReportPDF = async (report: any, batchId: string, assesseeEmail: string) => {
+  const client = await db.connect();
+  try {
+    await client.query(TRANS.BEGIN);
+    const [Q, V] = updateQuery("t_batch_assessee", report, { batch_id: batchId, assessee_email: assesseeEmail });
+    await client.query(Q, V);
+    await client.query(TRANS.COMMIT);
+  } catch (e) {
   } finally {
     client.release();
   }
