@@ -9,6 +9,7 @@ import {
   handleReportPreview,
   handleUpdateReportDesign,
   handleUpdateReportGuide,
+  handleUploadReportPDF,
 } from "#dep/controllers/report/ReportController";
 
 const Report = Router();
@@ -16,6 +17,7 @@ const Report = Router();
 Report.get("/preview", handleReportPreview);
 Report.put("/guide", handleUpdateReportGuide);
 Report.get("/guide", handleGetReportGuide);
+Report.post("/pdf", handleUploadReportPDF);
 Report.post("/result", handleReportPersonal);
 Report.post("/design", handleCreateReportForBatch);
 Report.get("/design/:batchId", handleGetReportDesignDetail);
