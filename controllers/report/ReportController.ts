@@ -10,6 +10,7 @@ import {
   getReportDetail,
   getReportGuide,
   getTestCriteriaModel,
+  storeReportGuide,
   storeReportPDF,
   // storeReportGuide,
   updateReportGuide,
@@ -338,8 +339,7 @@ export const handleReportPreview = async (req: Request, res: Response, next: Nex
 
 export const handleGetReportGuide = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const reportGuideId = REPORT_GUIDE_ID;
-    const guide = await getReportGuide(reportGuideId);
+    const guide = await getReportGuide();
     res.status(200).send({
       message: "Success!",
       data: guide,
@@ -349,9 +349,26 @@ export const handleGetReportGuide = async (req: Request, res: Response, next: Ne
   }
 };
 
+export const handleStoreReportGuide = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const payload = {
+      id: uuid(),
+      content: req.body.content,
+      created_at: new Date().toISOString(),
+    };
+
+    await storeReportGuide(payload);
+    res.status(201).send({
+      message: "Success!",
+    });
+  } catch (e) {
+    next(e);
+  }
+};
+
 export const handleUpdateReportGuide = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const reportGuideId = REPORT_GUIDE_ID;
+    const reportGuideId = req.params.id;
     const payload = {
       content: req.body.content,
       created_at: new Date().toISOString(),
@@ -468,6 +485,7 @@ export const handleCreateReportForBatch = async (req: Request, res: Response, ne
     const headPayload = {
       id: reportId,
       batch_id: body.batch_id,
+      content: body.content,
     };
 
     console.log(body);
@@ -536,6 +554,9 @@ function transformResponseFormat(batchInfo: any, reportDesign: any) {
   // Extract batch information from the first item
   const firstBatch = batchInfo[0];
   const transformedBatch: any = {
+    guide: {
+      content: reportDesign.intro[0].content,
+    },
     batch: {
       id: firstBatch.id,
       name: firstBatch.batch_name,
@@ -1143,21 +1164,23 @@ const proceeedProfile = async (type: string, assesseeId: string, assesseeEmail: 
   }
 };
 
-const proceedGuide = async () => {
-  try {
-    const guideId = REPORT_GUIDE_ID;
-    const guide = await getReportGuide(guideId);
-    return guide;
-  } catch (e) {
-    throw e;
-  }
-};
+// const proceedGuide = async () => {
+//   try {
+//     const guideId = REPORT_GUIDE_ID;
+//     const guide = await getReportGuide(guideId);
+//     return guide;
+//   } catch (e) {
+//     throw e;
+//   }
+// };
 
 const proceedReportDesign = async (batchId: string) => {
   try {
     const batchInformation = await getBatchInformationForReport(batchId);
     const design = await getReportDesignDetail(batchId);
     const reportDesign = transformResponseFormat(batchInformation, design);
+    console.log("cek report design");
+    console.log(reportDesign);
     return reportDesign;
   } catch (e) {
     throw e;
@@ -1204,7 +1227,7 @@ export const handleReportPersonal = async (req: Request, res: Response, next: Ne
     const assesseeEmail = req.body.assessee_email;
 
     // Get Report Guide
-    const reportGuide = await proceedGuide();
+    // const reportGuide = await proceedGuide();
 
     // Get Report Design
     const reportDesign = await proceedReportDesign(batchId);
@@ -1225,7 +1248,7 @@ export const handleReportPersonal = async (req: Request, res: Response, next: Ne
     res.status(200).send({
       message: "Success!",
       data: {
-        reportGuide,
+        // reportGuide,
         reportDesign,
         profile,
         intro: reportIntro,

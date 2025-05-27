@@ -4,20 +4,17 @@ import { deleteQuery, insertQuery, updateQuery } from "#dep/helper/queryBuilder"
 import { ResponseError } from "#dep/error/response-error";
 import { async } from "rxjs";
 
-export const getReportGuide = async (reportGuideId: string) => {
+export const getReportGuide = async () => {
   const client = await db.connect();
   try {
-    console.log(reportGuideId);
     const result = await client.query(
       `
-        SELECT content, created_at, created_by 
-        FROM report_guide 
-        WHERE id = $1;
-        `,
-      [reportGuideId]
+        SELECT id, content, created_at, created_by 
+        FROM report_guide
+        ORDER BY created_at DESC 
+        `
     );
-    console.log(result.rows);
-    return result.rows[0];
+    return result.rows;
   } catch (e) {
     console.log(e);
     throw e;
@@ -26,6 +23,21 @@ export const getReportGuide = async (reportGuideId: string) => {
   }
 };
 
+export const storeReportGuide = async (payload: any) => {
+  const client = await db.connect();
+  try {
+    await client.query(TRANS.BEGIN);
+    const [Q, V] = insertQuery("report_guide", payload);
+    await client.query(Q, V);
+    await client.query(TRANS.COMMIT);
+  } catch (e) {
+    await client.query(TRANS.ROLLBACK);
+    console.log(e);
+    throw e;
+  } finally {
+    client.release();
+  }
+};
 export const updateReportGuide = async (payload: any, reportGuideId: string) => {
   const client = await db.connect();
   try {
