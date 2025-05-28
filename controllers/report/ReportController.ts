@@ -388,40 +388,41 @@ export const handleGetBatchInformationForReport = async (req: Request, res: Resp
   try {
     const batchId = req.params.batchId;
     const allTests = await getBatchInformationForReport(batchId);
+    console.log("alltest", allTests);
+    const getReportIntro: any = await getIntroData(batchId);
+    const getReportDetail: any = await getReportDesignDetail(batchId);
 
-    // Group tests by category and test
-    const testsByCategory: any = {};
+    // Pastikan bentuknya array
+    // const getReportIntro: any[] = Array.isArray(getReportIntroRaw) ? getReportIntroRaw : [];
+    // const getReportDetail: any[] = Array.isArray(getReportDetailRaw) ? getReportDetailRaw : [];
 
-    // Add special category for uncategorized tests
-    testsByCategory["uncategorized"] = {
-      name: "Uncategorized",
-      code: "uncategorized",
-      tests: [],
+    const testsByCategory: any = {
+      uncategorized: {
+        name: "Uncategorized",
+        code: "uncategorized",
+        tests: [],
+      },
     };
 
-    // First pass: Group tests by category and then by test ID
     const groupedTests: Record<string, Record<string, any>> = {};
 
     allTests.forEach((test) => {
       const categoryCode = test.category_code || "uncategorized";
       const testId = test.test_id;
 
-      // Initialize category if needed
       if (!groupedTests[categoryCode]) {
         groupedTests[categoryCode] = {};
       }
 
-      // Initialize test if needed
       if (!groupedTests[categoryCode][testId]) {
         groupedTests[categoryCode][testId] = {
-          id: testId,
+          id: testId, // ini harus sama persis dengan yang ada di getReportDetail
           name: test.test_name,
           code: test.test_code,
           subtests: [],
         };
       }
 
-      // Add subtest to the test with only required fields
       groupedTests[categoryCode][testId].subtests.push({
         id: test.subtest_id,
         name: test.subtest_name,
@@ -430,34 +431,48 @@ export const handleGetBatchInformationForReport = async (req: Request, res: Resp
       });
     });
 
-    // Second pass: Organize into the final format
     for (const [categoryCode, testsMap] of Object.entries(groupedTests)) {
-      // Skip if category is uncategorized and has no tests
-      if (categoryCode === "uncategorized" && Object.keys(testsMap).length === 0) {
-        continue;
-      }
+      if (categoryCode === "uncategorized" && Object.keys(testsMap).length === 0) continue;
 
-      // Get category details from any test in this category
-      const categoryInfo = allTests.find((test) => test.category_code === categoryCode);
+      const categoryInfo = allTests.find((t) => t.category_code === categoryCode);
+      const categoryId = categoryInfo?.category_id || null;
+
+      // Ambil summary berdasarkan category_id dari getReportIntro
+      const categorySummary = getReportIntro.find((intro: any) => intro.category_id === categoryId);
+
+      console.log("map test", Object.values(testsMap));
+      console.log("getReportdetails", getReportDetail);
+      const tests = Object.values(testsMap).map((test: any) => {
+        const detail = getReportDetail.intro.find((d: any) => d.test_id === test.id);
+
+        return {
+          ...test,
+          summary_type: detail?.summary_type || null,
+          summary_view: detail?.summary_view || null,
+          summary_formula: detail?.summary_formula || null,
+        };
+      });
+
+      console.log("testmap", testsMap);
 
       testsByCategory[categoryCode] = {
-        id: categoryInfo?.category_id || null,
+        id: categoryId,
         name: categoryInfo?.category_name || "Uncategorized",
         code: categoryCode,
-        tests: Object.values(testsMap),
+        tests,
         testCount: Object.keys(testsMap).length,
+        summary_type: categorySummary?.summary_type || null,
+        summary_view: categorySummary?.summary_view || null,
+        summary_formula: categorySummary?.summary_formula || null,
       };
     }
 
-    // Remove uncategorized category if empty
     if (testsByCategory["uncategorized"].tests.length === 0) {
       delete testsByCategory["uncategorized"];
     }
 
-    // Convert to array format
     const categories = Object.values(testsByCategory);
 
-    // Batch basic info
     const batchInfo =
       allTests.length > 0
         ? {
@@ -466,11 +481,16 @@ export const handleGetBatchInformationForReport = async (req: Request, res: Resp
           }
         : {};
 
+    console.log("getReportIntro", getReportIntro);
+
     res.status(200).send({
       message: "Success!",
       data: {
+        guide: {
+          content: getReportIntro[0].content,
+        },
         batch: batchInfo,
-        categories: categories,
+        categories,
       },
     });
   } catch (e) {
@@ -1243,8 +1263,7 @@ export const handleReportPersonal = async (req: Request, res: Response, next: Ne
         message: "Success!",
         data: {
           // reportGuide,
-          reportDesign,
-          profile,
+          profile: profile,
           intro: reportIntro,
           test: reportDetail,
         },

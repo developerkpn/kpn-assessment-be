@@ -340,6 +340,7 @@ export const getIntroData = async (batchId: string) => {
       `
       SELECT 
         rh.id as report_id,
+        rh.content,
         rtd.category_id,
         c.category_name,
         c.category_code,
