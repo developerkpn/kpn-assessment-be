@@ -12,13 +12,14 @@ import {
   handleUpdateReportGuide,
   handleUploadReportPDF,
 } from "#dep/controllers/report/ReportController";
+import { uploadSingleFile } from "#dep/middleware/fileMiddleware";
 
 const Report = Router();
 
 Report.get("/preview", handleReportPreview);
 Report.post("/guide", handleStoreReportGuide);
 Report.get("/guide", handleGetReportGuide);
-Report.post("/pdf", handleUploadReportPDF);
+Report.post("/pdf", uploadSingleFile, handleUploadReportPDF);
 Report.post("/result", handleReportPersonal);
 Report.post("/design", handleCreateReportForBatch);
 Report.put("/guide/:id", handleUpdateReportGuide);

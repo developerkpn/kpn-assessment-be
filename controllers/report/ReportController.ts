@@ -4,6 +4,7 @@ import {
   generateReportForWholeBatch,
   getBatchInformationForReport,
   getCategoryCriteriaModel,
+  getGenerateStatus,
   getIntroData,
   getPersonalReportData,
   getReportDesignDetail,
@@ -1164,16 +1165,6 @@ const proceeedProfile = async (type: string, assesseeId: string, assesseeEmail: 
   }
 };
 
-// const proceedGuide = async () => {
-//   try {
-//     const guideId = REPORT_GUIDE_ID;
-//     const guide = await getReportGuide(guideId);
-//     return guide;
-//   } catch (e) {
-//     throw e;
-//   }
-// };
-
 const proceedReportDesign = async (batchId: string) => {
   try {
     const batchInformation = await getBatchInformationForReport(batchId);
@@ -1226,35 +1217,50 @@ export const handleReportPersonal = async (req: Request, res: Response, next: Ne
     const assesseeId = req.body.assessee_id;
     const assesseeEmail = req.body.assessee_email;
 
-    // Get Report Guide
-    // const reportGuide = await proceedGuide();
+    const generatingStatus = await getGenerateStatus(batchId, assesseeId);
 
-    // Get Report Design
-    const reportDesign = await proceedReportDesign(batchId);
+    if (generatingStatus.is_generate === false) {
+      // Get Report Guide
+      // const reportGuide = await proceedGuide();
 
-    // Get Profile Assessee
-    const profile = await proceeedProfile(reportDesign.batch.type, assesseeId, assesseeEmail);
+      // Get Report Design
+      const reportDesign = await proceedReportDesign(batchId);
 
-    // Get Report Detail
-    const reportDetail = await proceedDetail(batchId, assesseeEmail);
+      // Get Profile Assessee
+      const profile = await proceeedProfile(reportDesign.batch.type, assesseeId, assesseeEmail);
 
-    // Get Report Intro
-    const reportIntro = await proceedIntro(batchId, reportDetail);
+      // Get Report Detail
+      const reportDetail = await proceedDetail(batchId, assesseeEmail);
 
-    // Get Report Proctoring
+      // Get Report Intro
+      const reportIntro = await proceedIntro(batchId, reportDetail);
 
-    // Get Report Log
+      // Get Report Proctoring
 
-    res.status(200).send({
-      message: "Success!",
-      data: {
-        // reportGuide,
-        reportDesign,
-        profile,
-        intro: reportIntro,
-        test: reportDetail,
-      },
-    });
+      // Get Report Log
+
+      res.status(200).send({
+        message: "Success!",
+        data: {
+          // reportGuide,
+          reportDesign,
+          profile,
+          intro: reportIntro,
+          test: reportDetail,
+        },
+      });
+    } else if (generatingStatus.is_generate === true) {
+      // Kirim file PDF langsung jika sudah digenerate
+      const filePath = path.join(process.cwd(), "uploads", "report", batchId, `${assesseeId}.pdf`);
+
+      if (fs.existsSync(filePath)) {
+        res.setHeader("Content-Type", "application/pdf");
+        res.setHeader("Content-Disposition", `inline; filename="${assesseeId}.pdf"`); // atau gunakan 'attachment' jika ingin diunduh
+        fs.createReadStream(filePath).pipe(res);
+      } else {
+        res.status(404).json({ message: "Generated report not found." });
+      }
+    }
   } catch (e) {
     next(e);
   }
@@ -1272,7 +1278,7 @@ export const handleUploadReportPDF = async (req: Request, res: Response, next: N
       });
     }
 
-    const uploadDir = path.join(__dirname, "../uploads/report", batchId);
+    const uploadDir = path.join(process.cwd(), "uploads", "report", batchId);
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
     }

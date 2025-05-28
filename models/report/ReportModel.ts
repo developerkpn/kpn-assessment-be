@@ -447,13 +447,32 @@ export const getCategoryCriteriaModel = async (categoryId: string) => {
   }
 };
 
-export const storeReportPDF = async (report: any, batchId: string, assesseeEmail: string) => {
+export const storeReportPDF = async (report: any, batchId: string, assesseeId: string) => {
   const client = await db.connect();
   try {
     await client.query(TRANS.BEGIN);
-    const [Q, V] = updateQuery("t_batch_assessee", report, { batch_id: batchId, assessee_email: assesseeEmail });
+    const [Q, V] = updateQuery("t_batch_assessee", report, { batch_id: batchId, assessee_nik: assesseeId });
     await client.query(Q, V);
     await client.query(TRANS.COMMIT);
+  } catch (e) {
+  } finally {
+    client.release();
+  }
+};
+
+export const getGenerateStatus = async (batchId: string, assesseeId: string) => {
+  const client = await db.connect();
+  try {
+    const result = await client.query(
+      `
+        SELECT is_generate, report_path
+        FROM t_batch_assessee
+        WHERE batch_id = $1 AND assessee_nik = $2
+        `,
+      [batchId, assesseeId]
+    );
+
+    return result.rows[0];
   } catch (e) {
   } finally {
     client.release();
