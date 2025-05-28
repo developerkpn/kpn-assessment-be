@@ -1246,6 +1246,9 @@ export const handleReportPersonal = async (req: Request, res: Response, next: Ne
       // Get Report Design
       const reportDesign = await proceedReportDesign(batchId);
 
+      console.log("HALOOOO");
+      console.log("cek report design", reportDesign);
+
       // Get Profile Assessee
       const profile = await proceeedProfile(reportDesign.batch.type, assesseeId, assesseeEmail);
 
@@ -1262,7 +1265,9 @@ export const handleReportPersonal = async (req: Request, res: Response, next: Ne
       res.status(200).send({
         message: "Success!",
         data: {
-          // reportGuide,
+          guide: {
+            content: reportDesign.guide.content,
+          },
           profile: profile,
           intro: reportIntro,
           test: reportDetail,
