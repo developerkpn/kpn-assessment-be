@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import {
   assignReportDesign,
   generateReportForWholeBatch,
+  getAssesseeListForReport,
   getBatchInformationForReport,
   getCategoryCriteriaModel,
   getGenerateStatus,
@@ -1368,6 +1369,11 @@ export const handleUploadReportPDF = async (req: Request, res: Response, next: N
 
 export const handleGetAssesseeListForReport = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    const assesseeList = await getAssesseeListForReport(req.params.id);
+    res.status(200).send({
+      message: "Success!",
+      data: assesseeList,
+    });
   } catch (e) {
     next(e);
   }

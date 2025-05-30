@@ -2,6 +2,7 @@ import { Router } from "express";
 import {
   handleCreateReportForBatch,
   handleDownloadBatchReport,
+  handleGetAssesseeListForReport,
   handleGetBatchInformationForReport,
   handleGetReportDesignDetail,
   handleGetReportGuide,
@@ -22,6 +23,7 @@ Report.get("/guide", handleGetReportGuide);
 Report.post("/pdf", uploadSingleFile, handleUploadReportPDF);
 Report.post("/result", handleReportPersonal);
 Report.post("/design", handleCreateReportForBatch);
+Report.get("/personal/:id", handleGetAssesseeListForReport);
 Report.put("/guide/:id", handleUpdateReportGuide);
 Report.get("/design/:batchId", handleGetReportDesignDetail);
 Report.patch("/design/:batchId", handleUpdateReportDesign);

@@ -543,15 +543,31 @@ export const getReportProctoring = async (batchId: string, assesseeId: string) =
   }
 };
 
-export const getAssesseeListForReport = async (batchId: string, assesseeId: string) => {
+export const getAssesseeListForReport = async (batchId: string) => {
   const client = await db.connect();
   try {
     const result = await client.query(
       `
         SELECT 
-        `
+          a.assessee_nik,
+          a.assessee_name,
+          a.assessee_email,
+          MIN(d.taken_at) as first_taken_subtest_at,
+          MAX(d.submit_at) as last_finished_subtest_at
+        FROM t_batch_assessee a
+        LEFT JOIN t_progress_batch_head h ON a.assessee_nik = h.assessee_id
+        LEFT JOIN t_progress_batch_det d ON h.id = d.head_id
+        WHERE a.batch_id = $1
+        GROUP BY a.assessee_nik, a.assessee_name, a.assessee_email
+        ORDER BY a.assessee_name
+      `,
+      [batchId]
     );
+
+    return result.rows;
   } catch (e) {
+    console.error("Error fetching assessee list for report:", e);
+    throw e;
   } finally {
     client.release();
   }
