@@ -10,6 +10,7 @@ import {
   getReportDesignDetail,
   getReportDetail,
   getReportGuide,
+  getSpecificBatchInformationForReport,
   getTestCriteriaModel,
   storeReportGuide,
   storeReportPDF,
@@ -567,7 +568,7 @@ export const handleGetReportDesignDetail = async (req: Request, res: Response, n
   }
 };
 
-function transformResponseFormat(batchInfo: any, reportDesign: any) {
+const transformResponseFormat = async (batchInfo: any, reportDesign: any) => {
   if (!batchInfo || !batchInfo.length) {
     return { batch: {}, categories: [] };
   }
@@ -645,7 +646,7 @@ function transformResponseFormat(batchInfo: any, reportDesign: any) {
   });
 
   return transformedBatch;
-}
+};
 
 // Tipe untuk respons dari model
 interface BatchReportRow {
@@ -943,10 +944,11 @@ const proceedIntro = async (batchId: string, detail: any) => {
             const subtests = test.subtests || [];
             // data.subtests.push(...subtests);
             data.tests.push({
-              id: test.test_id,
-              name: test.test_name,
-              code: test.test_code,
-              result: test.result,
+              test_id: test.test_id,
+              test_name: test.test_name,
+              test_code: test.test_code,
+              description: test.description,
+              test_result: test.result,
             });
           } else if (test.summary_type === "category") {
             let mergedResult = "";
@@ -959,10 +961,11 @@ const proceedIntro = async (batchId: string, detail: any) => {
               }
             }
             data.tests.push({
-              id: test.test_id,
-              name: test.test_name,
-              code: test.test_code,
-              result: { merged_category_result: mergedResult.slice(0, -1) }, // remove trailing comma
+              test_id: test.test_id,
+              test_name: test.test_name,
+              test_code: test.test_code,
+              description: test.description,
+              test_result: { merged_category_result: mergedResult.slice(0, -1) }, // remove trailing comma
               subtests: [],
             });
           }
@@ -1166,8 +1169,10 @@ const proceedDetail = async (batchId: string, assesseeEmail: string) => {
 
 const proceeedProfile = async (type: string, assesseeId: string, assesseeEmail: string) => {
   try {
+    console.log("type", type);
+    console.log("assesseeId", assesseeId);
     const assesseeData: any =
-      type === "internal" ? await getDarwinUser(assesseeId) : await getAssesseeExternalProfile(assesseeEmail);
+      type === "internal" ? await getDarwinUser(String(assesseeId)) : await getAssesseeExternalProfile(assesseeEmail);
 
     console.log("cek assessee data");
     console.log(assesseeData);
@@ -1189,7 +1194,8 @@ const proceedReportDesign = async (batchId: string) => {
   try {
     const batchInformation = await getBatchInformationForReport(batchId);
     const design = await getReportDesignDetail(batchId);
-    const reportDesign = transformResponseFormat(batchInformation, design);
+    console.log("transformasi");
+    const reportDesign = await transformResponseFormat(batchInformation, design);
     console.log("cek report design");
     console.log(reportDesign);
     return reportDesign;
@@ -1238,19 +1244,23 @@ export const handleReportPersonal = async (req: Request, res: Response, next: Ne
     const assesseeEmail = req.body.assessee_email;
 
     const generatingStatus = await getGenerateStatus(batchId, assesseeId);
-
+    console.log(generatingStatus);
     if (generatingStatus.is_generate === false) {
       // Get Report Guide
       // const reportGuide = await proceedGuide();
 
+      const batchInformation = await getSpecificBatchInformationForReport(batchId, assesseeId);
       // Get Report Design
-      const reportDesign = await proceedReportDesign(batchId);
+      console.log("masuk report design");
+      console.log(batchInformation);
+      // const reportDesign = await proceedReportDesign(batchId);
 
-      console.log("HALOOOO");
-      console.log("cek report design", reportDesign);
+      // console.log("HALOOOO");
+      // console.log("cek report design", reportDesign);
 
+      console.log("masuk profile");
       // Get Profile Assessee
-      const profile = await proceeedProfile(reportDesign.batch.type, assesseeId, assesseeEmail);
+      const profile = await proceeedProfile(batchInformation.type, assesseeId, assesseeEmail);
 
       // Get Report Detail
       const reportDetail = await proceedDetail(batchId, assesseeEmail);
@@ -1266,7 +1276,13 @@ export const handleReportPersonal = async (req: Request, res: Response, next: Ne
         message: "Success!",
         data: {
           guide: {
-            content: reportDesign.guide.content,
+            content: batchInformation.content,
+          },
+          batch: {
+            name: batchInformation.batch_name,
+            code: batchInformation.batch_code,
+            type: batchInformation.type,
+            taken_at: batchInformation.taken_at,
           },
           profile: profile,
           intro: reportIntro,

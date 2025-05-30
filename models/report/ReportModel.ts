@@ -479,3 +479,34 @@ export const getGenerateStatus = async (batchId: string, assesseeId: string) => 
     client.release();
   }
 };
+
+export const getSpecificBatchInformationForReport = async (batchId: string, assesseeId: string) => {
+  const client = await db.connect();
+  try {
+    const result = await client.query(
+      `
+        SELECT
+          b.id, 
+          b.batch_name,
+          b.batch_code,
+          b.type,
+          d.taken_at,
+          r.content
+         FROM t_batch_head b
+         LEFT JOIN t_progress_batch_head h ON b.id = h.batch_id
+         LEFT JOIN t_progress_batch_det d ON h.id = d.head_id
+         LEFT JOIN report_head r ON b.id = r.batch_id
+         WHERE b.id = $1 AND h.assessee_id = $2
+         ORDER BY d.taken_at ASC
+        `,
+      [batchId, assesseeId]
+    );
+
+    return result.rows[0];
+  } catch (e) {
+    console.log(e);
+    throw e;
+  } finally {
+    client.release();
+  }
+};
