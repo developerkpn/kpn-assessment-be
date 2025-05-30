@@ -1369,7 +1369,16 @@ export const handleUploadReportPDF = async (req: Request, res: Response, next: N
 
 export const handleGetAssesseeListForReport = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const assesseeList = await getAssesseeListForReport(req.params.id);
+    let assesseeList = await getAssesseeListForReport(req.params.id);
+
+    if (req.query.taken === "true") {
+      assesseeList = assesseeList.filter(
+        (assessee) => assessee.first_taken_subtest_at !== null || assessee.last_finished_subtest_at !== null
+      );
+    } else if (req.query.taken === "false") {
+      assesseeList = assesseeList;
+    }
+
     res.status(200).send({
       message: "Success!",
       data: assesseeList,
