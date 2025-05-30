@@ -10,6 +10,7 @@ import {
   getReportDesignDetail,
   getReportDetail,
   getReportGuide,
+  getReportProctoring,
   getSpecificBatchInformationForReport,
   getTestCriteriaModel,
   storeReportGuide,
@@ -1048,7 +1049,7 @@ const proceedDetail = async (batchId: string, assesseeEmail: string) => {
         };
 
         const norm = await getCriteriaForReport(test.criteria_id);
-        testMapping[testId].norm.push(norm.criterias);
+        testMapping[testId].norm.push(...norm.criterias);
 
         if (test.summary_type === "subtest") {
           const resultBySubtest: any = await getPersonalReportData(batchId, assesseeEmail, "subtest", test.test_id);
@@ -1166,7 +1167,7 @@ const proceedDetail = async (batchId: string, assesseeEmail: string) => {
       }
 
       const values = Object.values(testMapping);
-      detail.push(values);
+      detail.push(...values);
     }
     return detail;
   } catch (e) {
@@ -1288,7 +1289,8 @@ export const handleReportPersonal = async (req: Request, res: Response, next: Ne
       // Get Report Proctoring
 
       // Get Report Log
-
+      const reportProctoting = await getReportProctoring(batchId, assesseeId);
+      console.log("report proctoring", reportProctoting);
       res.status(200).send({
         message: "Success!",
         data: {
@@ -1303,7 +1305,8 @@ export const handleReportPersonal = async (req: Request, res: Response, next: Ne
           },
           profile: profile,
           intro: reportIntro,
-          test: reportDetail,
+          detail: reportDetail,
+          proctoring: reportProctoting,
         },
       });
     } else if (generatingStatus.is_generate === true) {
@@ -1358,6 +1361,13 @@ export const handleUploadReportPDF = async (req: Request, res: Response, next: N
       file_name: fileName,
       path: filePath,
     });
+  } catch (e) {
+    next(e);
+  }
+};
+
+export const handleGetAssesseeListForReport = async (req: Request, res: Response, next: NextFunction) => {
+  try {
   } catch (e) {
     next(e);
   }

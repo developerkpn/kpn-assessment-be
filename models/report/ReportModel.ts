@@ -510,3 +510,49 @@ export const getSpecificBatchInformationForReport = async (batchId: string, asse
     client.release();
   }
 };
+
+export const getReportProctoring = async (batchId: string, assesseeId: string) => {
+  const client = await db.connect();
+  try {
+    const result = await client.query(
+      `
+        SELECT
+           st.id as subtest_id,
+           st.subtest_name,
+           st.subtest_code,
+           l.id as log_id,
+           l.log,
+           l.created_at,
+           l.log_code  
+        from t_batch_head b
+        left join mst_grouptest_head mgh on b.grouptest_id = mgh.id  
+        left join mst_grouptest_det gd on b.grouptest_id = gd.grouptest_id 
+        left join mst_test_head t on gd.test_id = t.id
+        left join mst_test_det td on t.id = td.test_id
+        left join mst_subtest_head st on td.subtest_id = st.id
+        left join t_batch_log l ON st.id = l.subtest_id
+        WHERE b.id = $1 AND l.user_id = $2
+    `,
+      [batchId, assesseeId]
+    );
+
+    return result.rows;
+  } catch (e) {
+  } finally {
+    client.release();
+  }
+};
+
+export const getAssesseeListForReport = async (batchId: string, assesseeId: string) => {
+  const client = await db.connect();
+  try {
+    const result = await client.query(
+      `
+        SELECT 
+        `
+    );
+  } catch (e) {
+  } finally {
+    client.release();
+  }
+};
