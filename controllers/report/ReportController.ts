@@ -933,6 +933,13 @@ const proceedIntro = async (batchId: string, detail: any) => {
         tests: [],
       };
 
+      // Ambil criteria categorynya untuk norm
+      let norm = await getCriteriaForReport(category.criteria_id);
+      console.log("norm final", norm);
+      if (norm.criterias.length !== 0) {
+        data.norm.push(...norm.criterias);
+      }
+
       // Ambil detail berdasarkan category_id
       const categoryDetails: any = detail.flat().filter((d: any) => d.category_id === category.category_id);
 
@@ -1209,12 +1216,13 @@ const getCriteriaForReport = async (criteriaId: string) => {
     const rawData = await getCriteriaDetail(criteriaId);
 
     const groupedData = {
-      value_name: rawData[0].value_name,
-      value_code: rawData[0].value_code,
+      value_name: rawData[0]?.value_name ? rawData[0].value_name : null,
+      value_code: rawData[0]?.value_code ? rawData[0].value_code : null,
       criterias: rawData.reduce(
         (acc, row) => {
           if (row.criteria_name) {
             acc.push({
+              criteria_id: row.criteria_id,
               criteria_name: row.criteria_name,
               minimum_score: row.minimum_score,
               maximum_score: row.maximum_score,
@@ -1226,7 +1234,16 @@ const getCriteriaForReport = async (criteriaId: string) => {
           }
           return acc;
         },
-        [] as Array<{ criteria_name: string; minimum_score: number; maximum_score: number; description: string }>
+        [] as Array<{
+          criteria_id: string;
+          criteria_name: string;
+          minimum_score: number;
+          maximum_score: number;
+          description: string;
+          color_id?: string | null;
+          color_name?: string | null;
+          hex_code?: string | null;
+        }>
       ),
     };
 
