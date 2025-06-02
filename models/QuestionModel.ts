@@ -40,6 +40,7 @@ export const updateQuestion = async (payload: QuestionRequest, id: string) => {
 export const getQuestion = async (categoryId?: number) => {
   const client = await db.connect();
   try {
+    console.log("say hello 1");
     let query = `
       SELECT
         q.*, a.fullname AS created_by, c.category_name
@@ -47,7 +48,7 @@ export const getQuestion = async (categoryId?: number) => {
       LEFT JOIN mst_admin_web a ON q.created_by = a.id
       LEFT JOIN mst_category c ON q.category_id = c.id
     `;
-
+    console.log("say hello 2");
     const values: any[] = [];
 
     // Jika categoryId ada, tambahkan kondisi WHERE

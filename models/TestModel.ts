@@ -23,6 +23,8 @@ export const createTest = async (payloadHeader: any, payloadDetail: any[]) => {
     console.log(error.message);
     await client.query(TRANS.ROLLBACK);
     throw error;
+  } finally {
+    client.release();
   }
 };
 
@@ -131,8 +133,6 @@ export const getTestDetail = async (id: string) => {
                 h.test_code,
                 h.is_active,
                 h.description,
-                h.summary_type,
-                h.summary_formula,
                 a.fullname AS created_by,
                 h.created_at,
                 a.fullname AS updated_by,
@@ -179,8 +179,6 @@ export const getTestDetail = async (id: string) => {
       category_name: result.rows[0].category_name,
       category_code: result.rows[0].category_code,
       description: result.rows[0].description,
-      summary_type: result.rows[0].summary_type,
-      summary_formula: result.rows[0].summary_formula,
       is_active: result.rows[0].is_active,
       created_by: result.rows[0].created_by,
       created_at: result.rows[0].created_at,

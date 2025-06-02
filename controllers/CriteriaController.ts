@@ -2,6 +2,7 @@ import {
   createCriteria,
   deleteCriteria,
   getCriteria,
+  getCriteriaColor,
   getCriteriaDetail,
   updateCriteria,
 } from "#dep/models/CriteriaModel";
@@ -12,6 +13,17 @@ import { Validation } from "#dep/validation/Validation";
 import { CriteriaValidation } from "#dep/validation/CriteriaValidation";
 import { FunctionMenuValidation } from "#dep/validation/FunctionMenuValidation";
 
+export const handleGetCriteriaColor = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const color = await getCriteriaColor();
+    res.status(200).send({
+      message: "Success!",
+      data: color,
+    });
+  } catch (e) {
+    next(e);
+  }
+};
 export const handleCreateCriteria = async (req: Request, res: Response, next: NextFunction) => {
   const payload = req.body;
   const today = new Date();
@@ -174,6 +186,9 @@ export const handleGetCriteriaDetail = async (req: Request, res: Response, next:
               minimum_score: row.minimum_score,
               maximum_score: row.maximum_score,
               description: row.description,
+              color_id: row.color_id,
+              color_name: row.color_name,
+              hex_code: row.hex_code,
             });
           }
           return acc;

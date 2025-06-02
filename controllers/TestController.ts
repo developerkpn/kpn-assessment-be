@@ -26,8 +26,6 @@ export const handleCreateTest = async (req: Request, res: Response, next: NextFu
       test_name: validatedRequest.test_name,
       test_code: validatedRequest.test_code,
       category_id: validatedRequest.category_id,
-      summary_type: validatedRequest.summary_type,
-      summary_formula: validatedRequest.summary_formula,
       description: validatedRequest.description,
       created_by: creator,
       created_at: date,
@@ -55,17 +53,15 @@ export const handleCreateTest = async (req: Request, res: Response, next: NextFu
   }
 };
 
-export const handleGetTest = async (req: Request, res: Response) => {
+export const handleGetTest = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const result = await getTest();
     res.status(200).send({
       message: `Success!`,
       data: result,
     });
-  } catch (error: any) {
-    res.status(500).send({
-      message: error.message,
-    });
+  } catch (e) {
+    next(e);
   }
 };
 
@@ -130,10 +126,8 @@ export const handleGetTestDetail = async (req: Request, res: Response, next: Nex
       message: "Success!",
       data: result,
     });
-  } catch (error: any) {
-    res.status(500).send({
-      message: error.message,
-    });
+  } catch (e) {
+    next(e);
   }
 };
 
