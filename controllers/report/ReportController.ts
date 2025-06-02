@@ -11,7 +11,7 @@ import {
   getReportDesignDetail,
   getReportDetail,
   getReportGuide,
-  getReportProctoring,
+  getReportLog,
   getSpecificBatchInformationForReport,
   getTestCriteriaModel,
   storeReportGuide,
@@ -31,6 +31,8 @@ import moment from "moment";
 import { getSubTestDetail } from "#dep/models/SubTestModel";
 import path from "path";
 import fs from "fs";
+import S3ClientUpload from "#dep/helper/S3UploadClass";
+import ProctoringModel from "#dep/models/transactions/ProctoringModel";
 /**
  * Controller to get batch information with test count by category
  */
@@ -905,15 +907,42 @@ function formatDate(date: Date): string {
   return new Date(date).toLocaleDateString();
 }
 
-const proceedLog = async (batchId: string) => {
+const proceedLog = async (batchId: string, assesseeId: string) => {
   try {
-    // const log = await ;
+    const log = await getReportLog(batchId, assesseeId);
+    console.log("check log response", log);
+    return log;
   } catch (e) {
     throw e;
   }
 };
 
-const proceedProctoring = "";
+const proceedProctoring = async (batchId: string) => {
+  try {
+    const s3 = new S3ClientUpload();
+    const list: any = await s3.ListObjects(batchId);
+
+    // Urutkan dari yang terbaru ke yang lama
+    const sortedList = list.sort(
+      (a: any, b: any) => new Date(b.lastModified).getTime() - new Date(a.lastModified).getTime()
+    );
+
+    // Filter file yang mengandung "_webcam" atau "_screen"
+    const filteredWebCam: any = sortedList.filter((item: any) => item.key.includes("_webcam"));
+
+    const filteredScreen: any = sortedList.filter((item: any) => item.key.includes("_screen"));
+
+    // Ambil 3 item teratas
+    const result = {
+      web_cam: filteredWebCam.slice(0, 3),
+      screen: filteredScreen.slice(0, 3),
+    };
+
+    return result;
+  } catch (e) {
+    throw e;
+  }
+};
 
 const proceedIntro = async (batchId: string, detail: any) => {
   try {
@@ -1180,6 +1209,7 @@ const proceeedProfile = async (type: string, assesseeId: string, assesseeEmail: 
   try {
     console.log("type", type);
     console.log("assesseeId", assesseeId);
+    console.log("assesseeEmail", assesseeEmail);
     const assesseeData: any =
       type === "internal" ? await getDarwinUser(String(assesseeId)) : await getAssesseeExternalProfile(assesseeEmail);
 
@@ -1279,6 +1309,7 @@ export const handleReportPersonal = async (req: Request, res: Response, next: Ne
 
       console.log("masuk profile");
       // Get Profile Assessee
+      console.log(assesseeEmail);
       const profile = await proceeedProfile(batchInformation.type, assesseeId, assesseeEmail);
 
       // Get Report Detail
@@ -1288,10 +1319,11 @@ export const handleReportPersonal = async (req: Request, res: Response, next: Ne
       const reportIntro = await proceedIntro(batchId, reportDetail);
 
       // Get Report Proctoring
+      const reportProctoring = await proceedProctoring(batchId);
 
       // Get Report Log
-      const reportProctoting = await getReportProctoring(batchId, assesseeId);
-      console.log("report proctoring", reportProctoting);
+      const reportLog = await proceedLog(batchId, assesseeId);
+      // console.log("report proctoring", reportProctoting);
       res.status(200).send({
         message: "Success!",
         data: {
@@ -1307,7 +1339,8 @@ export const handleReportPersonal = async (req: Request, res: Response, next: Ne
           profile: profile,
           intro: reportIntro,
           detail: reportDetail,
-          proctoring: reportProctoting,
+          log: reportLog,
+          proctoring: reportProctoring,
         },
       });
     } else if (generatingStatus.is_generate === true) {
@@ -1385,5 +1418,41 @@ export const handleGetAssesseeListForReport = async (req: Request, res: Response
     });
   } catch (e) {
     next(e);
+  }
+};
+
+// Controller untuk mendapatkan image sebagai base64 JSON response
+export const handleGetImageProctoring = async (req: Request, res: Response) => {
+  try {
+    const { path } = req.params;
+
+    if (!path) {
+      res.status(400).json({
+        success: false,
+        message: "Path parameter is required",
+      });
+    }
+
+    const decodedPath = decodeURIComponent(path);
+
+    const s3Client = new S3ClientUpload();
+    const imageData = await s3Client.ConvertToImage(decodedPath);
+
+    res.json({
+      success: true,
+      data: {
+        filename: imageData.filename,
+        contentType: imageData.contentType,
+        base64: imageData.base64,
+        size: imageData.buffer.length,
+      },
+    });
+  } catch (error) {
+    console.error("Error getting image base64:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to retrieve image",
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
   }
 };
