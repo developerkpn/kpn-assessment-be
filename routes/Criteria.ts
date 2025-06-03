@@ -5,8 +5,8 @@ import {
   handleGetCriteriaColor,
   handleGetCriteriaDetail,
   handleUpdateCriteria,
-} from "#dep/controllers/CriteriaController";
-import { checkPermission } from "#dep/middleware/auth";
+} from "@/controllers/CriteriaController.js";
+import { checkPermission } from "@/middleware/auth.js";
 import { Router } from "express";
 const Criteria = Router();
 

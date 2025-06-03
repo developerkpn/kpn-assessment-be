@@ -4,8 +4,8 @@ import {
   handleGetQuestion,
   handleGetQuestionById,
   handleUpdateQuestion,
-} from "#dep/controllers/QuestionController";
-import { checkPermission } from "#dep/middleware/auth";
+} from "@/controllers/QuestionController.js";
+import { checkPermission } from "@/middleware/auth.js";
 import { Router } from "express";
 const Question = Router();
 

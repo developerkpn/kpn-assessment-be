@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { checkPermission } from "#dep/middleware/auth";
+import { checkPermission } from "@/middleware/auth.js";
 import {
   handleCreateSubTest,
   handleDeleteSeriesFromSubTest,
@@ -8,7 +8,7 @@ import {
   handleGetSubTest,
   handleGetSubTestDetail,
   handleUpdateSubTest,
-} from "#dep/controllers/SubTestController";
+} from "@/controllers/SubTestController.js";
 const SubTest = Router();
 
 SubTest.post("/", checkPermission("fcreate", 12), handleCreateSubTest);

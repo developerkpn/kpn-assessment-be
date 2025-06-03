@@ -3,11 +3,11 @@ import {
   deleteBusinessUnit,
   getBusinessUnit,
   updateBusinessUnit,
-} from "#dep/models/BusinessUnitModel";
+} from "@/models/BusinessUnitModel.js";
 import { NextFunction, Request, Response } from "express";
 import { v4 as uuidv4 } from "uuid";
-import { Validation } from "#dep/validation/Validation";
-import { BusinessUnitValidation } from "#dep/validation/BusinessUnitValidation";
+import { Validation } from "@/validation/Validation.js";
+import { BusinessUnitValidation } from "@/validation/BusinessUnitValidation.js";
 
 export const handleCreateBusinessUnit = async (req: Request, res: Response, next: NextFunction) => {
   try {

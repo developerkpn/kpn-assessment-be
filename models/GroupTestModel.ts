@@ -1,8 +1,8 @@
-import { db } from "#dep/config/connection";
-import { TRANSACTION as TRANS } from "#dep/config/transaction";
-import { deleteQuery, insertQuery, updateQuery } from "#dep/helper/queryBuilder";
-import { GroupTestDetailRequest, GroupTestHeaderRequest, GroupTestRequest } from "#dep/types/MasterDataTypes";
-import { ResponseError } from "#dep/error/response-error";
+import { db } from "@/config/connection.js";
+import { TRANSACTION as TRANS } from "@/config/transaction.js";
+import { deleteQuery, insertQuery, updateQuery } from "@/helper/queryBuilder.js";
+import { GroupTestDetailRequest, GroupTestHeaderRequest, GroupTestRequest } from "@/types/MasterDataTypes.js";
+import { ResponseError } from "@/error/response-error.js";
 
 export const getAvailableSubTestForGroupTest = async (grouptestId: string) => {
   const client = await db.connect();

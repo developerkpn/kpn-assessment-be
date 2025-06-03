@@ -1,5 +1,5 @@
 import { createTransport, Transporter } from "nodemailer";
-import { emailTemplate, generateButton, generateTable } from "./emailTemplate";
+import { emailTemplate, generateButton, generateTable } from "./emailTemplate.js";
 
 type newAccountData = {
   fullname: string;

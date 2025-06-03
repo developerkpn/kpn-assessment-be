@@ -1,19 +1,19 @@
-import { darwinAuth } from "#dep/config/axiosDarwin";
+import { darwinAuth } from "@/config/axiosDarwin.js";
 
 const AuthModel = {
-  CheckTokenDarwin : async (token : string) => {
+  CheckTokenDarwin: async (token: string) => {
     try {
       const { data } = await darwinAuth.post(`/checkToken`, {
         api_key: process.env.APICHCKTOK,
         token: token,
       });
-      if(data.status == 0) {
-        throw new Error('Forbidden')
+      if (data.status == 0) {
+        throw new Error("Forbidden");
       }
     } catch (error) {
-      throw error ;
+      throw error;
     }
-  }
-}
+  },
+};
 
-export default AuthModel
+export default AuthModel;

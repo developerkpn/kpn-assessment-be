@@ -1,15 +1,15 @@
-import { db } from "#dep/config/connection";
-import { TRANSACTION as TRANS } from "#dep/config/transaction";
-import { deleteQuery, insertQuery, updateQuery } from "#dep/helper/queryBuilder";
-import { ResponseError } from "#dep/error/response-error";
+import { db } from "@/config/connection.js";
+import { TRANSACTION as TRANS } from "@/config/transaction.js";
+import { deleteQuery, insertQuery, updateQuery } from "@/helper/queryBuilder.js";
+import { ResponseError } from "@/error/response-error.js";
 import { async } from "rxjs";
-import { Validation } from "#dep/validation/Validation";
-import { BatchValidation } from "#dep/validation/BatchValidation";
+import { Validation } from "@/validation/Validation.js";
+import { BatchValidation } from "@/validation/BatchValidation.js";
 import { v7 as uuid } from "uuid";
 import axios from "axios";
-import { axiosDarwin } from "#dep/config/axiosDarwin";
+import { axiosDarwin } from "@/config/axiosDarwin.js";
 import { AxiosResponse } from "axios";
-import { DataEmpDarwin } from "#dep/types/MasterDataTypes";
+import { DataEmpDarwin } from "@/types/MasterDataTypes.js";
 
 export const createBatch = async (headerPayload: any, batchCodePayload: any, ccPayload: any, assesseePayload: any) => {
   const client = await db.connect();
@@ -33,8 +33,14 @@ export const createBatch = async (headerPayload: any, batchCodePayload: any, ccP
   }
 };
 
-export const getBatch = async () => {
+export const getBatch = async ({ published }: { published: boolean }) => {
   const client = await db.connect();
+  let whereque = "";
+  let whereval: any[] = [];
+  if (published) {
+    whereque = "WHERE h.status = $1";
+    whereval.push("Published");
+  }
   try {
     const result = await client.query(
       `
@@ -59,13 +65,14 @@ export const getBatch = async () => {
             LEFT JOIN
                 mst_business_unit b ON h.bu_id = b.id
             LEFT JOIN
-                mst_function_menu f ON h.function_id = f.id     
+                mst_function_menu f ON h.function_id = f.id ${whereque} 
             GROUP BY 
                 h.id, h.batch_name, h.batch_code, g.grouptest_code, h.type, h.status,
                 h.start_period, h.end_period, b.bu_code, f.fm_code
             ORDER BY 
                 h.created_at DESC           
-            `
+            `,
+      whereval
     );
 
     return result.rows;

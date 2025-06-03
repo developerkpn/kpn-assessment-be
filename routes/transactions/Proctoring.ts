@@ -1,5 +1,5 @@
-import ProctoringController from "#dep/controllers/transaction/ProctoringController";
-import { isAuth } from "#dep/middleware/auth";
+import ProctoringController from "@/controllers/transaction/ProctoringController.js";
+import { isAuth } from "@/middleware/auth.js";
 import { Router } from "express";
 
 const Proctoring = Router();

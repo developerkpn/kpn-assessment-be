@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
-import { Validation } from "#dep/validation/Validation";
-import { EmailTemplateValidation } from "#dep/validation/EmailTemplateValidation";
+import { Validation } from "@/validation/Validation.js";
+import { EmailTemplateValidation } from "@/validation/EmailTemplateValidation.js";
 import {
   createEmailTemplate,
   deleteEmailTemplate,
@@ -8,18 +8,18 @@ import {
   getEmailTemplateDetail,
   getUserRole,
   updateEmailTemplate,
-} from "#dep/models/EmailTemplateModel";
+} from "@/models/EmailTemplateModel.js";
 import { v7 as uuid } from "uuid";
-import { getBatchAssesses, getBatchDetail } from "#dep/models/BatchModel";
+import { getBatchAssesses, getBatchDetail } from "@/models/BatchModel.js";
 import fs from "fs";
-const mustache = require("mustache");
+import mustache from "mustache";
 import { createTransport } from "nodemailer";
-import { Emailer } from "#dep/services/mail/Emailer";
-import { getFunctionMenuDetail } from "#dep/models/FunctionMenuModel";
-import { getBusinessUnitDetail } from "#dep/models/BusinessUnitModel";
+import { Emailer } from "@/services/mail/Emailer.js";
+import { getFunctionMenuDetail } from "@/models/FunctionMenuModel.js";
+import { getBusinessUnitDetail } from "@/models/BusinessUnitModel.js";
 import dotenv from "dotenv";
-import { emailTemplateHTML } from "#dep/helper/email/emailnotifmgrprc";
-import { emailCCTemplate } from "#dep/helper/email/emailcctemplate";
+import { emailTemplateHTML } from "@/helper/email/emailnotifmgrprc.js";
+import { emailCCTemplate } from "@/helper/email/emailcctemplate.js";
 dotenv.config();
 
 export const handleGetUserRole = async (req: Request, res: Response, next: NextFunction) => {

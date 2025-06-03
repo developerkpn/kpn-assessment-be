@@ -1,14 +1,14 @@
-import { getAdminMenu, getAllMenu } from "#dep/models/MenuModel";
+import { getAdminMenu, getAllMenu } from "@/models/MenuModel.js";
 import { NextFunction, Request, Response } from "express";
-import { Validation } from "#dep/validation/Validation";
-import { MenuValidation } from "#dep/validation/MenuValidation";
+import { Validation } from "@/validation/Validation.js";
+import { MenuValidation } from "@/validation/MenuValidation.js";
 
 export const handleGetAdminMenu = async (req: Request, res: Response, next: NextFunction) => {
   const roleId = String(req.userDecode?.role_id);
   try {
     const validatedRoleId = Validation.validate(MenuValidation.ID, roleId);
     let result = await getAdminMenu(validatedRoleId);
-    const groupedData = result.reduce((acc, item) => {
+    const groupedData = result.reduce((acc: any, item: any) => {
       const key = item.subheader || "Others"; // Use "Others" for null subheaders
       if (!acc[key]) {
         acc[key] = [];

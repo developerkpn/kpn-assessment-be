@@ -1,7 +1,7 @@
-import { db } from "#dep/config/connection";
-import { TRANSACTION as TRANS } from "#dep/config/transaction";
-import { updateQuery } from "#dep/helper/queryBuilder";
-import { BriefRequest, TermsPPRequest } from "#dep/types/MasterDataTypes";
+import { db } from "@/config/connection.js";
+import { TRANSACTION as TRANS } from "@/config/transaction.js";
+import { updateQuery } from "@/helper/queryBuilder.js";
+import { BriefRequest, TermsPPRequest } from "@/types/MasterDataTypes.js";
 
 export const getTermsPP = async () => {
   const client = await db.connect();

@@ -3,8 +3,8 @@ import {
   handleDeleteBusinessUnit,
   handleGetBusinessUnit,
   handleUpdateBusinessUnit,
-} from "#dep/controllers/BusinessUnitController";
-import { checkPermission } from "#dep/middleware/auth";
+} from "@/controllers/BusinessUnitController.js";
+import { checkPermission } from "@/middleware/auth.js";
 import { Router } from "express";
 const BusinessUnit = Router();
 

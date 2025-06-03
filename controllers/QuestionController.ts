@@ -1,4 +1,4 @@
-import { AnswerResponse, QuestionFields, QuestionRequest, QuestionResult } from "#dep/types/MasterDataTypes";
+import { AnswerResponse, QuestionFields, QuestionRequest, QuestionResult } from "@/types/MasterDataTypes.js";
 import { Request, Response } from "express";
 import { v4 as uuidv4 } from "uuid";
 import path from "path";
@@ -10,7 +10,7 @@ import {
   getQuestion,
   getQuestionById,
   updateQuestion,
-} from "#dep/models/QuestionModel";
+} from "@/models/QuestionModel.js";
 
 const parseQuestionForm = async (
   req: Request,
@@ -226,7 +226,7 @@ export const handleGetQuestion = async (req: Request, res: Response) => {
     const result = await getQuestion(categoryId);
     console.log("test oyyys");
     console.log(result);
-    const formattedResult: any[] = result.map((item) => {
+    const formattedResult: any[] = result.map((item: any) => {
       const answers: AnswerResponse[] = [];
       ["a", "b", "c", "d", "e", "f", "g"].forEach((choice) => {
         const textKey = `answer_choice_${choice}_text`;

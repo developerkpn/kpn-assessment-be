@@ -4,8 +4,8 @@ import {
   handleUpdateBrief,
   handleUpdatePP,
   handleUpdateTerms,
-} from "#dep/controllers/TermsPPController";
-import { checkPermission } from "#dep/middleware/auth";
+} from "@/controllers/TermsPPController.js";
+import { checkPermission } from "@/middleware/auth.js";
 import { Router } from "express";
 const TermsPP = Router();
 export const ShortBrief = Router();

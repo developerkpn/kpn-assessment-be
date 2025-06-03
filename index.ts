@@ -4,14 +4,17 @@ import dotenv from "dotenv";
 import os from "os";
 import https from "https";
 import path from "path";
+import { fileURLToPath } from "url";
+const __filename = fileURLToPath(import.meta.url); // get the resolved path to the file
+const __dirname = path.dirname(__filename); // get the name of the directory
 dotenv.config({ path: path.resolve(__dirname, `./${process.env.NODE_ENV}.env`) });
 import cors, { CorsOptions } from "cors";
 import cookieParser from "cookie-parser";
 import fs from "fs";
-import whitelist from "#dep/config/allowedOrigins";
-import credentials from "./middleware/credential";
-import router from "./routes";
-import { errorMiddleware } from "#dep/middleware/errorMiddleware";
+import whitelist from "@/config/allowedOrigins.js";
+import credentials from "@/middleware/credential.js";
+import router from "./routes/index.js";
+import { errorMiddleware } from "@/middleware/errorMiddleware.js";
 const app = express();
 const servOption = {
   cert: fs.readFileSync("./ssl/cert.pem"),

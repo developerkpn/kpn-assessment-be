@@ -1,5 +1,5 @@
-import { Criteria } from "#dep/types/MasterDataTypes";
-import { db } from "#dep/config/connection";
+import { Criteria } from "@/types/MasterDataTypes.js";
+import { db } from "@/config/connection.js";
 import { Client, PoolClient } from "pg";
 
 export const insertQuery = (table: string, values: any, returning: string | null = null): [string, string[]] => {

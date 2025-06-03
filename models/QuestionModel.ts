@@ -1,7 +1,7 @@
-import { db } from "#dep/config/connection";
-import { TRANSACTION as TRANS } from "#dep/config/transaction";
-import { deleteQuery, insertQuery, updateQuery } from "#dep/helper/queryBuilder";
-import { BURequest, QuestionRequest } from "#dep/types/MasterDataTypes";
+import { db } from "@/config/connection.js";
+import { TRANSACTION as TRANS } from "@/config/transaction.js";
+import { deleteQuery, insertQuery, updateQuery } from "@/helper/queryBuilder.js";
+import { BURequest, QuestionRequest } from "@/types/MasterDataTypes.js";
 
 export const createQuestion = async (payload: QuestionRequest) => {
   const client = await db.connect();

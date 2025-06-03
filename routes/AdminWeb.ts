@@ -12,8 +12,8 @@ import {
   handleUpdateRole,
   handleVerifyResetPassword,
   refreshAccessToken,
-} from "#dep/controllers/AdminWebController";
-import { checkPermission, isAuth } from "#dep/middleware/auth";
+} from "@/controllers/AdminWebController.js";
+import { checkPermission, isAuth } from "@/middleware/auth.js";
 import { Router } from "express";
 const AdminWeb = Router();
 

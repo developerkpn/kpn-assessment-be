@@ -1,16 +1,16 @@
-import { BRIEF_ID, PP_ID, TERMS_ID } from "#dep/constant";
-import { getShortBrief, getTermsPP, updateShortBrief, updateTermsPP } from "#dep/models/TermsPPModel";
-import { BriefRequest, TermsPPRequest } from "#dep/types/MasterDataTypes";
+import { BRIEF_ID, PP_ID, TERMS_ID } from "@/constant.js";
+import { getShortBrief, getTermsPP, updateShortBrief, updateTermsPP } from "@/models/TermsPPModel.js";
+import { BriefRequest, TermsPPRequest } from "@/types/MasterDataTypes.js";
 import { NextFunction, Request, Response } from "express";
-import { Validation } from "#dep/validation/Validation";
-import { TermsPPValidation } from "#dep/validation/TermsPPValidation";
+import { Validation } from "@/validation/Validation.js";
+import { TermsPPValidation } from "@/validation/TermsPPValidation.js";
 
 export const handleGetTermsPP = async (_req: Request, res: Response, next: NextFunction) => {
   let data = { terms: "", pp: "" };
 
   try {
     let result = await getTermsPP();
-    result.forEach((row) => {
+    result.forEach((row: any) => {
       if (row.id === TERMS_ID) {
         data.terms = row;
       }

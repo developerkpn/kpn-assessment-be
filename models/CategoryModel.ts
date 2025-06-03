@@ -1,7 +1,7 @@
-import { db } from "#dep/config/connection";
-import { TRANSACTION as TRANS } from "#dep/config/transaction";
-import { deleteQuery, insertQuery, updateQuery } from "#dep/helper/queryBuilder";
-import { CategoryRequest, CategoryUpdateRequest } from "#dep/types/MasterDataTypes";
+import { db } from "@/config/connection.js";
+import { TRANSACTION as TRANS } from "@/config/transaction.js";
+import { deleteQuery, insertQuery, updateQuery } from "@/helper/queryBuilder.js";
+import { CategoryRequest, CategoryUpdateRequest } from "@/types/MasterDataTypes.js";
 
 export const createCategory = async (payload: CategoryRequest) => {
   const client = await db.connect();

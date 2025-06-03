@@ -7,12 +7,12 @@ import {
   getSeriesbyID,
   getSeriesDetail,
   updateSeries,
-} from "#dep/models/SeriesModel";
+} from "@/models/SeriesModel.js";
 import { NextFunction, Request, Response } from "express";
 import { v7 as uuid } from "uuid";
-import { Validation } from "#dep/validation/Validation";
-import { SeriesValidation } from "#dep/validation/SeriesValidation";
-import { SeriesDetailRequest, SeriesHeaderRequest, SeriesQuery, SeriesRequests } from "#dep/types/SeriesTypes";
+import { Validation } from "@/validation/Validation.js";
+import { SeriesValidation } from "@/validation/SeriesValidation.js";
+import { SeriesDetailRequest, SeriesHeaderRequest, SeriesQuery, SeriesRequests } from "@/types/SeriesTypes.js";
 
 export const handleCreateSeries = async (req: Request, res: Response, next: NextFunction) => {
   try {

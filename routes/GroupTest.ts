@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { checkPermission } from "#dep/middleware/auth";
+import { checkPermission } from "@/middleware/auth.js";
 import {
   handleCreateGroupTest,
   handleDeleteGroupTest,
@@ -8,7 +8,7 @@ import {
   handleGetGroupTest,
   handleGetGroupTestDetail,
   handleUpdateGroupTest,
-} from "#dep/controllers/GroupTestController";
+} from "@/controllers/GroupTestController.js";
 
 const GroupTest = Router();
 

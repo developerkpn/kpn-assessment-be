@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { checkPermission } from "#dep/middleware/auth";
+import { checkPermission } from "@/middleware/auth.js";
 import {
   handleCreateTest,
   handleDeleteSubTestFromTest,
@@ -8,7 +8,7 @@ import {
   handleGetTest,
   handleGetTestDetail,
   handleUpdateTest,
-} from "#dep/controllers/TestController";
+} from "@/controllers/TestController.js";
 const Test = Router();
 
 Test.post("/", checkPermission("fcreate", 14), handleCreateTest);

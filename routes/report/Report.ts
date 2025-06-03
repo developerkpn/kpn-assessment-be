@@ -12,8 +12,9 @@ import {
   handleUpdateReportDesign,
   handleUpdateReportGuide,
   handleUploadReportPDF,
-} from "#dep/controllers/report/ReportController";
-import { uploadSingleFile } from "#dep/middleware/fileMiddleware";
+} from "@/controllers/report/ReportController.js";
+import { PDFController } from "@/controllers/report/PDFController.js";
+import { uploadSingleFile } from "@/middleware/fileMiddleware.js";
 
 const Report = Router();
 
@@ -28,5 +29,6 @@ Report.put("/guide/:id", handleUpdateReportGuide);
 Report.get("/design/:batchId", handleGetReportDesignDetail);
 Report.patch("/design/:batchId", handleUpdateReportDesign);
 Report.get("/template/:batchId", handleGetBatchInformationForReport);
+Report.get("/pdfgen", PDFController.RenderPDF);
 Report.get("/:batchId", handleDownloadBatchReport);
 export default Report;

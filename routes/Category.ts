@@ -1,11 +1,11 @@
-import { checkPermission } from "#dep/middleware/auth";
+import { checkPermission } from "@/middleware/auth.js";
 import { Router } from "express";
 import {
   handleCreateCategory,
   handleDeleteCategory,
   handleGetCategory,
   handleUpdateCategory,
-} from "#dep/controllers/CategoryController";
+} from "@/controllers/CategoryController.js";
 export const Category = Router();
 
 Category.post("/", checkPermission("fcreate", 11), handleCreateCategory);

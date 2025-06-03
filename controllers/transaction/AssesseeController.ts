@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { handleAssessmentToken } from "#dep/controllers/transaction/AssessmentController";
+import { handleAssessmentToken } from "@/controllers/transaction/AssessmentController.js";
 import {
   checkRegisteredExternalAssessee,
   getAssesseeExternalbyEmail,
@@ -8,13 +8,14 @@ import {
   loginExternalAssessee,
   storeExternalAssesseeAccount,
   updateExternalAssessee,
-} from "#dep/models/transactions/AssesseeModel";
-import { hashPassword } from "#dep/helper/auth/password";
+} from "@/models/transactions/AssesseeModel.js";
+import { hashPassword } from "@/helper/auth/password.js";
 import { v7 as uuid } from "uuid";
-import { ClientAction } from "#dep/helper/queryBuilder";
-import { ResponseError } from "#dep/error/response-error";
-import { Secret, verify, sign, decode, JwtPayload } from "jsonwebtoken";
-import { accessExpiry } from "#dep/constant";
+import { ClientAction } from "@/helper/queryBuilder.js";
+import { ResponseError } from "@/error/response-error.js";
+import jwt, { Secret, JwtPayload } from "jsonwebtoken";
+const { verify, sign, decode } = jwt;
+import { accessExpiry } from "@/constant.js";
 
 export const handleAssesseeEntry = async (req: Request, res: Response, next: NextFunction) => {
   try {

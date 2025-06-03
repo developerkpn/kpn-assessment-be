@@ -1,5 +1,5 @@
-import { validateOTP } from "#dep/helper/auth/OTP";
-import { hashPassword } from "#dep/helper/auth/password";
+import { validateOTP } from "@/helper/auth/OTP.js";
+import { hashPassword } from "@/helper/auth/password.js";
 import {
   createAdmin,
   createRole,
@@ -7,20 +7,22 @@ import {
   getAllAdmin,
   getNewToken,
   getPermission,
+  getPermission2,
   getRole,
   loginAdmin,
   reqResetPassword,
   resetPassword,
   updateRole,
-} from "#dep/models/AdminWebModel";
-import { Emailer } from "#dep/services/mail/Emailer";
-import { User } from "#dep/types/AdminTypes";
+} from "@/models/AdminWebModel.js";
+import { Emailer } from "@/services/mail/Emailer.js";
+import { User } from "@/types/AdminTypes.js";
 import { NextFunction, Request, Response } from "express";
-import { Secret, sign, verify } from "jsonwebtoken";
+import jwt, { Secret } from "jsonwebtoken";
+const { sign, verify } = jwt;
 import { v4 as uuidv4 } from "uuid";
-import { Validation } from "#dep/validation/Validation";
-import { AdminWebValidation } from "#dep/validation/AdminWebValidation";
-import { ResponseError } from "#dep/error/response-error";
+import { Validation } from "@/validation/Validation.js";
+import { AdminWebValidation } from "@/validation/AdminWebValidation.js";
+import { ResponseError } from "@/error/response-error.js";
 
 export const handleLoginAdmin = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
@@ -100,18 +102,19 @@ export const handleGetRole = async (req: Request, res: Response, next: NextFunct
 export const handleGetRoleById = async (req: Request, res: Response, next: NextFunction) => {
   const validatedId = Validation.validate(AdminWebValidation.ID, req.params.id);
   try {
-    let result = await getPermission(validatedId);
+    let result = await getPermission2(validatedId);
 
-    const formattedResult = result.reduce((acc, role) => {
-      const { role_name, fcreate, fread, fupdate, fdelete, menu_id, menu_name, ...rest } = role;
+    const formattedResult = result.reduce((acc: any, role: any) => {
+      const { role_name, fcreate, fread, fupdate, fdelete, menu_id, menu_name, role_id, ...rest } = role;
 
-      const existingRole = acc.find((r: any) => r.role_name === role_name);
+      const existingRole = acc.find((r: any) => r.role_id == role_id);
       if (existingRole) {
-        existingRole.permission.push({ menu_name, menu_id, fcreate, fread, fupdate, fdelete });
+        existingRole.permission.push({ menu_name, menu_id, fcreate, fread, fupdate, fdelete, role_id });
       } else {
         acc.push({
           ...rest,
           role_name,
+          role_id,
           permission: [{ menu_name, menu_id, fcreate, fread, fupdate, fdelete }],
         });
       }
@@ -256,15 +259,16 @@ export const handleGetPermission = async (req: Request, res: Response, next: Nex
   try {
     let result = await getPermission();
 
-    const formattedResult = result.reduce((acc, role) => {
-      const { role_name, fcreate, fread, fupdate, fdelete, menu_id, menu_name, ...rest } = role;
+    const formattedResult = result.reduce((acc: any, role: any) => {
+      const { role_name, fcreate, fread, fupdate, fdelete, menu_id, menu_name, role_id, ...rest } = role;
 
       const existingRole = acc.find((r: any) => r.role_name === role_name);
       if (existingRole) {
-        existingRole.permission.push({ menu_name, menu_id, fcreate, fread, fupdate, fdelete });
+        existingRole.permission.push({ menu_name, role_id, menu_id, fcreate, fread, fupdate, fdelete });
       } else {
         acc.push({
           ...rest,
+          role_id,
           role_name,
           permission: [{ menu_name, menu_id, fcreate, fread, fupdate, fdelete }],
         });
