@@ -1420,39 +1420,3 @@ export const handleGetAssesseeListForReport = async (req: Request, res: Response
     next(e);
   }
 };
-
-// Controller untuk mendapatkan image sebagai base64 JSON response
-export const handleGetImageProctoring = async (req: Request, res: Response) => {
-  try {
-    const { path } = req.params;
-
-    if (!path) {
-      res.status(400).json({
-        success: false,
-        message: "Path parameter is required",
-      });
-    }
-
-    const decodedPath = decodeURIComponent(path);
-
-    const s3Client = new S3ClientUpload();
-    const imageData = await s3Client.ConvertToImage(decodedPath);
-
-    res.json({
-      success: true,
-      data: {
-        filename: imageData.filename,
-        contentType: imageData.contentType,
-        base64: imageData.base64,
-        size: imageData.buffer.length,
-      },
-    });
-  } catch (error) {
-    console.error("Error getting image base64:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to retrieve image",
-      error: error instanceof Error ? error.message : "Unknown error",
-    });
-  }
-};
