@@ -329,6 +329,8 @@ export const getReportDetail = async (batchId: string) => {
     return result.rows;
   } catch (e) {
     throw e;
+  } finally {
+    client.release();
   }
 };
 
@@ -360,6 +362,8 @@ export const getIntroData = async (batchId: string) => {
     return result.rows;
   } catch (e) {
     throw e;
+  } finally {
+    client.release();
   }
 };
 
@@ -530,6 +534,7 @@ export const getReportLog = async (batchId: string, assesseeId: string) => {
 
     return result.rows;
   } catch (e) {
+    throw e;
   } finally {
     client.release();
   }
