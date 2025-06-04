@@ -3,6 +3,7 @@ import {
   handleCreateReportForBatch,
   handleDownloadBatchReport,
   handleGetAssesseeListForReport,
+  handleGetBatchForReport,
   handleGetBatchInformationForReport,
   // handleGetImageProctoring,
   handleGetReportDesignDetail,
@@ -16,7 +17,6 @@ import {
 } from "#dep/controllers/report/ReportController";
 import { uploadSingleFile } from "#dep/middleware/fileMiddleware";
 import ProctoringController from "#dep/controllers/transaction/ProctoringController";
-import { handleGetBatchForReport } from "#dep/controllers/SeriesController";
 
 const Report = Router();
 

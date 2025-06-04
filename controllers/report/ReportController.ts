@@ -3,6 +3,7 @@ import {
   assignReportDesign,
   generateReportForWholeBatch,
   getAssesseeListForReport,
+  getBatchForReport,
   getBatchInformationForReport,
   getCategoryCriteriaModel,
   getGenerateStatus,
@@ -37,6 +38,18 @@ import ProctoringModel from "#dep/models/transactions/ProctoringModel";
 /**
  * Controller to get batch information with test count by category
  */
+
+export const handleGetBatchForReport = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const batch = await getBatchForReport();
+    res.status(200).send({
+      message: "Success!",
+      data: batch,
+    });
+  } catch (e) {
+    next(e);
+  }
+};
 
 export const handleReportPreview = async (req: Request, res: Response, next: NextFunction) => {
   res.status(200).send({
