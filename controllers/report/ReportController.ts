@@ -11,6 +11,7 @@ import {
   getReportDesignDetail,
   getReportDetail,
   getReportGuide,
+  getReportHead,
   getReportLog,
   getSpecificBatchInformationForReport,
   getTestCriteriaModel,
@@ -394,6 +395,7 @@ export const handleGetBatchInformationForReport = async (req: Request, res: Resp
     const batchId = req.params.batchId;
     const allTests = await getBatchInformationForReport(batchId);
     console.log("alltest", allTests);
+    const reportHead = await getReportHead(batchId);
     const getReportIntro: any = await getIntroData(batchId);
     const getReportDetail: any = await getReportDesignDetail(batchId);
 
@@ -491,6 +493,7 @@ export const handleGetBatchInformationForReport = async (req: Request, res: Resp
     res.status(200).send({
       message: "Success!",
       data: {
+        report_id: reportHead.id,
         guide: {
           content: getReportIntro[0].content,
         },
@@ -1107,7 +1110,9 @@ const proceedDetail = async (batchId: string, assesseeEmail: string) => {
                 categories: [],
               },
             };
-            testMapping[testId].subtests.push(proceedSubtest);
+
+            const values = Object.values(proceedSubtest);
+            testMapping[testId].subtests.push(...values);
           }
 
           console.log("masuk formula");
@@ -1192,7 +1197,8 @@ const proceedDetail = async (batchId: string, assesseeEmail: string) => {
             subtestMapping[subtestId].result.criteria_color = bestCriteria?.hex_code ?? "#CCCCCC";
           }
 
-          testMapping[testId].subtests.push(subtestMapping);
+          const values = Object.values(subtestMapping);
+          testMapping[testId].subtests.push(...values);
         }
       }
 
