@@ -4,6 +4,38 @@ import { deleteQuery, insertQuery, updateQuery } from "#dep/helper/queryBuilder"
 import { ResponseError } from "#dep/error/response-error";
 import { async } from "rxjs";
 
+export const getBatchForReport = async () => {
+  const client = await db.connect();
+  try {
+    const result = await client.query(`
+    SELECT
+      b.id,
+      b.batch_name,
+      b.batch_code,
+      b.type,
+      b.start_period,
+      b.end_period,
+      (SELECT COUNT(*) 
+      FROM t_batch_assessee
+      WHERE batch_id = b.id) AS total_assessee,
+      r.id AS report_id
+      FROM t_batch_head b
+      LEFT JOIN report_head r ON b.id = r.batch_id
+      WHERE b.end_period < NOW()
+    `);
+
+    const mappingResult = result.rows.map((prev: any) => ({
+      ...prev,
+      is_report_exist: prev.report_id ? true : false,
+    }));
+
+    return mappingResult;
+  } catch (e) {
+    throw e;
+  } finally {
+    client.release();
+  }
+};
 export const getReportGuide = async () => {
   const client = await db.connect();
   try {
@@ -44,6 +76,7 @@ export const updateReportGuide = async (payload: any, reportGuideId: string) => 
     await client.query(TRANS.BEGIN);
     const [Q, V] = updateQuery("report_guide", payload, { id: reportGuideId });
     await client.query(Q, V);
+    // const [introQ, introV] = updateQuery("report_test_intro");
     await client.query(TRANS.COMMIT);
   } catch (e) {
     await client.query(TRANS.ROLLBACK);
@@ -116,6 +149,7 @@ export const getReportDesignDetail = async (batchId: string) => {
     const intro = await client.query(
       `
         SELECT
+          h.id as head_id, 
           h.*,
           i.*,
           d.*
@@ -564,6 +598,25 @@ export const getAssesseeListForReport = async (batchId: string) => {
     return result.rows;
   } catch (e) {
     console.error("Error fetching assessee list for report:", e);
+    throw e;
+  } finally {
+    client.release();
+  }
+};
+
+export const getReportHead = async (batchId: string) => {
+  const client = await db.connect();
+  try {
+    const result = await client.query(
+      `
+      SELECT * FROM report_head
+      WHERE batch_id = $1
+      `,
+      [batchId]
+    );
+
+    return result.rows[0];
+  } catch (e) {
     throw e;
   } finally {
     client.release();

@@ -4,7 +4,7 @@ import {
   handleDownloadBatchReport,
   handleGetAssesseeListForReport,
   handleGetBatchInformationForReport,
-  handleGetImageProctoring,
+  // handleGetImageProctoring,
   handleGetReportDesignDetail,
   handleGetReportGuide,
   handleReportPersonal,
@@ -16,6 +16,7 @@ import {
 } from "#dep/controllers/report/ReportController";
 import { uploadSingleFile } from "#dep/middleware/fileMiddleware";
 import ProctoringController from "#dep/controllers/transaction/ProctoringController";
+import { handleGetBatchForReport } from "#dep/controllers/SeriesController";
 
 const Report = Router();
 
@@ -26,6 +27,7 @@ Report.post("/pdf", uploadSingleFile, handleUploadReportPDF);
 Report.post("/result", handleReportPersonal);
 Report.post("/design", handleCreateReportForBatch);
 Report.get("/proctoring", ProctoringController.GetFile);
+Report.get("/", handleGetBatchForReport);
 Report.get("/personal/:id", handleGetAssesseeListForReport);
 Report.put("/guide/:id", handleUpdateReportGuide);
 Report.get("/design/:batchId", handleGetReportDesignDetail);
