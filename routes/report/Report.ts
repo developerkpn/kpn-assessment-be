@@ -31,7 +31,7 @@ Report.get("/", handleGetBatchForReport);
 Report.get("/personal/:id", handleGetAssesseeListForReport);
 Report.put("/guide/:id", handleUpdateReportGuide);
 Report.get("/design/:batchId", handleGetReportDesignDetail);
-Report.patch("/design/:batchId", handleUpdateReportDesign);
+Report.patch("/design/:reportId", handleUpdateReportDesign);
 Report.get("/template/:batchId", handleGetBatchInformationForReport);
 Report.get("/:batchId", handleDownloadBatchReport);
 export default Report;

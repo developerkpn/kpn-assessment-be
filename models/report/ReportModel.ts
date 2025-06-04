@@ -123,16 +123,42 @@ export const getBatchInformationForReport = async (batchId: string) => {
   }
 };
 
-export const assignReportDesign = async (reportHead: any, reportIntro: any, reportDetail: any) => {
+export const assignReportDesign = async (
+  reportIntro: any,
+  reportDetail: any,
+  reportHead: any,
+  update: boolean = false,
+  report_id?: string
+) => {
   const client = await db.connect();
   try {
     await client.query(TRANS.BEGIN);
-    const [headerQ, headerV] = insertQuery("report_head", reportHead);
-    await client.query(headerQ, headerV);
-    const [introQ, introV] = insertQuery("report_test_intro", reportIntro);
-    await client.query(introQ, introV);
-    const [detailQ, detailV] = insertQuery("report_test_detail", reportDetail);
-    await client.query(detailQ, detailV);
+    if (update === false) {
+      const [headerQ, headerV] = insertQuery("report_head", reportHead);
+      await client.query(headerQ, headerV);
+      const [introQ, introV] = insertQuery("report_test_intro", reportIntro);
+      await client.query(introQ, introV);
+      const [detailQ, detailV] = insertQuery("report_test_detail", reportDetail);
+      await client.query(detailQ, detailV);
+    } else {
+      console.log("masuk update model");
+      console.log(report_id);
+      deleteQuery("report_test_intro", report_id);
+      console.log("end ke 2");
+      deleteQuery("report_test_detail", report_id);
+      console.log("end delete 3");
+      console.log(reportHead);
+      const [headerQ, headerV] = updateQuery("report_head", reportHead, { id: report_id });
+      await client.query(headerQ, headerV);
+      console.log("update");
+      const [introQ, introV] = insertQuery("report_test_intro", reportIntro);
+      await client.query(introQ, introV);
+      console.log("insert 1");
+      const [detailQ, detailV] = insertQuery("report_test_detail", reportDetail);
+      await client.query(detailQ, detailV);
+      console.log("insert 2");
+    }
+
     await client.query(TRANS.COMMIT);
   } catch (e) {
     console.error(e);

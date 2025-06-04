@@ -549,7 +549,7 @@ export const handleCreateReportForBatch = async (req: Request, res: Response, ne
 
     console.log(detailPayload);
 
-    await assignReportDesign(headPayload, introPayload, detailPayload);
+    await assignReportDesign(introPayload, detailPayload, headPayload);
     await res.status(200).send({
       message: "Success!",
     });
@@ -561,6 +561,37 @@ export const handleCreateReportForBatch = async (req: Request, res: Response, ne
 export const handleUpdateReportDesign = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const body: any = req.body;
+    const reportId: string = req.params.reportId;
+
+    const headPayload = {
+      batch_id: body.batch_id,
+      content: body.content,
+    };
+
+    console.log(body);
+    console.log("Masuk create");
+
+    const introPayload = body.intro.map((prev: any) => ({
+      ...prev,
+      id: uuid(),
+      report_id: reportId,
+    }));
+
+    console.log(introPayload);
+
+    const detailPayload = body.details.map((prev: any) => ({
+      ...prev,
+      id: uuid(),
+      report_id: reportId,
+    }));
+
+    console.log(detailPayload);
+
+    console.log("masuk update");
+    await assignReportDesign(introPayload, detailPayload, headPayload, true, reportId);
+    await res.status(201).send({
+      message: "Success!",
+    });
   } catch (e) {
     next(e);
   }
