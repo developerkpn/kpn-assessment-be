@@ -22,6 +22,7 @@ export const getBatchForReport = async () => {
       FROM t_batch_head b
       LEFT JOIN report_head r ON b.id = r.batch_id
       WHERE b.end_period < NOW()
+      ORDER BY end_period DESC
     `);
 
     const mappingResult = result.rows.map((prev: any) => ({
@@ -158,7 +159,6 @@ export const assignReportDesign = async (
       await client.query(detailQ, detailV);
       console.log("insert 2");
     }
-
     await client.query(TRANS.COMMIT);
   } catch (e) {
     console.error(e);
