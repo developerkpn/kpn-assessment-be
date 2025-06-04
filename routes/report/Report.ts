@@ -6,7 +6,7 @@ import {
   handleGetBatchForReport,
   handleGetBatchInformationForReport,
   // handleGetImageProctoring,
-  handleGetReportDesignDetail,
+  // handleGetReportDesignDetail,
   handleGetReportGuide,
   handleReportPersonal,
   handleStoreReportGuide,
