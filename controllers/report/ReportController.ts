@@ -33,8 +33,8 @@ import moment from "moment";
 import { getSubTestDetail } from "@/models/SubTestModel.js";
 import path from "path";
 import fs from "fs";
-import S3ClientUpload from "#dep/helper/S3UploadClass";
-import ProctoringModel from "#dep/models/transactions/ProctoringModel";
+import S3ClientUpload from "@/helper/S3UploadClass.js";
+import ProctoringModel from "@/models/transactions/ProctoringModel.js";
 /**
  * Controller to get batch information with test count by category
  */
@@ -706,11 +706,11 @@ const proceedIntro = async (batchId: string, detail: any) => {
         tests: [],
       };
 
-      // Ambil criteria categorynya untuk norm
+      // Ambil criteria categorynya untuk norm - HANYA SEKALI
       let norm = await getCriteriaForReport(category.criteria_id);
       console.log("norm final", norm);
       if (norm.criterias.length !== 0) {
-        data.norm.push(...norm.criterias);
+        data.norm = [...norm.criterias]; // Langsung assign, tidak push
       }
 
       // Ambil detail berdasarkan category_id
@@ -718,11 +718,8 @@ const proceedIntro = async (batchId: string, detail: any) => {
 
       if (category.summary_type === "summary") {
         for (const test of categoryDetails) {
-          // data.norm.push(...(test.norm || []));
-
           if (test.summary_type === "subtest") {
-            const subtests = test.subtests || [];
-            // data.subtests.push(...subtests);
+            // const subtests = test.subtests || [];
             data.tests.push({
               test_id: test.test_id,
               test_name: test.test_name,
@@ -733,37 +730,32 @@ const proceedIntro = async (batchId: string, detail: any) => {
           } else if (test.summary_type === "category") {
             let mergedResult = "";
             for (const subtest of test.subtests) {
-              for (const key in subtest) {
-                const sub = subtest[key];
-                const categories = sub.result?.categories || [];
-                const names = categories.map((c: any) => c.category_name);
-                mergedResult += names.join(",") + ",";
+              // subtest_criteria adalah string, bukan array
+              if (subtest.result && subtest.result.subtest_criteria) {
+                mergedResult += subtest.result.subtest_criteria + ",";
               }
             }
             data.tests.push({
-              test_id: test.test_id,
-              test_name: test.test_name,
-              test_code: test.test_code,
-              description: test.description,
-              test_result: { merged_category_result: mergedResult.slice(0, -1) }, // remove trailing comma
-              subtests: [],
+              test_id: test.test_id ? test.test_id : null,
+              test_name: test.test_name ? test.test_name : null,
+              test_code: test.test_code ? test.test_code : null,
+              description: test.description ? test.description : null,
+              test_result: mergedResult.slice(0, -1), // remove trailing comma
             });
           }
         }
       } else if (category.summary_type === "detail") {
         for (const test of categoryDetails) {
-          data.norm.push(...(test.norm || []));
+          // data.norm.push(...(test.norm || []));
 
           if (test.summary_type === "subtest") {
             const subtests = test.subtests || [];
-            data.subtests.push(...subtests);
+            const values = Object.values(subtests);
+            data.subtests.push(...values);
           } else if (test.summary_type === "category") {
-            for (const subtest of test.subtests) {
-              for (const key in subtest) {
-                const sub: any = subtest[key];
-                data.subtests.push(sub);
-              }
-            }
+            const subtests = test.subtests || [];
+            const values = Object.values(subtests);
+            data.subtests.push(...values);
           }
         }
       }
@@ -781,14 +773,28 @@ const proceedSubtestCriteria = async (criteriaId: string, subtestPoint: number) 
     console.log("Criteria id adalah", criteriaId);
     console.log("point adlah", subtestPoint);
     const criteria = await getCriteriaForReport(criteriaId);
-    const matchingCriteria = criteria.criterias.find((criteria: any) => {
+    let matchingCriteria = criteria.criterias.find((criteria: any) => {
       return subtestPoint >= Number(criteria.minimum_score) && subtestPoint <= Number(criteria.maximum_score);
     });
     console.log("testing subtest criteria");
     console.log("subtest point");
+    console.log("cek criterianya", criteria);
     console.log(subtestPoint);
     console.log(matchingCriteria);
-    return matchingCriteria;
+    if (matchingCriteria) {
+      return matchingCriteria;
+    } else {
+      matchingCriteria = {
+        criteria_name: null,
+        minimum_score: null,
+        maximum_score: null,
+        description: "Criteria is not valid",
+        color_id: null,
+        color_name: null,
+        hex_code: "#000000",
+      };
+      return matchingCriteria;
+    }
   } catch (e) {
     throw e;
   }
@@ -850,8 +856,10 @@ const proceedDetail = async (batchId: string, assesseeEmail: string) => {
               },
             };
 
-            const values = Object.values(proceedSubtest);
-            testMapping[testId].subtests.push(...values);
+            // console.log("cek proceednya", proceedSubtest);
+            // const values = Object.values(proceedSubtest);
+            // console.log("cek valuesnya", values);
+            testMapping[testId].subtests.push(proceedSubtest);
           }
 
           console.log("masuk formula");
@@ -1084,8 +1092,110 @@ export const handleReportPersonal = async (req: Request, res: Response, next: Ne
           profile: profile,
           intro: reportIntro,
           detail: reportDetail,
-          log: reportLog,
-          proctoring: reportProctoring,
+          log: [
+            {
+              id: "01972fc4-8dff-7ccb-9814-8b488b1bb34a",
+              log: "User is changing window / minimize browser",
+              log_code: "1",
+              created_at: "2025-06-02T08:31:40.031Z",
+            },
+            {
+              id: "01972fc4-9b6a-7ccb-9814-942f8944713b",
+              log: "User is changing window / minimize browser",
+              log_code: "1",
+              created_at: "2025-06-02T08:31:43.466Z",
+            },
+            {
+              id: "01972fc6-41ab-7551-8980-8984111f3d33",
+              log: "User is changing window / minimize browser",
+              log_code: "1",
+              created_at: "2025-06-02T08:33:31.563Z",
+            },
+            {
+              id: "01972fc7-3e28-777c-8728-e185e8594668",
+              log: "User is changing window / minimize browser",
+              log_code: "1",
+              created_at: "2025-06-02T08:34:36.200Z",
+            },
+            {
+              id: "01972fc7-6eb2-777c-8728-ef8aa8e3e435",
+              log: "User is changing window / minimize browser",
+              log_code: "1",
+              created_at: "2025-06-02T08:34:48.626Z",
+            },
+            {
+              id: "01972fc7-e851-777c-8728-f640b23dd8d3",
+              log: "User is changing window / minimize browser",
+              log_code: "1",
+              created_at: "2025-06-02T08:35:19.761Z",
+            },
+            {
+              id: "01972fc8-09b3-777c-8728-faca86b42a95",
+              log: "User is changing window / minimize browser",
+              log_code: "1",
+              created_at: "2025-06-02T08:35:28.307Z",
+            },
+            {
+              id: "01972fc8-25dd-777c-8729-0162b80bed7d",
+              log: "User is changing window / minimize browser",
+              log_code: "1",
+              created_at: "2025-06-02T08:35:35.517Z",
+            },
+            {
+              id: "01972fc9-160f-777c-8729-0b617bb9c67d",
+              log: "User is changing window / minimize browser",
+              log_code: "1",
+              created_at: "2025-06-02T08:36:37.007Z",
+            },
+            {
+              id: "01972fc9-1612-777c-8729-106e96042fa9",
+              log: "User is changing window / minimize browser",
+              log_code: "1",
+              created_at: "2025-06-02T08:36:37.010Z",
+            },
+            {
+              id: "01972fc9-e9d1-777c-8729-18b371fbd1f2",
+              log: "User is changing window / minimize browser",
+              log_code: "1",
+              created_at: "2025-06-02T08:37:31.217Z",
+            },
+            {
+              id: "01972fca-7425-777c-8729-2044ad404864",
+              log: "User is changing window / minimize browser",
+              log_code: "1",
+              created_at: "2025-06-02T08:38:06.630Z",
+            },
+          ],
+          proctoring: {
+            web_cam: [
+              {
+                key: "01972f95-48b1-7331-b0e0-c854eee39e8f/user12345/01972fc3-c38d-7ccb-9813-19702c2885a8/1748853487_webcam.png",
+                lastModified: "2025-06-02T08:38:11.000Z",
+              },
+              {
+                key: "01972f95-48b1-7331-b0e0-c854eee39e8f/user12345/01972fc3-c38d-7ccb-9813-19702c2885a8/1748853451_webcam.png",
+                lastModified: "2025-06-02T08:37:36.000Z",
+              },
+              {
+                key: "01972f95-48b1-7331-b0e0-c854eee39e8f/user12345/01972fc3-c38d-7ccb-9813-19702c2885a8/1748853437_webcam.png",
+                lastModified: "2025-06-02T08:37:22.000Z",
+              },
+            ],
+            screen: [
+              {
+                key: "01972f95-48b1-7331-b0e0-c854eee39e8f/user12345/01972fc3-c38d-7ccb-9813-19702c2885a8/1748853486_screen.png",
+                lastModified: "2025-06-02T08:38:11.000Z",
+              },
+              {
+                key: "01972f95-48b1-7331-b0e0-c854eee39e8f/user12345/01972fc3-c38d-7ccb-9813-19702c2885a8/1748853451_screen.png",
+                lastModified: "2025-06-02T08:37:35.000Z",
+              },
+              {
+                key: "01972f95-48b1-7331-b0e0-c854eee39e8f/user12345/01972fc3-c38d-7ccb-9813-19702c2885a8/1748853437_screen.png",
+                lastModified: "2025-06-02T08:37:21.000Z",
+              },
+            ],
+          },
         },
       });
     } else if (generatingStatus.is_generate === true) {

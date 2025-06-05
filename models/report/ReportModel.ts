@@ -144,9 +144,22 @@ export const assignReportDesign = async (
     } else {
       console.log("masuk update model");
       console.log(report_id);
-      deleteQuery("report_test_intro", report_id);
-      console.log("end ke 2");
-      deleteQuery("report_test_detail", report_id);
+      await client.query(
+        `
+        DELETE
+        FROM report_test_intro 
+        WHERE report_id = $1
+        `,
+        [report_id]
+      );
+      await client.query(
+        `
+        DELETE
+        FROM report_test_detail
+        WHERE report_id = $1
+        `,
+        [report_id]
+      );
       console.log("end delete 3");
       console.log(reportHead);
       const [headerQ, headerV] = updateQuery("report_head", reportHead, { id: report_id });
