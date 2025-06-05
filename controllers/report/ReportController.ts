@@ -20,17 +20,17 @@ import {
   storeReportPDF,
   // storeReportGuide,
   updateReportGuide,
-} from "#dep/models/report/ReportModel";
+} from "@/models/report/ReportModel.js";
 import ExcelJS from "exceljs";
 import { v7 as uuid } from "uuid";
-import { getBatch, getBatchDetail, getDarwinUser } from "#dep/models/BatchModel";
+import { getBatch, getBatchDetail, getDarwinUser } from "@/models/BatchModel.js";
 import { async } from "rxjs";
-import { REPORT_GUIDE_ID } from "#dep/constant";
-import { getAssesseeExternalProfile } from "#dep/models/transactions/AssesseeModel";
-import { ResponseError } from "#dep/error/response-error";
-import { getCriteriaDetail } from "#dep/models/CriteriaModel";
+import { REPORT_GUIDE_ID } from "@/constant.js";
+import { getAssesseeExternalProfile } from "@/models/transactions/AssesseeModel.js";
+import { ResponseError } from "@/error/response-error.js";
+import { getCriteriaDetail } from "@/models/CriteriaModel.js";
 import moment from "moment";
-import { getSubTestDetail } from "#dep/models/SubTestModel";
+import { getSubTestDetail } from "@/models/SubTestModel.js";
 import path from "path";
 import fs from "fs";
 import S3ClientUpload from "#dep/helper/S3UploadClass";
@@ -121,7 +121,7 @@ export const handleGetBatchInformationForReport = async (req: Request, res: Resp
 
     const groupedTests: Record<string, Record<string, any>> = {};
 
-    allTests.forEach((test) => {
+    allTests.forEach((test: any) => {
       const categoryCode = test.category_code || "uncategorized";
       const testId = test.test_id;
 
@@ -149,7 +149,7 @@ export const handleGetBatchInformationForReport = async (req: Request, res: Resp
     for (const [categoryCode, testsMap] of Object.entries(groupedTests)) {
       if (categoryCode === "uncategorized" && Object.keys(testsMap).length === 0) continue;
 
-      const categoryInfo = allTests.find((t) => t.category_code === categoryCode);
+      const categoryInfo = allTests.find((t: any) => t.category_code === categoryCode);
       const categoryId = categoryInfo?.category_id || null;
 
       // Ambil summary berdasarkan category_id dari getReportIntro
@@ -344,7 +344,7 @@ const transformResponseFormat = async (batchInfo: any, reportDesign: any) => {
     // If this category doesn't exist in our map yet, create it
     if (!categoriesMap.has(categoryId)) {
       // Find matching intro info from report
-      const introInfo = reportDesign.intro.find((intro: any) => intro.category_id === categoryId.toString());
+      const introInfo = reportDesign.intro.find((intro: any) => intro.category_id === categoryId);
 
       const category = {
         id: categoryId,
@@ -996,7 +996,7 @@ const getCriteriaForReport = async (criteriaId: string) => {
       value_name: rawData[0]?.value_name ? rawData[0].value_name : null,
       value_code: rawData[0]?.value_code ? rawData[0].value_code : null,
       criterias: rawData.reduce(
-        (acc, row) => {
+        (acc: any, row: any) => {
           if (row.criteria_name) {
             acc.push({
               criteria_id: row.criteria_id,
@@ -1151,7 +1151,7 @@ export const handleGetAssesseeListForReport = async (req: Request, res: Response
 
     if (req.query.taken === "true") {
       assesseeList = assesseeList.filter(
-        (assessee) => assessee.first_taken_subtest_at !== null || assessee.last_finished_subtest_at !== null
+        (assessee: any) => assessee.first_taken_subtest_at !== null || assessee.last_finished_subtest_at !== null
       );
     } else if (req.query.taken === "false") {
       assesseeList = assesseeList;
