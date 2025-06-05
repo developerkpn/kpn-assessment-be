@@ -4,6 +4,39 @@ import { deleteQuery, insertQuery, updateQuery } from "@/helper/queryBuilder.js"
 import { ResponseError } from "@/error/response-error.js";
 import { async } from "rxjs";
 
+export const getBatchForReport = async () => {
+  const client = await db.connect();
+  try {
+    const result = await client.query(`
+    SELECT
+      b.id,
+      b.batch_name,
+      b.batch_code,
+      b.type,
+      b.start_period,
+      b.end_period,
+      (SELECT COUNT(*) 
+      FROM t_batch_assessee
+      WHERE batch_id = b.id) AS total_assessee,
+      r.id AS report_id
+      FROM t_batch_head b
+      LEFT JOIN report_head r ON b.id = r.batch_id
+      WHERE b.end_period < NOW()
+      ORDER BY end_period DESC
+    `);
+
+    const mappingResult = result.rows.map((prev: any) => ({
+      ...prev,
+      is_report_exist: prev.report_id ? true : false,
+    }));
+
+    return mappingResult;
+  } catch (e) {
+    throw e;
+  } finally {
+    client.release();
+  }
+};
 export const getReportGuide = async () => {
   const client = await db.connect();
   try {
@@ -44,6 +77,7 @@ export const updateReportGuide = async (payload: any, reportGuideId: string) => 
     await client.query(TRANS.BEGIN);
     const [Q, V] = updateQuery("report_guide", payload, { id: reportGuideId });
     await client.query(Q, V);
+    // const [introQ, introV] = updateQuery("report_test_intro");
     await client.query(TRANS.COMMIT);
   } catch (e) {
     await client.query(TRANS.ROLLBACK);
@@ -90,16 +124,41 @@ export const getBatchInformationForReport = async (batchId: string) => {
   }
 };
 
-export const assignReportDesign = async (reportHead: any, reportIntro: any, reportDetail: any) => {
+export const assignReportDesign = async (
+  reportIntro: any,
+  reportDetail: any,
+  reportHead: any,
+  update: boolean = false,
+  report_id?: string
+) => {
   const client = await db.connect();
   try {
     await client.query(TRANS.BEGIN);
-    const [headerQ, headerV] = insertQuery("report_head", reportHead);
-    await client.query(headerQ, headerV);
-    const [introQ, introV] = insertQuery("report_test_intro", reportIntro);
-    await client.query(introQ, introV);
-    const [detailQ, detailV] = insertQuery("report_test_detail", reportDetail);
-    await client.query(detailQ, detailV);
+    if (update === false) {
+      const [headerQ, headerV] = insertQuery("report_head", reportHead);
+      await client.query(headerQ, headerV);
+      const [introQ, introV] = insertQuery("report_test_intro", reportIntro);
+      await client.query(introQ, introV);
+      const [detailQ, detailV] = insertQuery("report_test_detail", reportDetail);
+      await client.query(detailQ, detailV);
+    } else {
+      console.log("masuk update model");
+      console.log(report_id);
+      deleteQuery("report_test_intro", report_id);
+      console.log("end ke 2");
+      deleteQuery("report_test_detail", report_id);
+      console.log("end delete 3");
+      console.log(reportHead);
+      const [headerQ, headerV] = updateQuery("report_head", reportHead, { id: report_id });
+      await client.query(headerQ, headerV);
+      console.log("update");
+      const [introQ, introV] = insertQuery("report_test_intro", reportIntro);
+      await client.query(introQ, introV);
+      console.log("insert 1");
+      const [detailQ, detailV] = insertQuery("report_test_detail", reportDetail);
+      await client.query(detailQ, detailV);
+      console.log("insert 2");
+    }
     await client.query(TRANS.COMMIT);
   } catch (e) {
     console.error(e);
@@ -116,6 +175,7 @@ export const getReportDesignDetail = async (batchId: string) => {
     const intro = await client.query(
       `
         SELECT
+          h.id as head_id, 
           h.*,
           i.*,
           d.*
@@ -329,6 +389,8 @@ export const getReportDetail = async (batchId: string) => {
     return result.rows;
   } catch (e) {
     throw e;
+  } finally {
+    client.release();
   }
 };
 
@@ -360,6 +422,8 @@ export const getIntroData = async (batchId: string) => {
     return result.rows;
   } catch (e) {
     throw e;
+  } finally {
+    client.release();
   }
 };
 
@@ -511,33 +575,26 @@ export const getSpecificBatchInformationForReport = async (batchId: string, asse
   }
 };
 
-export const getReportProctoring = async (batchId: string, assesseeId: string) => {
+export const getReportLog = async (batchId: string, assesseeId: string) => {
   const client = await db.connect();
   try {
     const result = await client.query(
       `
         SELECT
-           st.id as subtest_id,
-           st.subtest_name,
-           st.subtest_code,
-           l.id as log_id,
+           l.id,
            l.log,
-           l.created_at,
-           l.log_code  
-        from t_batch_head b
-        left join mst_grouptest_head mgh on b.grouptest_id = mgh.id  
-        left join mst_grouptest_det gd on b.grouptest_id = gd.grouptest_id 
-        left join mst_test_head t on gd.test_id = t.id
-        left join mst_test_det td on t.id = td.test_id
-        left join mst_subtest_head st on td.subtest_id = st.id
-        left join t_batch_log l ON st.id = l.subtest_id
-        WHERE b.id = $1 AND l.user_id = $2
+           l.log_code,
+           l.created_at
+        from t_batch_log l
+        WHERE l.batch_id = $1 AND l.user_id = $2
+        ORDER BY created_at ASC
     `,
       [batchId, assesseeId]
     );
 
     return result.rows;
   } catch (e) {
+    throw e;
   } finally {
     client.release();
   }
@@ -567,6 +624,25 @@ export const getAssesseeListForReport = async (batchId: string) => {
     return result.rows;
   } catch (e) {
     console.error("Error fetching assessee list for report:", e);
+    throw e;
+  } finally {
+    client.release();
+  }
+};
+
+export const getReportHead = async (batchId: string) => {
+  const client = await db.connect();
+  try {
+    const result = await client.query(
+      `
+      SELECT * FROM report_head
+      WHERE batch_id = $1
+      `,
+      [batchId]
+    );
+
+    return result.rows[0];
+  } catch (e) {
     throw e;
   } finally {
     client.release();

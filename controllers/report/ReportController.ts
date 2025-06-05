@@ -3,6 +3,7 @@ import {
   assignReportDesign,
   generateReportForWholeBatch,
   getAssesseeListForReport,
+  getBatchForReport,
   getBatchInformationForReport,
   getCategoryCriteriaModel,
   getGenerateStatus,
@@ -11,7 +12,8 @@ import {
   getReportDesignDetail,
   getReportDetail,
   getReportGuide,
-  getReportProctoring,
+  getReportHead,
+  getReportLog,
   getSpecificBatchInformationForReport,
   getTestCriteriaModel,
   storeReportGuide,
@@ -31,311 +33,19 @@ import moment from "moment";
 import { getSubTestDetail } from "@/models/SubTestModel.js";
 import path from "path";
 import fs from "fs";
+import S3ClientUpload from "#dep/helper/S3UploadClass";
+import ProctoringModel from "#dep/models/transactions/ProctoringModel";
 /**
  * Controller to get batch information with test count by category
  */
 
-export const handleReportPreview = async (req: Request, res: Response, next: NextFunction) => {
-  res.status(200).send({
-    message: "Success!",
-    data: {
-      profile: {
-        assessee_name: "John Doe",
-        assessee_age: "22",
-        assessee_gender: "Male",
-        work_location: "KPN",
-      },
-      guide: {
-        content:
-          "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.",
-      },
-      batch: {
-        name: "Batch Testing",
-        code: "OD/DWS/MAY/2025/23",
-      },
-      intro: [
-        {
-          category_id: "1",
-          category_name: "Kognitif",
-          category_code: "KOG",
-          summary_type: "summary",
-          summary_view: "bar",
-          summary_formula: "sum",
-          subtests: [],
-          tests: [
-            {
-              id: "ac0003d5-34c7-4036-b942-9b4f68cb8291",
-              name: "KPN Kognitif Test",
-              description:
-                "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.",
-              result: {
-                test_point: 80,
-                norm: [
-                  {
-                    id: "ac0003d5-34c7-4036-b942-9b4f68cb8291",
-                    criteria_name: "Very Low",
-                    minimum_score: 0,
-                    maximum_score: 20,
-                  },
-                  {
-                    id: "ac0003d5-34c7-4036-b942-9b4f68cb8292",
-                    criteria_name: "Low",
-                    minimum_score: 21,
-                    maximum_score: 40,
-                  },
-                  {
-                    id: "ac0003d5-34c7-4036-b942-9b4f68cb8293",
-                    criteria_name: "Average",
-                    minimum_score: 41,
-                    maximum_score: 60,
-                  },
-                  {
-                    id: "ac0003d5-34c7-4036-b942-9b4f68cb8294",
-                    criteria_name: "High",
-                    minimum_score: 61,
-                    maximum_score: 80,
-                  },
-                  {
-                    id: "ac0003d5-34c7-4036-b942-9b4f68cb8295",
-                    criteria_name: "Very High",
-                    minimum_score: 80,
-                    maximum_score: 100,
-                  },
-                ],
-              },
-            },
-          ],
-        },
-        {
-          category_id: 2,
-          category_name: "Personality",
-          category_code: "PERSON",
-          summary_type: "detail",
-          summary_view: "bar",
-          summary_formula: "sum",
-          tests: [],
-          subtests: [
-            {
-              id: "ac0003d5-34c7-4036-b942-9b4f68cb829a",
-              name: "KPN Assessment OCEAN (Sub Test)",
-              description: "Mengukur jenis kepribadian seseorang dengan menggunakan teori OCEAN",
-              result: {
-                type: "Openness",
-              },
-            },
-          ],
-        },
-      ],
-      detail: [
-        {
-          category_id: 1,
-          category_name: "Kognitif",
-          category_code: "KOG",
-          test_id: "ac0003d5-34c7-4036-b942-9b4f68cb8291",
-          test_name: "KPN Assessment Kognitif 1",
-          test_code: "KOG 1",
-          taken_at: "2025-05-06 13:47:31.669 +0700",
-          summary_type: "subtest",
-          summary_view: "bar",
-          summary_formula: "sum",
-          result: {
-            test_point: 100,
-            criteria: "Very High",
-            description: "Criteria kalau dapat nilai 100",
-          },
-          norm: [
-            {
-              id: "ac0003d5-34c7-4036-b942-9b4f68cb8291",
-              criteria_name: "Very Low",
-              minimum_score: 0,
-              maximum_score: 20,
-            },
-            {
-              id: "ac0003d5-34c7-4036-b942-9b4f68cb8292",
-              criteria_name: "Low",
-              minimum_score: 21,
-              maximum_score: 40,
-            },
-            {
-              id: "ac0003d5-34c7-4036-b942-9b4f68cb8293",
-              criteria_name: "Average",
-              minimum_score: 41,
-              maximum_score: 60,
-            },
-            {
-              id: "ac0003d5-34c7-4036-b942-9b4f68cb8294",
-              criteria_name: "High",
-              minimum_score: 61,
-              maximum_score: 80,
-            },
-            {
-              id: "ac0003d5-34c7-4036-b942-9b4f68cb8295",
-              criteria_name: "Very High",
-              minimum_score: 80,
-              maximum_score: 100,
-            },
-          ],
-          subtests: [
-            {
-              subtest_id: "ac0003d5-34c7-4036-b942-9b4f68cb829n",
-              subtest_name: "Matematika",
-              subtest_code: "MTK",
-              description:
-                "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.",
-              result: {
-                subtest_point: 80,
-                subtest_criteria: "High",
-                criteria_color: "#00FF00",
-                category: [],
-              },
-            },
-            {
-              subtest_id: "ac0003d5-34c7-4036-b942-9b4f68cb829o",
-              subtest_name: "Bahasa Indonesia",
-              subtest_code: "BHS",
-              description:
-                "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.",
-              result: {
-                subtest_point: 50,
-                subtest_criteria: "Medium",
-                criteria_color: "#FFFF00",
-                categories: [],
-              },
-            },
-            {
-              subtest_id: "ac0003d5-34c7-4036-b942-9b4f68cb829p",
-              subtest_name: "English",
-              subtest_code: "ENG",
-              description:
-                "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.",
-              result: {
-                subtest_point: 20,
-                subtest_criteria: "Low",
-                criteria_color: "#FF0000",
-                categories: [],
-              },
-            },
-          ],
-        },
-        {
-          test_id: "ac0003d5-34c7-4036-b942-9b4f68cb829a",
-          test_name: "Personality",
-          test_code: "PERSON",
-          taken_at: "2025-05-07 09:32:22.369 +0700",
-          summary_type: "category",
-          summary_view: "bar",
-          summary_formula: "sum",
-          result: {
-            test_point: null,
-            criteria: null,
-            description: null,
-          },
-          norm: [],
-          subtests: [
-            {
-              subtest_id: "7af29352-fbf7-4263-93c9-73047831ff41",
-              subtest_name: "OCEAN",
-              subtest_code: "OCEAN",
-              result: {
-                subtest_point: null,
-                subtest_criteria: null,
-                criteria_color: null,
-                categories: [
-                  {
-                    category_id: 3,
-                    category_name: "Openness",
-                    category_code: "O",
-                    category_point: 20,
-                    description:
-                      "Openness menggambarkan sejauh mana seseorang terbuka terhadap ide-ide baru, pengalaman unik, dan pemikiran kreatif. Individu dengan skor tinggi dalam aspek ini cenderung imajinatif, memiliki rasa ingin tahu yang tinggi, dan tertarik untuk mencoba hal-hal baru. Sebaliknya, individu dengan skor rendah lebih menyukai rutinitas, berpikir secara konkret, dan cenderung lebih praktis dalam pendekatan mereka terhadap kehidupan.",
-                  },
-                  {
-                    category_id: 4,
-                    category_name: "Conscientiousness",
-                    category_code: "C",
-                    point: 8,
-                    description:
-                      "Aspek ini mencerminkan tingkat disiplin, organisasi, dan tanggung jawab seseorang dalam menyelesaikan tugas. Individu dengan tingkat conscientiousness yang tinggi dikenal sebagai orang yang teliti, dapat diandalkan, serta memiliki tujuan yang jelas dalam hidupnya. Mereka cenderung terstruktur dalam pekerjaan dan kehidupan sehari-hari. Sementara itu, individu dengan skor rendah lebih spontan, fleksibel, dan terkadang kurang memperhatikan detail atau cenderung menunda pekerjaan.",
-                  },
-                  {
-                    category_id: 4,
-                    category_name: "Extraversion",
-                    category_code: "E",
-                    point: 20,
-                    description:
-                      "Ekstroversi mengukur tingkat energi seseorang dalam berinteraksi dengan lingkungan sosial. Individu dengan tingkat ekstroversi yang tinggi biasanya ramah, bersemangat, dan menikmati berada di tengah-tengah orang lain. individu dengan tingkat ekstroversi yang rendah lebih introvert, menikmati waktu sendiri, cenderung lebih pendiam, dan merasa lebih nyaman dalam lingkungan yang tenang atau dalam interaksi yang lebih intim.",
-                  },
-                  {
-                    category_id: 5,
-                    category_name: "Agreeableness",
-                    category_code: "A",
-                    point: 10,
-                    description:
-                      "Ekstroversi mengukur tingkat energi seseorang dalam berinteraksi dengan lingkungan sosial. Individu dengan tingkat ekstroversi yang tinggi biasanya ramah, bersemangat, dan menikmati berada di tengah-tengah orang lain. individu dengan tingkat ekstroversi yang rendah lebih introvert, menikmati waktu sendiri, cenderung lebih pendiam, dan merasa lebih nyaman dalam lingkungan yang tenang atau dalam interaksi yang lebih intim.",
-                  },
-                  {
-                    category_id: 6,
-                    category_name: "Neuroticism",
-                    category_code: "N",
-                    point: 15,
-                    description:
-                      "Neuroticism mengukur seberapa stabil emosi seseorang dalam menghadapi tekanan atau tantangan hidup. Individu dengan skor tinggi dalam aspek ini cenderung lebih mudah merasa cemas, khawatir, dan mengalami perubahan suasana hati yang lebih sering. Di sisi lain, individu dengan skor rendah memiliki tingkat ketenangan yang lebih tinggi,lebih tahan terhadap tekanan, dan mampu mengelola emosinya dengan lebih baik.",
-                  },
-                ],
-              },
-            },
-          ],
-        },
-      ],
-      proctoring: {
-        picture: {
-          candidate: [
-            {
-              image_url: "www.google.png",
-            },
-            {
-              image_url: "www.google.png",
-            },
-            {
-              image_url: "www.google.png",
-            },
-            {
-              image_url: "www.google.png",
-            },
-            {
-              image_url: "www.google.png",
-            },
-          ],
-          screen: [
-            {
-              image_url: "www.google.png",
-            },
-            {
-              image_url: "www.google.png",
-            },
-            {
-              image_url: "www.google.png",
-            },
-            {
-              image_url: "www.google.png",
-            },
-            {
-              image_url: "www.google.png",
-            },
-          ],
-        },
-        log_activity: [
-          {
-            id: "ac0003d5-34c7-4036-b942-9b4f68cb829x",
-            timestamp: "2025-03-27 09:58:26.764 +0700",
-            activity: "berada di halaman dengan path: /device",
-            type: "subtest",
-          },
-        ],
-      },
-    },
-  });
+export const handleGetBatchForReport = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    const batch = await getBatchForReport();
+    res.status(200).send({
+      message: "Success!",
+      data: batch,
+    });
   } catch (e) {
     next(e);
   }
@@ -392,6 +102,8 @@ export const handleGetBatchInformationForReport = async (req: Request, res: Resp
     const batchId = req.params.batchId;
     const allTests = await getBatchInformationForReport(batchId);
     console.log("alltest", allTests);
+
+    const reportHead = await getReportHead(batchId);
     const getReportIntro: any = await getIntroData(batchId);
     const getReportDetail: any = await getReportDesignDetail(batchId);
 
@@ -489,6 +201,7 @@ export const handleGetBatchInformationForReport = async (req: Request, res: Resp
     res.status(200).send({
       message: "Success!",
       data: {
+        report_id: reportHead ? reportHead.id : null,
         guide: {
           content: getReportIntro[0].content,
         },
@@ -531,7 +244,7 @@ export const handleCreateReportForBatch = async (req: Request, res: Response, ne
 
     console.log(detailPayload);
 
-    await assignReportDesign(headPayload, introPayload, detailPayload);
+    await assignReportDesign(introPayload, detailPayload, headPayload);
     await res.status(200).send({
       message: "Success!",
     });
@@ -543,32 +256,63 @@ export const handleCreateReportForBatch = async (req: Request, res: Response, ne
 export const handleUpdateReportDesign = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const body: any = req.body;
-  } catch (e) {
-    next(e);
-  }
-};
+    const reportId: string = req.params.reportId;
 
-export const handleGetReportDesignDetail = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const batchId = req.params.batchId;
-    const batchInformation = await getBatchInformationForReport(batchId);
-    console.log("get batch info");
-    console.log(batchInformation);
-    const reportDesign = await getReportDesignDetail(batchId);
-    console.log("get report design");
-    console.log(reportDesign);
-    console.log("putus");
-    // Transform the response to the desired format
-    const transformedResponse = transformResponseFormat(batchInformation, reportDesign);
+    const headPayload = {
+      batch_id: body.batch_id,
+      content: body.content,
+    };
 
-    res.status(200).send({
+    console.log(body);
+    console.log("Masuk create");
+
+    const introPayload = body.intro.map((prev: any) => ({
+      ...prev,
+      id: uuid(),
+      report_id: reportId,
+    }));
+
+    console.log(introPayload);
+
+    const detailPayload = body.details.map((prev: any) => ({
+      ...prev,
+      id: uuid(),
+      report_id: reportId,
+    }));
+
+    console.log(detailPayload);
+
+    console.log("masuk update");
+    await assignReportDesign(introPayload, detailPayload, headPayload, true, reportId);
+    await res.status(201).send({
       message: "Success!",
-      data: transformedResponse,
     });
   } catch (e) {
     next(e);
   }
 };
+
+// export const handleGetReportDesignDetail = async (req: Request, res: Response, next: NextFunction) => {
+//   try {
+//     const batchId = req.params.batchId;
+//     const batchInformation = await getBatchInformationForReport(batchId);
+//     console.log("get batch info");
+//     console.log(batchInformation);
+//     const reportDesign = await getReportDesignDetail(batchId);
+//     console.log("get report design");
+//     console.log(reportDesign);
+//     console.log("putus");
+//     // Transform the response to the desired format
+//     const transformedResponse = await transformResponseFormat(batchInformation, reportDesign);
+//     console.log("transform", transformedResponse);
+//     res.status(200).send({
+//       message: "Success!",
+//       data: transformedResponse,
+//     });
+//   } catch (e) {
+//     next(e);
+//   }
+// };
 
 const transformResponseFormat = async (batchInfo: any, reportDesign: any) => {
   if (!batchInfo || !batchInfo.length) {
@@ -905,15 +649,42 @@ function formatDate(date: Date): string {
   return new Date(date).toLocaleDateString();
 }
 
-const proceedLog = async (batchId: string) => {
+const proceedLog = async (batchId: string, assesseeId: string) => {
   try {
-    // const log = await ;
+    const log = await getReportLog(batchId, assesseeId);
+    console.log("check log response", log);
+    return log;
   } catch (e) {
     throw e;
   }
 };
 
-const proceedProctoring = "";
+const proceedProctoring = async (batchId: string) => {
+  try {
+    const s3 = new S3ClientUpload();
+    const list: any = await s3.ListObjects(batchId);
+
+    // Urutkan dari yang terbaru ke yang lama
+    const sortedList = list.sort(
+      (a: any, b: any) => new Date(b.lastModified).getTime() - new Date(a.lastModified).getTime()
+    );
+
+    // Filter file yang mengandung "_webcam" atau "_screen"
+    const filteredWebCam: any = sortedList.filter((item: any) => item.key.includes("_webcam"));
+
+    const filteredScreen: any = sortedList.filter((item: any) => item.key.includes("_screen"));
+
+    // Ambil 3 item teratas
+    const result = {
+      web_cam: filteredWebCam.slice(0, 3),
+      screen: filteredScreen.slice(0, 3),
+    };
+
+    return result;
+  } catch (e) {
+    throw e;
+  }
+};
 
 const proceedIntro = async (batchId: string, detail: any) => {
   try {
@@ -1078,7 +849,9 @@ const proceedDetail = async (batchId: string, assesseeEmail: string) => {
                 categories: [],
               },
             };
-            testMapping[testId].subtests.push(proceedSubtest);
+
+            const values = Object.values(proceedSubtest);
+            testMapping[testId].subtests.push(...values);
           }
 
           console.log("masuk formula");
@@ -1163,7 +936,8 @@ const proceedDetail = async (batchId: string, assesseeEmail: string) => {
             subtestMapping[subtestId].result.criteria_color = bestCriteria?.hex_code ?? "#CCCCCC";
           }
 
-          testMapping[testId].subtests.push(subtestMapping);
+          const values = Object.values(subtestMapping);
+          testMapping[testId].subtests.push(...values);
         }
       }
 
@@ -1180,6 +954,7 @@ const proceeedProfile = async (type: string, assesseeId: string, assesseeEmail: 
   try {
     console.log("type", type);
     console.log("assesseeId", assesseeId);
+    console.log("assesseeEmail", assesseeEmail);
     const assesseeData: any =
       type === "internal" ? await getDarwinUser(String(assesseeId)) : await getAssesseeExternalProfile(assesseeEmail);
 
@@ -1279,6 +1054,7 @@ export const handleReportPersonal = async (req: Request, res: Response, next: Ne
 
       console.log("masuk profile");
       // Get Profile Assessee
+      console.log(assesseeEmail);
       const profile = await proceeedProfile(batchInformation.type, assesseeId, assesseeEmail);
 
       // Get Report Detail
@@ -1288,10 +1064,11 @@ export const handleReportPersonal = async (req: Request, res: Response, next: Ne
       const reportIntro = await proceedIntro(batchId, reportDetail);
 
       // Get Report Proctoring
+      const reportProctoring = await proceedProctoring(batchId);
 
       // Get Report Log
-      const reportProctoting = await getReportProctoring(batchId, assesseeId);
-      console.log("report proctoring", reportProctoting);
+      const reportLog = await proceedLog(batchId, assesseeId);
+      // console.log("report proctoring", reportProctoting);
       res.status(200).send({
         message: "Success!",
         data: {
@@ -1307,7 +1084,8 @@ export const handleReportPersonal = async (req: Request, res: Response, next: Ne
           profile: profile,
           intro: reportIntro,
           detail: reportDetail,
-          proctoring: reportProctoting,
+          log: reportLog,
+          proctoring: reportProctoring,
         },
       });
     } else if (generatingStatus.is_generate === true) {
