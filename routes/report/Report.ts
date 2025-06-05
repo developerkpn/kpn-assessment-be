@@ -13,9 +13,10 @@ import {
   handleUpdateReportDesign,
   handleUpdateReportGuide,
   handleUploadReportPDF,
-} from "#dep/controllers/report/ReportController";
-import { uploadSingleFile } from "#dep/middleware/fileMiddleware";
-import ProctoringController from "#dep/controllers/transaction/ProctoringController";
+} from "@/controllers/report/ReportController.js";
+import { uploadSingleFile } from "@/middleware/fileMiddleware.js";
+import ProctoringController from "@/controllers/transaction/ProctoringController.js";
+import { PDFController } from "@/controllers/report/PDFController.js";
 
 const Report = Router();
 
