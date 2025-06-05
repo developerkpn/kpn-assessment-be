@@ -1,9 +1,9 @@
-import { db } from "#dep/config/connection";
-import { TRANSACTION as TRANS } from "#dep/config/transaction";
-import { deleteQuery, insertQuery, updateQuery } from "#dep/helper/queryBuilder";
-import { SeriesDetailRequest, SeriesHeaderRequest } from "#dep/types/SeriesTypes";
-import { ResponseError } from "#dep/error/response-error";
-import { SeriesDataCreate } from "#dep/types/MasterDataTypes";
+import { db } from "@/config/connection.js";
+import { TRANSACTION as TRANS } from "@/config/transaction.js";
+import { deleteQuery, insertQuery, updateQuery } from "@/helper/queryBuilder.js";
+import { SeriesDetailRequest, SeriesHeaderRequest } from "@/types/SeriesTypes.js";
+import { ResponseError } from "@/error/response-error.js";
+import { SeriesDataCreate } from "@/types/MasterDataTypes.js";
 import { QueryResult } from "pg";
 
 export const createSeries = async (headerPayload: SeriesHeaderRequest, detailPayload: SeriesDetailRequest[]) => {

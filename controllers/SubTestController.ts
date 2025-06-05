@@ -1,9 +1,9 @@
 import { NextFunction, Request, Response } from "express";
 import { v4 as uuid } from "uuid";
-import { SubTestDetailRequest, SubTestHeaderRequest, SubTestRequest } from "#dep/types/MasterDataTypes";
-import { Validation } from "#dep/validation/Validation";
-import { SeriesValidation } from "#dep/validation/SeriesValidation";
-import { SubTestValidation } from "#dep/validation/SubTestValidation";
+import { SubTestDetailRequest, SubTestHeaderRequest, SubTestRequest } from "@/types/MasterDataTypes.js";
+import { Validation } from "@/validation/Validation.js";
+import { SeriesValidation } from "@/validation/SeriesValidation.js";
+import { SubTestValidation } from "@/validation/SubTestValidation.js";
 import {
   createSubTest,
   deleteSeriesFromSubTest,
@@ -12,8 +12,8 @@ import {
   getSubTest,
   getSubTestDetail,
   updateSubTest,
-} from "#dep/models/SubTestModel";
-import { SeriesDetailRequest } from "#dep/types/SeriesTypes";
+} from "@/models/SubTestModel.js";
+import { SeriesDetailRequest } from "@/types/SeriesTypes.js";
 
 export const handleCreateSubTest = async (req: Request, res: Response, next: NextFunction) => {
   try {

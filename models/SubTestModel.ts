@@ -1,8 +1,8 @@
-import { db } from "#dep/config/connection";
-import { TRANSACTION as TRANS } from "#dep/config/transaction";
-import { deleteQuery, insertQuery, updateQuery } from "#dep/helper/queryBuilder";
-import { SubTestDetailRequest, SubTestHeaderRequest, SubTestRequest } from "#dep/types/MasterDataTypes";
-import { ResponseError } from "#dep/error/response-error";
+import { db } from "@/config/connection.js";
+import { TRANSACTION as TRANS } from "@/config/transaction.js";
+import { deleteQuery, insertQuery, updateQuery } from "@/helper/queryBuilder.js";
+import { SubTestDetailRequest, SubTestHeaderRequest, SubTestRequest } from "@/types/MasterDataTypes.js";
+import { ResponseError } from "@/error/response-error.js";
 
 export const createSubTest = async (payloadHeader: any, payloadDetail: any[]) => {
   const client = await db.connect();

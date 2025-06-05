@@ -1,9 +1,10 @@
-import { Permission, TokenPayload } from "#dep/types/AdminTypes";
+import { Permission, TokenPayload } from "@/types/AdminTypes.js";
 import { NextFunction, Request, Response } from "express";
-import { decode, JwtPayload, Secret, verify } from "jsonwebtoken";
-import { verifyPermission } from "#dep/models/AdminWebModel";
-import AuthModel from "#dep/models/AuthModel";
-import { getAssesseeExternalProfile } from "#dep/models/transactions/AssesseeModel";
+import jwt, { JwtPayload, Secret } from "jsonwebtoken";
+const { decode, verify } = jwt;
+import { verifyPermission } from "@/models/AdminWebModel.js";
+import AuthModel from "@/models/AuthModel.js";
+import { getAssesseeExternalProfile } from "@/models/transactions/AssesseeModel.js";
 
 export const isAuth = (req: Request, res: Response, next: NextFunction): any => {
   const authHeaders = req.headers.Authorization || req.headers.authorization;

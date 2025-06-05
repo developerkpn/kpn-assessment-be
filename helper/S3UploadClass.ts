@@ -8,6 +8,7 @@ import {
   S3,
   CreateMultipartUploadCommandOutput,
   GetObjectCommand,
+  ListObjectsV2Command,
 } from "@aws-sdk/client-s3";
 import { Readable } from "stream";
 
@@ -68,6 +69,28 @@ class S3ClientUpload {
       console.log(GetObj);
       return { stream: GetObj.Body as Readable, filename: path.split("/").slice(-1) };
     } catch (error) {
+      throw error;
+    }
+  }
+  async ListObjects(prefix: string = "") {
+    try {
+      const listCommand = new ListObjectsV2Command({
+        Bucket: "kpnapps-assessment",
+        Prefix: prefix, // opsional, bisa kosong untuk ambil semua
+      });
+
+      const response = await this.Client.send(listCommand);
+
+      const contents = response.Contents || [];
+
+      return contents.map((item) => ({
+        key: item.Key,
+        lastModified: item.LastModified,
+        // size: item.Size,
+        // storageClass: item.StorageClass,
+      }));
+    } catch (error) {
+      console.error("Error listing S3 objects:", error);
       throw error;
     }
   }

@@ -1,14 +1,14 @@
-import { db } from "#dep/config/connection";
-import { TRANSACTION, TRANSACTION as TRANS } from "#dep/config/transaction";
-import { deleteQuery, insertQuery, updateQuery } from "#dep/helper/queryBuilder";
-import { ResponseError } from "#dep/error/response-error";
+import { db } from "@/config/connection.js";
+import { TRANSACTION, TRANSACTION as TRANS } from "@/config/transaction.js";
+import { deleteQuery, insertQuery, updateQuery } from "@/helper/queryBuilder.js";
+import { ResponseError } from "@/error/response-error.js";
 import { async } from "rxjs";
-import { getGroupTestDetail, getTestIdByGroupTestId } from "#dep/models/GroupTestModel";
+import { getGroupTestDetail, getTestIdByGroupTestId } from "@/models/GroupTestModel.js";
 import { format } from "logform";
 import cli = format.cli;
 import { NextFunction } from "express";
 import { QueryResult } from "pg";
-import { QuestionRequest } from "#dep/types/MasterDataTypes";
+import { QuestionRequest } from "@/types/MasterDataTypes.js";
 
 export const getBatchByAssessment = async (batchId: string) => {
   const client = await db.connect();
@@ -753,13 +753,10 @@ export const getPointPerQuestion = async (detId: string) => {
        WHERE id = ANY($1)`,
       [questionIds]
     );
-    const keyMap = resKeys.rows.reduce(
-      (acc, row) => {
-        acc[row.question_id] = row;
-        return acc;
-      },
-      {} as Record<string, any>
-    );
+    const keyMap = resKeys.rows.reduce((acc, row) => {
+      acc[row.question_id] = row;
+      return acc;
+    }, {} as Record<string, any>);
 
     console.log("masuk 3");
     const results: { id: string; question_id: string; totalPoint: number }[] = [];

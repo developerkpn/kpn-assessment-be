@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { checkPermission } from "#dep/middleware/auth";
+import { checkPermission } from "@/middleware/auth.js";
 import {
   getInternalAssesseeData,
   handleAddAssesseeManually,
@@ -17,9 +17,9 @@ import {
   handlePublishBatch,
   handleReadAssesseeFile,
   handleUpdateBatch,
-} from "#dep/controllers/BatchController";
-import { handleGetTest } from "#dep/controllers/TestController";
-import { uploadSingleFile } from "#dep/middleware/fileMiddleware";
+} from "@/controllers/BatchController.js";
+import { handleGetTest } from "@/controllers/TestController.js";
+import { uploadSingleFile } from "@/middleware/fileMiddleware.js";
 
 export const Batch = Router();
 

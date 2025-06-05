@@ -1,12 +1,13 @@
-import { db } from "#dep/config/connection";
-import { TRANSACTION as TRANS } from "#dep/config/transaction";
-import { accessExpiry, refreshExpiry } from "#dep/constant";
-import { createOTP } from "#dep/helper/auth/OTP";
-import { hashPassword, validatePassword } from "#dep/helper/auth/password";
-import { deleteQuery, insertQuery, updateQuery } from "#dep/helper/queryBuilder";
-import { Emailer } from "#dep/services/mail/Emailer";
-import { User } from "#dep/types/AdminTypes";
-import { Secret, sign, verify } from "jsonwebtoken";
+import { db } from "@/config/connection.js";
+import { TRANSACTION as TRANS } from "@/config/transaction.js";
+import { accessExpiry, refreshExpiry } from "@/constant.js";
+import { createOTP } from "@/helper/auth/OTP.js";
+import { hashPassword, validatePassword } from "@/helper/auth/password.js";
+import { deleteQuery, insertQuery, updateQuery } from "@/helper/queryBuilder.js";
+import { Emailer } from "@/services/mail/Emailer.js";
+import { User } from "@/types/AdminTypes.js";
+import jwt, { Secret } from "jsonwebtoken";
+const { sign, verify } = jwt;
 
 export const loginAdmin = async (emailOrUname: string, password: string) => {
   const client = await db.connect();
@@ -324,17 +325,57 @@ export const resetPassword = async (newPass: string, email: string) => {
 
 export const getPermission = async (id: string | null = null) => {
   const client = await db.connect();
-
   try {
-    await client.query(TRANS.BEGIN);
     const { rows } = await client.query(
       `
-      SELECT rl.*, ad.fullname AS created_by, ac.menu_id, ac.fcreate, ac.fread, ac.fupdate, ac.fdelete, pg.name AS menu_name 
+          SELECT rl.*, ad.fullname AS created_by, ac.menu_id, ac.fcreate, ac.fread, ac.fupdate, ac.fdelete, pg.name AS menu_name 
       FROM mst_role rl
       LEFT JOIN mst_menu_access ac ON rl.id = ac.role_id
       LEFT JOIN mst_menu pg ON ac.menu_id = pg.id
       LEFT JOIN mst_admin_web ad ON rl.created_by = ad.id
       WHERE (rl.id = $1 OR $1 IS NULL)
+      `,
+      [id]
+    );
+
+    return rows;
+  } catch (error) {
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+export const getPermission2 = async (id: string | null = null) => {
+  const client = await db.connect();
+
+  try {
+    await client.query(TRANS.BEGIN);
+    const { rows } = await client.query(
+      `
+     select
+      coalesce(mma.role_id, $1) as role_id,
+      ad.fullname as created_by,
+      rl.created_date,
+      rl.updated_date,
+      rl.role_name,
+      coalesce(mma.fcreate, false) as fcreate ,
+      coalesce(mma.fread, false) as fread ,
+      coalesce(mma.fupdate, false) as fupdate,
+      coalesce(mma.fdelete, false) as fdelete ,
+      mm.subheader ,
+       mm.name as menu_name,
+      mm.id as menu_id
+    from
+      mst_menu mm
+    left join mst_menu_access mma on
+      mm.id = mma.menu_id
+    left join mst_role rl on rl.id = mma.role_id
+    LEFT JOIN mst_admin_web ad ON rl.created_by = ad.id
+    where
+      mma.role_id = $1
+      or mma.role_id is null
+    order by mm.id asc
       `,
       [id]
     );

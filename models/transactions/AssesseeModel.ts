@@ -1,10 +1,11 @@
-import { db } from "#dep/config/connection";
-import { TRANSACTION, TRANSACTION as TRANS } from "#dep/config/transaction";
-import { ClientAction, deleteQuery, insertQuery, updateQuery } from "#dep/helper/queryBuilder";
-import { ResponseError } from "#dep/error/response-error";
-import { Secret, sign, verify } from "jsonwebtoken";
-import { accessExpiry, refreshExpiry } from "#dep/constant";
-import { validatePassword } from "#dep/helper/auth/password";
+import { db } from "@/config/connection.js";
+import { TRANSACTION, TRANSACTION as TRANS } from "@/config/transaction.js";
+import { ClientAction, deleteQuery, insertQuery, updateQuery } from "@/helper/queryBuilder.js";
+import { ResponseError } from "@/error/response-error.js";
+import jwt, { Secret } from "jsonwebtoken";
+const { sign, verify } = jwt;
+import { accessExpiry, refreshExpiry } from "@/constant.js";
+import { validatePassword } from "@/helper/auth/password.js";
 
 export const checkRegisteredExternalAssessee = async (email: string) => {
   const client = await db.connect();

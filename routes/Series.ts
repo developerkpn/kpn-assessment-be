@@ -12,10 +12,10 @@ import {
   handleGetSeries,
   handleGetSeriesByID,
   handleUpdateSeries,
-} from "#dep/controllers/SeriesController";
-import { checkPermission } from "#dep/middleware/auth";
+} from "@/controllers/SeriesController.js";
+import { checkPermission } from "@/middleware/auth.js";
 import { Router } from "express";
-import { handleGetCategory } from "#dep/controllers/CategoryController";
+import { handleGetCategory } from "@/controllers/CategoryController.js";
 const Series = Router();
 
 Series.post("/", checkPermission("fcreate", 4), handleCreateSeries);

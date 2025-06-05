@@ -13,8 +13,8 @@ import {
   handleSubmissionConfirmation,
   handleSubtestExampleisTaken,
   handleUpdateExampleTaken,
-} from "#dep/controllers/transaction/AssessmentController";
-import { isAuthDarwin } from "#dep/middleware/auth";
+} from "@/controllers/transaction/AssessmentController.js";
+import { isAuthDarwin } from "@/middleware/auth.js";
 
 const Assessment = Router();
 Assessment.get("/assessee/:nik", handleGetAssessmentsByUserId);

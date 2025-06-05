@@ -1,9 +1,9 @@
 import { async } from "rxjs";
 import { NextFunction, Request, Response } from "express";
-import { createAdmin } from "#dep/models/AdminWebModel";
-import { Validation } from "#dep/validation/Validation";
-import { CategoryValidation } from "#dep/validation/CategoryValidation";
-import { createCategory, deleteCategory, getCategory, updateCategory } from "#dep/models/CategoryModel";
+import { createAdmin } from "@/models/AdminWebModel.js";
+import { Validation } from "@/validation/Validation.js";
+import { CategoryValidation } from "@/validation/CategoryValidation.js";
+import { createCategory, deleteCategory, getCategory, updateCategory } from "@/models/CategoryModel.js";
 import { error } from "winston";
 
 export const handleCreateCategory = async (req: Request, res: Response, next: NextFunction) => {

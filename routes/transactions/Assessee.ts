@@ -8,8 +8,8 @@ import {
   handleGetExternalAssesseeInformation,
   handleResetToken,
   handleUpdateExternalAssesseeInformation,
-} from "#dep/controllers/transaction/AssesseeController";
-import { isAuth } from "#dep/middleware/auth";
+} from "@/controllers/transaction/AssesseeController.js";
+import { isAuth } from "@/middleware/auth.js";
 
 const Assessee = Router();
 Assessee.post("/registration", handleExternalRegistration);

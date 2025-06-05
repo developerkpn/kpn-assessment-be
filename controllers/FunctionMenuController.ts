@@ -3,12 +3,12 @@ import {
   deleteFunctionMenu,
   getFunctionMenu,
   updateFunctionMenu,
-} from "#dep/models/FunctionMenuModel";
-import { FunctionMenuRequest } from "#dep/types/MasterDataTypes";
+} from "@/models/FunctionMenuModel.js";
+import { FunctionMenuRequest } from "@/types/MasterDataTypes.js";
 import { NextFunction, Request, Response } from "express";
 import { v4 as uuidv4 } from "uuid";
-import { Validation } from "#dep/validation/Validation";
-import { FunctionMenuValidation } from "#dep/validation/FunctionMenuValidation";
+import { Validation } from "@/validation/Validation.js";
+import { FunctionMenuValidation } from "@/validation/FunctionMenuValidation.js";
 
 export const handleGetFunctionMenu = async (req: Request, res: Response, next: NextFunction) => {
   try {

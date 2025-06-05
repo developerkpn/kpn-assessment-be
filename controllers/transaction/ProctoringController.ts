@@ -1,4 +1,4 @@
-import ProctoringModel from "#dep/models/transactions/ProctoringModel";
+import ProctoringModel from "@/models/transactions/ProctoringModel.js";
 import { Request, Response, NextFunction } from "express";
 import { IncomingForm } from "formidable";
 import fs from "fs";

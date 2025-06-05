@@ -1,8 +1,8 @@
 import { NextFunction, Request, Response } from "express";
 import { v4 as uuidv4 } from "uuid";
-import { GroupTestDetailRequest, GroupTestHeaderRequest } from "#dep/types/MasterDataTypes";
-import { Validation } from "#dep/validation/Validation";
-import { GroupTestValidation } from "#dep/validation/GroupTestValidation";
+import { GroupTestDetailRequest, GroupTestHeaderRequest } from "@/types/MasterDataTypes.js";
+import { Validation } from "@/validation/Validation.js";
+import { GroupTestValidation } from "@/validation/GroupTestValidation.js";
 import {
   createGroupTest,
   deleteGroupTest,
@@ -11,8 +11,8 @@ import {
   getGroupTest,
   getGroupTestDetail,
   updateGroupTest,
-} from "#dep/models/GroupTestModel";
-import { SubTestValidation } from "#dep/validation/SubTestValidation";
+} from "@/models/GroupTestModel.js";
+import { SubTestValidation } from "@/validation/SubTestValidation.js";
 
 export const handleGetAvailableSubTestForGroupTest = async (req: Request, res: Response, next: NextFunction) => {
   try {

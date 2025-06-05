@@ -1,5 +1,5 @@
-import { compareSync, hash } from "bcryptjs";
-
+import bcryptjs from "bcryptjs";
+const { compareSync, hash } = bcryptjs;
 export async function hashPassword(password: string) {
   const saltRounds = 10;
 

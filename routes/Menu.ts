@@ -1,4 +1,4 @@
-import { handleGetAdminMenu, handleGetAllMenu } from "#dep/controllers/MenuController";
+import { handleGetAdminMenu, handleGetAllMenu } from "@/controllers/MenuController.js";
 import { Router } from "express";
 const Question = Router();
 

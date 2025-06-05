@@ -1,8 +1,8 @@
 import { NextFunction, Request, Response } from "express";
-import { Validation } from "#dep/validation/Validation";
-import { TestValidation } from "#dep/validation/TestValidation";
+import { Validation } from "@/validation/Validation.js";
+import { TestValidation } from "@/validation/TestValidation.js";
 import { v4 as uuid } from "uuid";
-import { TestDetailRequest, TestHeaderRequest } from "#dep/types/MasterDataTypes";
+import { TestDetailRequest, TestHeaderRequest } from "@/types/MasterDataTypes.js";
 import {
   createTest,
   deleteSubTestFromTest,
@@ -11,7 +11,7 @@ import {
   getTest,
   getTestDetail,
   updateTest,
-} from "#dep/models/TestModel";
+} from "@/models/TestModel.js";
 
 export const handleCreateTest = async (req: Request, res: Response, next: NextFunction) => {
   try {

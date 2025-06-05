@@ -3,8 +3,8 @@ import {
   handleDeleteFunctionMenu,
   handleGetFunctionMenu,
   handleUpdateFunctionMenu,
-} from "#dep/controllers/FunctionMenuController";
-import { checkPermission } from "#dep/middleware/auth";
+} from "@/controllers/FunctionMenuController.js";
+import { checkPermission } from "@/middleware/auth.js";
 import { Router } from "express";
 const FunctionMenu = Router();
 

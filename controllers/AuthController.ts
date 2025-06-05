@@ -1,6 +1,6 @@
-import { axiosDarwin, darwinAuth } from "#dep/config/axiosDarwin";
-import { decoderDarwin } from "#dep/helper/auth/DarwinDecoder";
-import { getDarwinUser } from "#dep/models/BatchModel";
+import { axiosDarwin, darwinAuth } from "@/config/axiosDarwin.js";
+import { decoderDarwin } from "@/helper/auth/DarwinDecoder.js";
+import { getDarwinUser } from "@/models/BatchModel.js";
 import { isAxiosError } from "axios";
 import { Request, Response } from "express";
 

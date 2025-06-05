@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import { v7 as uuid } from "uuid";
-import { Validation } from "#dep/validation/Validation";
-import { BatchValidation } from "#dep/validation/BatchValidation";
+import { Validation } from "@/validation/Validation.js";
+import { BatchValidation } from "@/validation/BatchValidation.js";
 import * as XLSX from "xlsx";
 import {
   addAssessee,
@@ -22,25 +22,26 @@ import {
   storeEmailCC,
   updateBatch,
   getDarwinUser,
-} from "#dep/models/BatchModel";
+} from "@/models/BatchModel.js";
 import fs from "fs";
-import { AdminWebValidation } from "#dep/validation/AdminWebValidation";
-import { BatchAssessee, BatchHeader, BatchHeadUpdate } from "#dep/types/BatchTypes";
+import { AdminWebValidation } from "@/validation/AdminWebValidation.js";
+import { BatchAssessee, BatchHeader, BatchHeadUpdate } from "@/types/BatchTypes.js";
 import {
   handleGenerateEmailTemplate,
   handleSendCCEmail,
   handleSendEmail,
-} from "#dep/controllers/EmailTemplateController";
-import { ResponseError } from "#dep/error/response-error";
-import { Secret, sign } from "jsonwebtoken";
-import { emailTemplateHTML } from "#dep/helper/email/emailnotifmgrprc";
-// import { getTestFromChoosenGroupTest} from "#dep/models/GroupTestModel";
+} from "@/controllers/EmailTemplateController.js";
+import { ResponseError } from "@/error/response-error.js";
+import jwt, { Secret } from "jsonwebtoken";
+const { sign } = jwt;
+import { emailTemplateHTML } from "@/helper/email/emailnotifmgrprc.js";
+// import { getTestFromChoosenGroupTest} from "@/models/GroupTestModel";
 import moment from "moment";
 import axios, { AxiosResponse } from "axios";
-import { axiosDarwin } from "#dep/config/axiosDarwin";
-import { DataEmpDarwin, XLSAssessee } from "#dep/types/MasterDataTypes";
-import { ClientAction, insertQuery } from "#dep/helper/queryBuilder";
-import { TRANSACTION } from "#dep/config/transaction";
+import { axiosDarwin } from "@/config/axiosDarwin.js";
+import { DataEmpDarwin, XLSAssessee } from "@/types/MasterDataTypes.js";
+import { ClientAction, insertQuery } from "@/helper/queryBuilder.js";
+import { TRANSACTION } from "@/config/transaction.js";
 export const handleCreateBatch = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const validatedRequest = Validation.validate(BatchValidation.CREATE, req.body);
@@ -109,7 +110,7 @@ export const handleCreateBatch = async (req: Request, res: Response, next: NextF
 
         if (userEmails && userEmails.length > 0) {
           // Tambahkan email dari role ke array
-          userEmails.forEach((user) => {
+          userEmails.forEach((user: any) => {
             ccEmails.push({
               id: uuid(),
               batch_id: batchId,
@@ -215,7 +216,13 @@ export const handleCreateBatch = async (req: Request, res: Response, next: NextF
 
 export const handleGetBatch = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const result = await getBatch();
+    const { published } = req.query;
+    let query: { published: boolean } = { published: false };
+    if (published) {
+      query.published = true;
+    }
+
+    const result = await getBatch(query);
 
     res.status(200).send({
       message: "Success!",
@@ -285,7 +292,7 @@ export const handleUpdateBatch = async (req: Request, res: Response, next: NextF
 
         if (userEmails && userEmails.length > 0) {
           // Tambahkan email dari role ke array
-          userEmails.forEach((user) => {
+          userEmails.forEach((user: any) => {
             ccEmails.push({
               id: uuid(),
               batch_id: validatedId,

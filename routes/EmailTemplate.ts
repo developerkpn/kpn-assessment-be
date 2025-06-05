@@ -1,12 +1,12 @@
 import { Router } from "express";
-import { checkPermission } from "#dep/middleware/auth";
+import { checkPermission } from "@/middleware/auth.js";
 import {
   handleCreateEmailTemplate,
   handleDeleteEmailTemplate,
   handleGetEmailTemplate,
   handleGetEmailTemplatePreview,
   handleUpdateEmailTemplate,
-} from "#dep/controllers/EmailTemplateController";
+} from "@/controllers/EmailTemplateController.js";
 
 const EmailTemplate = Router();
 

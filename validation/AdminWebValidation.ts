@@ -58,7 +58,7 @@ export class AdminWebValidation {
     permission: z
       .array(
         z.object({
-          menu_id: z.string().trim().min(1, { message: "Menu ID is required and cannot be empty." }),
+          menu_id: z.number().min(1, { message: "Menu ID is required and cannot be empty." }),
           fcreate: z.boolean({
             required_error: "Create permission (fcreate) must be provided.",
           }),

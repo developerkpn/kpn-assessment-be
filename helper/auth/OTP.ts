@@ -1,7 +1,9 @@
-import { db } from "#dep/config/connection";
-import { compareSync, genSaltSync, hashSync } from "bcryptjs";
+import { db } from "@/config/connection.js";
+import bcrypt from "bcryptjs"; // ✅
+
+const { compareSync, genSaltSync, hashSync } = bcrypt;
 import { generate } from "otp-generator";
-import { deleteQuery } from "../queryBuilder";
+import { deleteQuery } from "../queryBuilder.js";
 
 export const createOTP = () => {
   try {

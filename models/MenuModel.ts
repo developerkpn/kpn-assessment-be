@@ -1,5 +1,5 @@
-import { db } from "#dep/config/connection";
-import { TRANSACTION as TRANS } from "#dep/config/transaction";
+import { db } from "@/config/connection.js";
+import { TRANSACTION as TRANS } from "@/config/transaction.js";
 
 export const getAdminMenu = async (roleId: string) => {
   const client = await db.connect();

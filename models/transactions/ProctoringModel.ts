@@ -1,6 +1,6 @@
-import { db } from "#dep/config/connection";
+import { db } from "@/config/connection.js";
 import { S3Client, ListBucketsCommand } from "@aws-sdk/client-s3";
-import S3ClientUpload from "#dep/helper/S3UploadClass";
+import S3ClientUpload from "@/helper/S3UploadClass.js";
 import fs from "fs";
 import path from "path";
 import moment from "moment";

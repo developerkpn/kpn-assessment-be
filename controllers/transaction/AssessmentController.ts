@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { getBatch, getBatchDetail } from "#dep/models/BatchModel";
+import { getBatch, getBatchDetail } from "@/models/BatchModel.js";
 import {
   assessmentSubmission,
   checkQuestionType,
@@ -30,23 +30,24 @@ import {
   storeTakenQuestions,
   updateAssessmentStart,
   updateExampleTaken,
-} from "#dep/models/transactions/AssessmentModel";
-import { Validation } from "#dep/validation/Validation";
-import { getQuestion } from "#dep/models/QuestionModel";
+} from "@/models/transactions/AssessmentModel.js";
+import { Validation } from "@/validation/Validation.js";
+import { getQuestion } from "@/models/QuestionModel.js";
 import { v7 as uuid } from "uuid";
-import { ResponseError } from "#dep/error/response-error";
-import { getTestIdByGroupTestId } from "#dep/models/GroupTestModel";
-import { Secret, verify } from "jsonwebtoken";
-import { AssessmentToken } from "#dep/types/Transaction";
-import { getSubTestIdByTestId, getTest } from "#dep/models/TestModel";
-import { getSeriesDetail } from "#dep/models/SeriesModel";
+import { ResponseError } from "@/error/response-error.js";
+import { getTestIdByGroupTestId } from "@/models/GroupTestModel.js";
+import jwt, { Secret } from "jsonwebtoken";
+const { verify } = jwt;
+import { AssessmentToken } from "@/types/Transaction.js";
+import { getSubTestIdByTestId, getTest } from "@/models/TestModel.js";
+import { getSeriesDetail } from "@/models/SeriesModel.js";
 import fs from "fs";
 import path from "path";
 import moment from "moment";
-import "moment-timezone/index";
+import "moment-timezone/index.js";
 import axios, { isAxiosError } from "axios";
-import { PP_ID, TERMS_ID } from "#dep/constant";
-import { checkRegisteredExternalAssessee } from "#dep/models/transactions/AssesseeModel";
+import { PP_ID, TERMS_ID } from "@/constant.js";
+import { checkRegisteredExternalAssessee } from "@/models/transactions/AssesseeModel.js";
 
 export const handleAssessmentToken = async (token: string) => {
   try {
@@ -211,7 +212,7 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
       console.log("Raw finishAt from DB:", finishAtFromDB);
 
       // Langsung parse tanpa .utc()
-      const shouldBeFinishedAt = moment.utc(finishAtFromDB.should_be_finished_at).tz("Asia/Jakarta");
+      const shouldBeFinishedAt = moment.utc(finishAtFromDB.should_be_finished_at);
       console.log("Parsed shouldBeFinishedAt:", shouldBeFinishedAt.format());
 
       // Jika waktu sudah habis, lempar error
@@ -587,7 +588,7 @@ export const handleStoreAnswer = async (req: Request, res: Response, next: NextF
       console.log("Raw finishAt from DB:", finishAtFromDB);
 
       // Langsung parse tanpa .utc()
-      const shouldBeFinishedAt = moment.utc(finishAtFromDB.should_be_finished_at).tz("Asia/Jakarta");
+      const shouldBeFinishedAt = moment.utc(finishAtFromDB.should_be_finished_at);
       console.log("Parsed shouldBeFinishedAt:", shouldBeFinishedAt.format());
 
       // Jika waktu sudah habis, lempar error
