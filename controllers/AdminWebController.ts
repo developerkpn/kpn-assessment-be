@@ -26,8 +26,11 @@ import { ResponseError } from "@/error/response-error.js";
 
 export const handleLoginAdmin = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
+    console.log("bodynya", req.body);
     const validatedRequest = Validation.validate(AdminWebValidation.LOGIN, req.body);
+    console.log("masuk login");
     const { data, accessToken } = await loginAdmin(validatedRequest.username, validatedRequest.password);
+
     res.status(200).send({
       message: `Success sign in, welcome ${data.fullname}`,
       data: {

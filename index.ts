@@ -16,10 +16,10 @@ import credentials from "@/middleware/credential.js";
 import router from "./routes/index.js";
 import { errorMiddleware } from "@/middleware/errorMiddleware.js";
 const app = express();
-const servOption = {
-  cert: fs.readFileSync("./ssl/cert.pem"),
-  key: fs.readFileSync("./ssl/key.pem"),
-};
+// const servOption = {
+//   cert: fs.readFileSync("./ssl/cert.pem"),
+//   key: fs.readFileSync("./ssl/key.pem"),
+// };
 
 const corsOption: CorsOptions = {
   origin: function (req, callback) {

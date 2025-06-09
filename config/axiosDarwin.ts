@@ -1,5 +1,6 @@
 import axios from "axios";
-
+import dotenv from "dotenv";
+dotenv.config();
 export const axiosDarwin = axios.create({
   baseURL: process.env.DARWIN_BASE_URL,
   auth: {

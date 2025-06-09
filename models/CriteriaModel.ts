@@ -133,6 +133,7 @@ export const getCriteriaDetail = async (id: string) => {
         v.id AS value_id, 
         v.value_name, 
         v.value_code, 
+        cr.id as criteria_id,
         cr.criteria_name, 
         cr.minimum_score, 
         cr.maximum_score, 

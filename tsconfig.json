@@ -1,26 +1,18 @@
 {
   "compilerOptions": {
-    "target": "es6",
-    "jsx": "react-jsx",
-    "module": "nodenext",
-    "strict": true,
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "node",
     "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "outDir": "./dist",
+    "rootDir": "./",
+    "baseUrl": ".",
     "paths": {
       "@/*": ["./*"]
-    },
-    "moduleResolution": "nodenext",
-    "outDir": "./dist",
-    "typeRoots": [
-      "./types"
-    ]
+    }
   },
-  "include": [
-    "./**/*.ts"
-  ],
-  "exclude": [
-    "node_modules"
-  ],
-  "skipLibCheck": true /* Skip type checking all .d.ts files. */
+  "include": ["**/*.ts"],
+  "exclude": ["node_modules", "dist"]
 }

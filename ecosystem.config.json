@@ -1,0 +1,8 @@
+{
+  "apps": [
+  {
+    "name": "kpn-assessment",
+    "script": "index.js",
+  }
+]
+}
