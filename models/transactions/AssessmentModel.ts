@@ -633,7 +633,7 @@ export const getSubtestExampleData = async (subtest_id: string) => {
         await client.query(
           `
         select
-          mqa.*, msh.subtest_name, msh.subtest_name, msh.intro_desc
+          mqa.*, msh.subtest_name, msh.subtest_name, msh.intro_desc, msh.is_example_answer_shown
         from
           t_progress_batch_det tpbd
         left join mst_subtest_head msh on
