@@ -95,6 +95,7 @@ export class SubTestValidation {
         )
         .optional(),
       criteria_id: z.string().uuid("Criteria should be selected").optional().nullable(),
+      is_criteria: z.boolean().nullable().optional(),
     })
     .superRefine((data, ctx) => {
       if (data.is_duration && !data.subtest_duration) {
@@ -109,6 +110,20 @@ export class SubTestValidation {
           code: z.ZodIssueCode.custom,
           message: "Duration must be null or omitted when is_duration is false",
           path: ["subtest_duration"],
+        });
+      }
+      if (data.is_criteria && !data.criteria_id) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Criteria is required when is_criteria is true",
+          path: ["criteria_id"],
+        });
+      }
+      if (!data.is_criteria && data.criteria_id) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Criteria must be null or omitted when is_criteria is false",
+          path: ["criteria_id"],
         });
       }
     });
