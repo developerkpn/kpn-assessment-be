@@ -627,8 +627,11 @@ export const getSubtestExampleData = async (subtest_id: string) => {
   try {
     const client = await db.connect();
     try {
-      const { rows }: QueryResult<QuestionRequest & { subtest_name: string; intro_desc: string }> = await client.query(
-        `
+      const {
+        rows,
+      }: QueryResult<QuestionRequest & { subtest_name: string; intro_desc: string; is_example_answer_shown: boolean }> =
+        await client.query(
+          `
         select
           mqa.*, msh.subtest_name, msh.subtest_name, msh.intro_desc
         from
@@ -642,8 +645,8 @@ export const getSubtestExampleData = async (subtest_id: string) => {
         where
           tpbd.id = $1
         `,
-        [subtest_id]
-      );
+          [subtest_id]
+        );
       const result = rows.map((item) => ({
         question_id: item.id,
         input: {
@@ -689,7 +692,12 @@ export const getSubtestExampleData = async (subtest_id: string) => {
           },
         },
       }));
-      return { data: result, subtest_name: rows[0].subtest_name, intro_desc: rows[0].intro_desc };
+      return {
+        data: result,
+        subtest_name: rows[0].subtest_name,
+        intro_desc: rows[0].intro_desc,
+        is_example_answer_shown: rows[0].is_example_answer_shown,
+      };
     } catch (error) {
       throw error;
     } finally {
@@ -753,10 +761,13 @@ export const getPointPerQuestion = async (detId: string) => {
        WHERE id = ANY($1)`,
       [questionIds]
     );
-    const keyMap = resKeys.rows.reduce((acc, row) => {
-      acc[row.question_id] = row;
-      return acc;
-    }, {} as Record<string, any>);
+    const keyMap = resKeys.rows.reduce(
+      (acc, row) => {
+        acc[row.question_id] = row;
+        return acc;
+      },
+      {} as Record<string, any>
+    );
 
     console.log("masuk 3");
     const results: { id: string; question_id: string; totalPoint: number }[] = [];

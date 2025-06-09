@@ -26,6 +26,7 @@ export class SubTestValidation {
       intro_desc: z.string().trim().min(1).optional().nullable(),
       subtest_desc: z.string().trim().min(1, "Subtest description is required"),
       series_example_id: z.string().uuid().optional().nullable(),
+      is_example_answer_shown: z.boolean().optional().nullable(),
       criteria_id: z.string().uuid("Criteria should be selected").optional().nullable(),
       is_criteria: z.boolean(),
     })
@@ -78,6 +79,7 @@ export class SubTestValidation {
         .nullable(),
       intro_desc: z.string().trim().min(1).optional().nullable(),
       series_example_id: z.string().uuid().optional().nullable(),
+      is_example_answer_shown: z.boolean().optional().nullable(),
       deleted_series: z
         .array(
           z.object({
@@ -92,7 +94,7 @@ export class SubTestValidation {
           })
         )
         .optional(),
-      criteria_id: z.string().uuid("Criteria should be selected").optional(),
+      criteria_id: z.string().uuid("Criteria should be selected").optional().nullable(),
     })
     .superRefine((data, ctx) => {
       if (data.is_duration && !data.subtest_duration) {

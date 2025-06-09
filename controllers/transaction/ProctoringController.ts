@@ -16,7 +16,12 @@ const ProctoringController = {
     try {
       const filepath = req.query.path;
       const stream = await ProctoringModel.GetFile(filepath as string);
-      res.setHeader("content-disposition", `inline ; filename="${stream.filename}"`);
+
+      // Set headers untuk image
+      res.setHeader("Content-Disposition", `inline; filename="${stream.filename}"`);
+      res.setHeader("Content-Type", "image/png"); // atau sesuai dengan format image Anda
+
+      // Pipe stream ke response
       stream.stream.pipe(res);
     } catch (error) {
       console.error(error);

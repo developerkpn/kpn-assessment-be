@@ -32,6 +32,7 @@ export const handleCreateSubTest = async (req: Request, res: Response, next: Nex
       intro_desc: validatedRequest.intro_desc,
       subtest_desc: validatedRequest.subtest_desc,
       series_example_id: validatedRequest.series_example_id,
+      is_example_answer_shown: validatedRequest.is_example_answer_shown,
       criteria_id: validatedRequest.criteria_id,
       created_by: creator,
       created_at: date,
@@ -89,6 +90,7 @@ export const handleUpdateSubTest = async (req: Request, res: Response, next: Nex
       intro_desc: validatedRequest.intro_desc,
       subtest_desc: validatedRequest.subtest_desc,
       series_example_id: validatedRequest.series_example_id,
+      is_example_answer_shown: validatedRequest.is_example_answer_shown,
       criteria_id: validatedRequest.criteria_id,
     };
 
