@@ -140,15 +140,22 @@ export const handleUpdateCriteria = async (req: Request, res: Response, next: Ne
       return {
         id: uuidv4(),
         category_fk: validatedId,
-        ...prev,
+        criteria_name: prev.criteria_name,
+        minimum_score: prev.minimum_score,
+        maximum_score: prev.maximum_score,
+        is_active: prev.is_active,
         created_by: payload.user_id,
         created_date: today,
         updated_by: payload.user_id,
         updated_date: today,
+        description: prev.description,
+        color_id: prev.color_id,
       };
     }
     return { ...prev, updated_by: payload.user_id, updated_date: today };
   });
+
+  console.log("cek update criteria", criteria);
 
   delete payload.user_id;
   delete payload.criteria;
@@ -178,20 +185,23 @@ export const handleGetCriteriaDetail = async (req: Request, res: Response, next:
     const groupedData = {
       value_name: rawData[0].value_name,
       value_code: rawData[0].value_code,
-      criterias: rawData.reduce((acc: any, row: any) => {
-        if (row.criteria_name) {
-          acc.push({
-            criteria_name: row.criteria_name,
-            minimum_score: row.minimum_score,
-            maximum_score: row.maximum_score,
-            description: row.description,
-            color_id: row.color_id,
-            color_name: row.color_name,
-            hex_code: row.hex_code,
-          });
-        }
-        return acc;
-      }, [] as Array<{ criteria_name: string; minimum_score: number; maximum_score: number; description: string }>),
+      criterias: rawData.reduce(
+        (acc: any, row: any) => {
+          if (row.criteria_name) {
+            acc.push({
+              criteria_name: row.criteria_name,
+              minimum_score: row.minimum_score,
+              maximum_score: row.maximum_score,
+              description: row.description,
+              color_id: row.color_id,
+              color_name: row.color_name,
+              hex_code: row.hex_code,
+            });
+          }
+          return acc;
+        },
+        [] as Array<{ criteria_name: string; minimum_score: number; maximum_score: number; description: string }>
+      ),
     };
 
     res.status(200).json({
