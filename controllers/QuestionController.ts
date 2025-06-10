@@ -11,6 +11,11 @@ import {
   getQuestionById,
   updateQuestion,
 } from "@/models/QuestionModel.js";
+// import { fileURLToPath } from "url";
+import { fileURLToPath } from "url";
+const __filename = fileURLToPath(import.meta.url); // get the resolved path to the file
+const __dirname = path.dirname(__filename); // get the name of the directory
+// dotenv.config({ path: path.resolve(__dirname, ./${process.env.NODE_ENV}.env) });
 
 const parseQuestionForm = async (
   req: Request,
