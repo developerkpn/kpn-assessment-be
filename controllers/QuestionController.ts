@@ -193,6 +193,21 @@ export const handleUpdateQuestion = async (req: Request, res: Response): Promise
     if (!QAFields.q_input_image_url) removeImageFile(dir, `question`);
 
     const answersPayload: any = {};
+
+    // Get all possible answer letters (a through g)
+    const allAnswerLetters = ["a", "b", "c", "d", "e", "f", "g"];
+
+    // Set all answer fields to null first (to clear any existing data)
+    allAnswerLetters.forEach((letter) => {
+      answersPayload[`answer_choice_${letter}_text`] = null;
+      answersPayload[`answer_choice_${letter}_image_url`] = null;
+      answersPayload[`key_answer_point_${letter}`] = null;
+
+      // Remove image files for all letters (will be re-added if still exists)
+      removeImageFile(dir, `answer_${letter}`);
+    });
+
+    // Then set only the answers that are actually sent
     answers.forEach((answer, index) => {
       const letter = String.fromCharCode(97 + index);
       answersPayload[`answer_choice_${letter}_text`] = answer.text;
@@ -210,6 +225,7 @@ export const handleUpdateQuestion = async (req: Request, res: Response): Promise
       updated_date: today,
     };
 
+    console.log("cek payload quetion controller");
     console.log(payload);
     const result = await updateQuestion(payload, id);
 
