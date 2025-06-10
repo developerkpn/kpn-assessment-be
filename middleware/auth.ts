@@ -64,6 +64,7 @@ export const isAuthDarwin = async (req: Request, res: Response, next: NextFuncti
     }
     next();
   } catch (error) {
+    console.error(error);
     if ((error as Error).message == "Forbidden") {
       res.status(403).send({
         message: (error as Error).message,

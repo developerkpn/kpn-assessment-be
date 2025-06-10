@@ -15,3 +15,13 @@ declare namespace Express {
     user_type?: string;
   }
 }
+
+declare module 'base64-xor' {
+  export function encode(key: string, data: Buffer | string): string;
+  export function decode(key: string, data: Buffer | string): string;
+  const _default: {
+    encode: typeof encode;
+    decode: typeof decode;
+  };
+  export default _default;
+}
