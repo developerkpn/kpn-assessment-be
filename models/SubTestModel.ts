@@ -197,15 +197,19 @@ export const getSubTestDetail = async (id: string) => {
     );
 
     console.log("masuk series example");
-    const seriesExample = await client.query(
-      `
+
+    let seriesExample;
+    if (result.rows[0].series_example) {
+      seriesExample = await client.query(
+        `
         SELECT
           *
         FROM mst_series
         WHERE id = $1
         `,
-      [result.rows[0].series_example_id]
-    );
+        [result.rows[0].series_example_id]
+      );
+    }
 
     if (result.rows.length === 0) {
       return null;
@@ -259,9 +263,9 @@ export const getSubTestDetail = async (id: string) => {
       updated_at: result.rows[0].updated_at,
       is_criteria: result.rows[0].is_criteria,
       example_series: {
-        series_id: seriesExample.rows[0].id ? seriesExample.rows[0].id : null,
-        series_name: seriesExample.rows[0].series_name ? seriesExample.rows[0].series_name : null,
-        series_code: seriesExample.rows[0].series_code ? seriesExample.rows[0].series_code : null,
+        series_id: seriesExample ? seriesExample.rows[0].id : null,
+        series_name: seriesExample ? seriesExample.rows[0].series_name : null,
+        series_code: seriesExample ? seriesExample.rows[0].series_code : null,
       },
       criteria: {
         value_id: result.rows[0].value_id,
