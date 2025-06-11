@@ -490,6 +490,7 @@ export const getDarwinUser = async (nik_darwin: string) => {
         datasetKey: process.env.DATASET_KEY,
         employee_ids: [nik_darwin],
       });
+    console.log("cek axios", axiosDarwin);
     if (darwinUsers.status == 0) {
       throw Error(darwinUsers.message);
     }
