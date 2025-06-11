@@ -99,20 +99,20 @@ export const handleUpdateSubTest = async (req: Request, res: Response, next: Nex
     console.log("masuk 1");
     console.log(updateHead);
 
-    const deletedSeries =
-      validatedRequest.deleted_series && validatedRequest.deleted_series.length > 0
-        ? validatedRequest.deleted_series.map((prev: any) => ({
-            ...prev,
-            subtest_id: subtestId,
-          }))
-        : [];
-
-    console.log("masuk 2");
-    console.log(deletedSeries);
+    // const deletedSeries =
+    //   validatedRequest.deleted_series && validatedRequest.deleted_series.length > 0
+    //     ? validatedRequest.deleted_series.map((prev: any) => ({
+    //         ...prev,
+    //         subtest_id: subtestId,
+    //       }))
+    //     : [];
+    //
+    // console.log("masuk 2");
+    // console.log(deletedSeries);
 
     const selectedSeries =
-      validatedRequest.selected_series && validatedRequest.selected_series.length > 0
-        ? validatedRequest.selected_series.map((prev: any) => ({
+      validatedRequest.series && validatedRequest.series.length > 0
+        ? validatedRequest.series.map((prev: any) => ({
             ...prev,
             id: uuid(),
             subtest_id: subtestId,
@@ -124,16 +124,10 @@ export const handleUpdateSubTest = async (req: Request, res: Response, next: Nex
     console.log("masuk 3");
     console.log(selectedSeries);
 
-    const result = await updateSubTest(subtestId, updateHead, deletedSeries, selectedSeries);
+    const result = await updateSubTest(subtestId, updateHead, selectedSeries);
 
     res.status(200).send({
       message: `Sub Test with code ${result} is updated successfully!`,
-      data: {
-        validatedRequest,
-        updateHead,
-        deletedSeries,
-        selectedSeries,
-      },
     });
   } catch (e) {
     next(e);
