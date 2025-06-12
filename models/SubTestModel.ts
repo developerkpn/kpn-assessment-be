@@ -211,6 +211,8 @@ export const getSubTestDetail = async (id: string) => {
       );
     }
 
+    console.log(seriesExample);
+
     if (result.rows.length === 0) {
       return null;
     }

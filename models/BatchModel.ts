@@ -117,7 +117,7 @@ export const updateBatch = async (
     console.log("masuk 4");
     if (deletedAssesseePayload.length > 0) {
       for (const item of deletedAssesseePayload) {
-        const [Q, V] = deleteQuery("t_batch_cc", item);
+        const [Q, V] = deleteQuery("t_batch_assessee", item);
         await client.query(Q, V);
       }
     }
