@@ -27,7 +27,7 @@ export class BatchValidation {
       emails: z
         .array(
           z.object({
-            cc_email: z.string().email({ message: "Invalid CC email format." }),
+            cc_email: z.string().trim().email({ message: "Invalid CC email format." }),
           })
         )
         .optional(),
@@ -36,7 +36,7 @@ export class BatchValidation {
       z.object({
         assessee_nik: z.string().trim().length(11, { message: "NIK must be exactly 11 characters." }).optional(),
         assessee_name: z.string().trim().min(1, { message: "Assessee name is required." }),
-        assessee_email: z.string().email({ message: "Invalid assessee email format." }),
+        assessee_email: z.string().trim().email({ message: "Invalid assessee email format." }),
       })
     ),
   });
@@ -75,14 +75,14 @@ export class BatchValidation {
         deleted_emails: z
           .array(
             z.object({
-              cc_email: z.string().email({ message: "Invalid deleted CC email format." }),
+              cc_email: z.string().trim().email({ message: "Invalid deleted CC email format." }),
             })
           )
           .optional(),
         selected_emails: z
           .array(
             z.object({
-              cc_email: z.string().email({ message: "Invalid selected CC email format." }),
+              cc_email: z.string().trim().email({ message: "Invalid selected CC email format." }),
             })
           )
           .optional(),
@@ -98,7 +98,7 @@ export class BatchValidation {
         z.object({
           assessee_nik: z.string().trim().length(11, { message: "NIK must be exactly 11 characters." }).optional(),
           assessee_name: z.string().trim().min(1, { message: "Assessee name is required." }),
-          assessee_email: z.string().email({ message: "Invalid assessee email format." }),
+          assessee_email: z.string().trim().email({ message: "Invalid assessee email format." }),
         })
       ),
     }),
@@ -108,7 +108,7 @@ export class BatchValidation {
     z.object({
       assessee_nik: z.string().min(11, { message: "NIK must be at least 11 characters." }).optional(),
       assessee_name: z.string().trim().min(1, { message: "Assessee name is required." }),
-      assessee_email: z.string().email({ message: "Invalid assessee email format." }),
+      assessee_email: z.string().trim().email({ message: "Invalid assessee email format." }),
     })
   );
 
@@ -120,7 +120,7 @@ export class BatchValidation {
       batch_id: z.string().uuid({ message: "Invalid batch ID." }),
       assessee_nik: z.string().trim().length(11, { message: "NIK must be exactly 11 characters." }),
       assessee_name: z.string().trim().min(1, { message: "Assessee name is required." }),
-      assessee_email: z.string().email({ message: "Invalid email format." }),
+      assessee_email: z.string().trim().email({ message: "Invalid email format." }),
     })
   );
 }
