@@ -711,6 +711,10 @@ export const getCoverbyID = async (id: string) => {
       const file_name = rows[0].file_name;
       //read file
       const dir_cover = path.join(__dirname, "../../uploads/cover/" + file_name);
+       if (!fs.existsSync(dir_cover)) {
+        console.warn(`File not found: ${dir_cover}`);
+        return null; // or throw a custom error or return a default placeholder buffer
+      }
       const buffer_file = await fs.createReadStream(dir_cover);
       return buffer_file;
     } catch (error) {

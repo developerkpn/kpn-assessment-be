@@ -1080,7 +1080,7 @@ export const handleReportPersonal = async (req: Request, res: Response, next: Ne
       res.status(200).send({
         message: "Success!",
         data: {
-          cover : batchInformation.cover_id,
+          cover: batchInformation.cover_id,
           guide: {
             content: batchInformation.content,
           },
@@ -1298,6 +1298,9 @@ export const handleGetCover = async (req: Request, res: Response, next: NextFunc
   try {
     const { id } = req.params;
     const stream_img = await getCoverbyID(id);
+    if (!stream_img) {
+      throw new Error("Data not found");
+    }
     // res.setHeader("content-type", "image/jpg");
     stream_img.pipe(res);
   } catch (error) {
