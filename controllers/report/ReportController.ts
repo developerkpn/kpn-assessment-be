@@ -2,10 +2,12 @@ import { Request, Response, NextFunction } from "express";
 import {
   assignReportDesign,
   generateReportForWholeBatch,
+  getAllDataCover,
   getAssesseeListForReport,
   getBatchForReport,
   getBatchInformationForReport,
   getCategoryCriteriaModel,
+  getCoverbyID,
   getGenerateStatus,
   getIntroData,
   getPersonalReportData,
@@ -20,6 +22,7 @@ import {
   storeReportPDF,
   // storeReportGuide,
   updateReportGuide,
+  uploadCoverImage,
 } from "@/models/report/ReportModel.js";
 import ExcelJS from "exceljs";
 import { v7 as uuid } from "uuid";
@@ -35,6 +38,7 @@ import path from "path";
 import fs from "fs";
 import S3ClientUpload from "@/helper/S3UploadClass.js";
 import ProctoringModel from "@/models/transactions/ProctoringModel.js";
+import { IncomingForm } from "formidable";
 /**
  * Controller to get batch information with test count by category
  */
@@ -101,9 +105,9 @@ export const handleGetBatchInformationForReport = async (req: Request, res: Resp
   try {
     const batchId = req.params.batchId;
     const allTests = await getBatchInformationForReport(batchId);
-    console.log("alltest", allTests);
 
     const reportHead = await getReportHead(batchId);
+    console.log(reportHead);
     const getReportIntro: any = await getIntroData(batchId);
     const getReportDetail: any = await getReportDesignDetail(batchId);
 
@@ -154,9 +158,6 @@ export const handleGetBatchInformationForReport = async (req: Request, res: Resp
 
       // Ambil summary berdasarkan category_id dari getReportIntro
       const categorySummary = getReportIntro.find((intro: any) => intro.category_id === categoryId);
-
-      console.log("map test", Object.values(testsMap));
-      console.log("getReportdetails", getReportDetail);
       const tests = Object.values(testsMap).map((test: any) => {
         const detail = getReportDetail.intro.find((d: any) => d.test_id === test.id);
 
@@ -167,8 +168,6 @@ export const handleGetBatchInformationForReport = async (req: Request, res: Resp
           summary_formula: detail?.summary_formula || null,
         };
       });
-
-      console.log("testmap", testsMap);
 
       testsByCategory[categoryCode] = {
         id: categoryId,
@@ -196,12 +195,11 @@ export const handleGetBatchInformationForReport = async (req: Request, res: Resp
           }
         : {};
 
-    console.log("getReportIntro", getReportIntro);
-
     res.status(200).send({
       message: "Success!",
       data: {
         report_id: reportHead ? reportHead.id : null,
+        cover_id: reportHead.cover_id,
         guide: {
           content: getReportIntro[0].content,
         },
@@ -223,6 +221,7 @@ export const handleCreateReportForBatch = async (req: Request, res: Response, ne
       id: reportId,
       batch_id: body.batch_id,
       content: body.content,
+      cover_id: body.cover_id,
     };
 
     console.log(body);
@@ -259,6 +258,7 @@ export const handleUpdateReportDesign = async (req: Request, res: Response, next
     const reportId: string = req.params.reportId;
 
     const headPayload = {
+      cover_id: body.cover_id,
       batch_id: body.batch_id,
       content: body.content,
     };
@@ -1080,6 +1080,7 @@ export const handleReportPersonal = async (req: Request, res: Response, next: Ne
       res.status(200).send({
         message: "Success!",
         data: {
+          cover: batchInformation.cover_id,
           guide: {
             content: batchInformation.content,
           },
@@ -1273,5 +1274,51 @@ export const handleGetAssesseeListForReport = async (req: Request, res: Response
     });
   } catch (e) {
     next(e);
+  }
+};
+
+export const handleUploadCover = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    console.log(req);
+    const formdata = new IncomingForm();
+    const [fields, files] = await formdata.parse(req);
+    const file_name = files?.cover?.[0].originalFilename as string;
+    const file = fs.readFileSync(files?.cover?.[0].filepath as string);
+    const metadata = files?.cover?.[0].mimetype as string;
+    const user_id = req.userDecode?.user_id ?? "N/A";
+    const result = await uploadCoverImage(file_name, file, metadata, user_id);
+    res.status(200).send(result);
+  } catch (error) {
+    console.error(error);
+    next(error);
+  }
+};
+
+export const handleGetCover = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const stream_img = await getCoverbyID(id);
+    if (!stream_img) {
+      throw new Error("Data not found");
+    }
+    // res.setHeader("content-type", "image/jpg");
+    stream_img.pipe(res);
+  } catch (error) {
+    console.error(error);
+    next(error);
+  }
+};
+
+export const handleGetAllCover = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const result = await getAllDataCover();
+    res.status(200).send({
+      data: result,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send({
+      message: (error as Error).message,
+    });
   }
 };

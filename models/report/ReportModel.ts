@@ -1,6 +1,12 @@
 import { db } from "@/config/connection.js";
 import { TRANSACTION as TRANS } from "@/config/transaction.js";
-import { deleteQuery, insertQuery, updateQuery } from "@/helper/queryBuilder.js";
+import { ClientAction, deleteQuery, insertQuery, updateQuery } from "@/helper/queryBuilder.js";
+import path from "path";
+import fs from "fs";
+import { v7 as uuid } from "uuid";
+import { fileURLToPath } from "url";
+const __filename = fileURLToPath(import.meta.url); // get the resolved path to the file
+const __dirname = path.dirname(__filename); // get the name of the directory
 import { ResponseError } from "@/error/response-error.js";
 import { async } from "rxjs";
 
@@ -568,7 +574,8 @@ export const getSpecificBatchInformationForReport = async (batchId: string, asse
           b.batch_code,
           b.type,
           d.taken_at,
-          r.content
+          r.content,
+          r.cover_id
          FROM t_batch_head b
          LEFT JOIN t_progress_batch_head h ON b.id = h.batch_id
          LEFT JOIN t_progress_batch_det d ON h.id = d.head_id
@@ -660,4 +667,69 @@ export const getReportHead = async (batchId: string) => {
   } finally {
     client.release();
   }
+};
+
+export const uploadCoverImage = async (
+  file_name: string,
+  image: string | NodeJS.ArrayBufferView<ArrayBufferLike>,
+  mimetype: string,
+  user_id: string
+) => {
+  return ClientAction(async (client) => {
+    try {
+      await client.query(TRANS.BEGIN);
+      //check if folder /cover is already exist, if not create new one
+      const dir_cover = path.join(__dirname, "../../uploads/cover");
+      if (!fs.existsSync(dir_cover)) {
+        fs.mkdirSync(dir_cover);
+      }
+      //write historical master image
+      const uid = uuid();
+      let payload_image = {
+        uid: uid,
+        file_name: file_name,
+        metadata: mimetype,
+        create_by: user_id,
+      };
+      const [que_ins, val_ins] = insertQuery("mst_image_cover", payload_image, "uid");
+      const { rows } = await client.query(que_ins, val_ins);
+      // write to sys
+      fs.writeFileSync(dir_cover + `/${file_name}`, image);
+      await client.query(TRANS.COMMIT);
+      return { id_file: uid };
+    } catch (error) {
+      await client.query(TRANS.ROLLBACK);
+      throw error;
+    }
+  });
+};
+
+export const getCoverbyID = async (id: string) => {
+  return ClientAction(async (client) => {
+    try {
+      const { rows } = await client.query(`select file_name from mst_image_cover where uid = $1`, [id]);
+      const file_name = rows[0].file_name;
+      //read file
+      const dir_cover = path.join(__dirname, "../../uploads/cover/" + file_name);
+       if (!fs.existsSync(dir_cover)) {
+        console.warn(`File not found: ${dir_cover}`);
+        return null; // or throw a custom error or return a default placeholder buffer
+      }
+      const buffer_file = await fs.createReadStream(dir_cover);
+      return buffer_file;
+    } catch (error) {
+      throw error;
+    }
+  });
+};
+
+export const getAllDataCover = async () => {
+  return ClientAction(async (client) => {
+    try {
+      const { rows } = await client.query(`select file_name, uid from mst_image_cover`);
+      return rows;
+    } catch (error) {
+      throw error;
+    }
+  });
 };
