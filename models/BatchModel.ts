@@ -10,6 +10,7 @@ import axios from "axios";
 import { axiosDarwin } from "@/config/axiosDarwin.js";
 import { AxiosResponse } from "axios";
 import { DataEmpDarwin } from "@/types/MasterDataTypes.js";
+import moment from "moment";
 
 export const createBatch = async (headerPayload: any, batchCodePayload: any, ccPayload: any, assesseePayload: any) => {
   const client = await db.connect();
@@ -321,7 +322,11 @@ export const getBatchDetail = async (id: string) => {
     const ccEmail = ccEmails.rows;
 
     const data = {
-      batch: batchDetail,
+      batch: {
+        ...batchDetail,
+        start_period: moment(batchDetail.start_period).tz("Asia/Jakarta").toISOString(),
+        end_period: moment(batchDetail.end_period).tz("Asia/Jakarta").toISOString(),
+      },
       assessees: assessees,
       cc_email: ccEmail,
     };

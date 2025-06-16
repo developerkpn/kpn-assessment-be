@@ -20,6 +20,7 @@ import { getBusinessUnitDetail } from "@/models/BusinessUnitModel.js";
 import dotenv from "dotenv";
 import { emailTemplateHTML } from "@/helper/email/emailnotifmgrprc.js";
 import { emailCCTemplate } from "@/helper/email/emailcctemplate.js";
+import moment from "moment";
 dotenv.config();
 
 export const handleGetUserRole = async (req: Request, res: Response, next: NextFunction) => {
@@ -132,7 +133,7 @@ export const handleGenerateEmailTemplate = async (
       const batchDetail = batchDetails.batch;
       console.log("batchDetail", batchDetail);
       console.log("masuk email template");
-      console.log(batchDetail.template_email_id);
+      console.log(batchDetail);
       const emailTemplate = await getEmailTemplateDetail(batchDetail.template_email_id);
       console.log(emailTemplate);
       console.log("function menu");
@@ -153,10 +154,15 @@ export const handleGenerateEmailTemplate = async (
         batch_code: batchDetail.batch_code ? batchDetail.batch_code : `Filling in Batch Section`,
         bu_name: businessUnitDetail.bu_name ? businessUnitDetail.bu_name : `Filling in Batch Section`,
         fm_name: functionMenuDetail.fm_name ? functionMenuDetail.fm_name : `Filling in Batch Section`,
-        start_period: batchDetail.start_period ? batchDetail.start_period : `Filling in Batch Section`,
-        end_period: batchDetail.end_period ? batchDetail.end_period : `Filling in Batch Section`,
+        start_period: batchDetail.start_period
+          ? moment(batchDetail.start_period).tz("Asia/Jakarta").format("dddd, MMMM D, YYYY [at] HH:mm [GMT+7]")
+          : "Filling in Batch Section",
+        end_period: batchDetail.end_period
+          ? moment(batchDetail.end_period).tz("Asia/Jakarta").format("dddd, MMMM D, YYYY [at] HH:mm [GMT+7]")
+          : "Filling in Batch Section",
         batch_link: `${process.env.ASSESSMENT_CLIENT_URL}/${token ? token : "token"}`,
       };
+      console.log("payloadnya coy", payload);
 
       console.log(payload.batch_link);
 
@@ -238,6 +244,7 @@ const handleGenerateEmailCC = async (batchId: string) => {
     console.log("batchDetail", batchDetail);
     console.log("masuk email template");
     console.log("function menu");
+    console.log(batchDetail);
     const functionMenuDetail = await getFunctionMenuDetail(batchDetail.function_id);
     console.log("masuk bu");
     const businessUnitDetail = await getBusinessUnitDetail(batchDetail.bu_id!);
@@ -251,8 +258,12 @@ const handleGenerateEmailCC = async (batchId: string) => {
       batch_code: batchDetail.batch_code ? batchDetail.batch_code : `Filling in Batch Section`,
       bu_name: businessUnitDetail.bu_name ? businessUnitDetail.bu_name : `Filling in Batch Section`,
       fm_name: functionMenuDetail.fm_name ? functionMenuDetail.fm_name : `Filling in Batch Section`,
-      start_period: batchDetail.start_period ? batchDetail.start_period : `Filling in Batch Section`,
-      end_period: batchDetail.end_period ? batchDetail.end_period : `Filling in Batch Section`,
+      start_period: batchDetail.start_period
+        ? moment(batchDetail.start_period).tz("Asia/Jakarta").format("dddd, MMMM D, YYYY [at] HH:mm [GMT+7]")
+        : "Filling in Batch Section",
+      end_period: batchDetail.end_period
+        ? moment(batchDetail.end_period).tz("Asia/Jakarta").format("dddd, MMMM D, YYYY [at] HH:mm [GMT+7]")
+        : "Filling in Batch Section",
       total_assessee: batchDetail.assessee_count ? batchDetail.assessee_count : 0,
     };
 
