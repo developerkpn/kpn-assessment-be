@@ -4,6 +4,7 @@ declare namespace Express {
       user_id: string;
       role_id?: string;
       email?: string;
+      type?: string;
       permission?: Array<{
         menu_id: number;
         fcreate: boolean;
@@ -16,7 +17,7 @@ declare namespace Express {
   }
 }
 
-declare module 'base64-xor' {
+declare module "base64-xor" {
   export function encode(key: string, data: Buffer | string): string;
   export function decode(key: string, data: Buffer | string): string;
   const _default: {

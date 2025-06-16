@@ -1,5 +1,5 @@
 export const accessExpiry = "3h";
-export const refreshExpiry = "6h";
+export const refreshExpiry = "12h";
 
 export const TERMS_ID = "d1d3d3bd-f06c-4dca-90fb-7ef043c6508b";
 export const PP_ID = "2b2818b2-e5cd-4d67-a024-9a597b5e3132";

@@ -6,6 +6,7 @@ import jwt, { Secret } from "jsonwebtoken";
 const { sign, verify } = jwt;
 import { accessExpiry, refreshExpiry } from "@/constant.js";
 import { validatePassword } from "@/helper/auth/password.js";
+import { getDarwinUser } from "../BatchModel";
 
 export const checkRegisteredExternalAssessee = async (email: string) => {
   const client = await db.connect();
@@ -67,9 +68,10 @@ export const loginExternalAssessee = async (email: string, password: string) => 
       {
         user_id: result.rows[0].id,
         email: result.rows[0].email,
+        type: "external",
       },
       process.env.SECRETJWT as Secret,
-      { expiresIn: accessExpiry }
+      { expiresIn: refreshExpiry }
     );
 
     const refreshToken = sign(
@@ -130,6 +132,14 @@ export const getAssesseeExternalProfile = async (id: string) => {
   }
 };
 
+export const getAssesseeInternal = async (nik: string) => {
+  try {
+    const data = await getDarwinUser(nik);
+    return data;
+  } catch (error) {
+    throw error;
+  }
+};
 export const getAssesseeExternalbyEmail = async (email: string) => {
   return await ClientAction(async (client) => {
     try {

@@ -3,38 +3,43 @@ import { decoderDarwin } from "@/helper/auth/DarwinDecoder.js";
 import { getDarwinUser } from "@/models/BatchModel.js";
 import { isAxiosError } from "axios";
 import { Request, Response } from "express";
+import jwt from "jsonwebtoken";
+import { refreshExpiry } from "@/constant";
 
 const AuthController = {
   VerifyDarwinToken: async (req: Request<{ payload: string }>, res: Response) => {
-    const { encoded_payload, token_client, emp_id } = req.body;
-    let token_auth = token_client;
-    let firstname, email, rest_var, decoded;
-
+    const { encoded_payload } = req.body;
     try {
-      if (encoded_payload) {
-        const result = await decoderDarwin(encoded_payload);
-        if (result !== null) {
-          const { firstname: fname, email: em, token, ...rest } = result;
-          firstname = fname;
-          email = em;
-          token_auth = token;
-          decoded = rest;
-        } else {
-          throw new Error("token encoded invalid");
-        }
+      let firstname, email, decoded;
+      const result = await decoderDarwin(encoded_payload);
+      if (result !== null) {
+        const { firstname: fname, email: em, token, ...rest } = result;
+        firstname = fname;
+        email = em;
+        decoded = rest;
+      } else {
+        res.status(200).send({
+          status: "failed",
+        });
+        return;
       }
-      const { data } = await darwinAuth.post(`/checkToken`, {
-        api_key: process.env.APICHCKTOK,
-        token: token_auth,
-      });
-      const data_user = await getDarwinUser(emp_id ?? (decoded ? decoded.employee_no : ""));
-      rest_var = data_user;
+      const data_user = await getDarwinUser(result.employee_no);
+      let token_auth = jwt.sign(
+        {
+          user_id: result.employee_no,
+          type: "internal",
+        },
+        process.env.SECRETJWT ?? "",
+        {
+          expiresIn: refreshExpiry,
+        }
+      );
       res.status(200).send({
-        ...data,
+        status: "success",
         token: token_auth,
         firstname,
         email,
-        ...rest_var,
+        data_user: data_user,
       });
     } catch (error) {
       if (isAxiosError(error)) {

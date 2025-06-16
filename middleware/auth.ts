@@ -1,4 +1,4 @@
-import { Permission, TokenPayload } from "@/types/AdminTypes.js";
+import { Permission, TokenAssesseePayload, TokenPayload } from "@/types/AdminTypes.js";
 import { NextFunction, Request, Response } from "express";
 import jwt, { JwtPayload, Secret } from "jsonwebtoken";
 const { decode, verify } = jwt;
@@ -27,6 +27,33 @@ export const isAuth = (req: Request, res: Response, next: NextFunction): any => 
       });
     } else {
       return res.status(500).send({
+        message: error.stack,
+      });
+    }
+  }
+};
+
+export const isAuthAssessee = (req: Request, res: Response, next: NextFunction): any => {
+  const authHeaders = req.headers.Authorization || req.headers.authorization;
+  let token = "";
+  if (authHeaders) token = (authHeaders as string).split(" ")[1];
+  if (!authHeaders) {
+    return res.status(403).send({
+      message: "Access Denied",
+    });
+  }
+
+  try {
+    const userDecode = verify(token, process.env.SECRETJWT as Secret);
+    req.userDecode = userDecode as TokenAssesseePayload;
+    return next();
+  } catch (error: any) {
+    if (error.name === "TokenExpiredError") {
+      return res.status(401).send({
+        message: error.message,
+      });
+    } else {
+      return res.status(403).send({
         message: error.stack,
       });
     }
