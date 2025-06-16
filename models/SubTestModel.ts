@@ -203,9 +203,20 @@ export const getSubTestDetail = async (id: string) => {
       seriesExample = await client.query(
         `
         SELECT
-          *
-        FROM mst_series
-        WHERE id = $1
+          s.id,
+          s.series_name,
+          s.series_code,
+          s.created_date,
+          a.fullname as created_by,
+          (
+          SELECT COUNT(sd.question_id)
+          FROM mst_series_det sd
+          WHERE sd.series_id = s.id
+          ) AS question_count
+        FROM mst_series s
+        LEFT JOIN mst_series_det sd ON s.id = sd.series_id
+        LEFT JOIN mst_admin_web a ON s.created_by = a.id 
+        WHERE s.id = $1
         `,
         [result.rows[0].series_example_id]
       );
@@ -268,6 +279,9 @@ export const getSubTestDetail = async (id: string) => {
         series_id: seriesExample ? seriesExample.rows[0].id : null,
         series_name: seriesExample ? seriesExample.rows[0].series_name : null,
         series_code: seriesExample ? seriesExample.rows[0].series_code : null,
+        added_by: seriesExample ? seriesExample.rows[0].created_by : null,
+        added_at: seriesExample ? seriesExample.rows[0].created_date : null,
+        question_count: seriesExample ? seriesExample.rows[0].question_count : null,
       },
       criteria: {
         value_id: result.rows[0].value_id,
