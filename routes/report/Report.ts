@@ -18,7 +18,7 @@ import {
   handleUploadReportPDF,
 } from "@/controllers/report/ReportController.js";
 // import { PDFController } from "@/controllers/report/PDFController.js";
-import ProctoringController from "@/controllers/transaction/ProctoringController";
+import ProctoringController from "@/controllers/transaction/ProctoringController.js";
 import { uploadSingleFile } from "@/middleware/fileMiddleware.js";
 import { errorMiddleware } from "@/middleware/errorMiddleware.js";
 
