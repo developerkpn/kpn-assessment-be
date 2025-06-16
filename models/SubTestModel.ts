@@ -199,7 +199,7 @@ export const getSubTestDetail = async (id: string) => {
     console.log("masuk series example");
 
     let seriesExample;
-    if (result.rows[0].series_example) {
+    if (result.rows[0].series_example_id) {
       seriesExample = await client.query(
         `
         SELECT
