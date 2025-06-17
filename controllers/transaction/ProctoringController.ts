@@ -36,10 +36,10 @@ const ProctoringController = {
       const [fields, files] = await formdata.parse(req);
       const batch_id = fields?.batch_id as [string];
       const subtest_id = fields?.subtest_id as [string];
-      const user_id = "TEST";
+      const user_id = fields?.user_id as [string];
       const screen = fs.readFileSync(files?.screen?.[0].filepath as string);
       const webcam = fs.readFileSync(files?.webcam?.[0].filepath as string);
-      if (!(batch_id[0] && subtest_id[0] && user_id)) {
+      if (!(batch_id[0] && subtest_id[0] && user_id[0])) {
         throw new Error("Outbound Request");
       }
       if (!(screen && webcam)) {
@@ -49,8 +49,8 @@ const ProctoringController = {
       let result_screen;
       let result_webcam;
 
-      result_screen = await ProctoringModel.UploadFile(batch_id[0], user_id, subtest_id[0], screen, "screen");
-      result_webcam = await ProctoringModel.UploadFile(batch_id[0], user_id, subtest_id[0], webcam, "webcam");
+      result_screen = await ProctoringModel.UploadFile(batch_id[0], user_id[0], subtest_id[0], screen, "screen");
+      result_webcam = await ProctoringModel.UploadFile(batch_id[0], user_id[0], subtest_id[0], webcam, "webcam");
       res.status(200).send({ result_screen, result_webcam });
     } catch (error) {
       console.error(error);

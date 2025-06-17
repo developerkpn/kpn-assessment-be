@@ -199,7 +199,7 @@ export const handleGetBatchInformationForReport = async (req: Request, res: Resp
       message: "Success!",
       data: {
         report_id: reportHead ? reportHead.id : null,
-        cover_id: reportHead.cover_id,
+        cover_id: reportHead?.cover_id,
         guide: {
           content: getReportIntro[0].content,
         },
@@ -659,10 +659,11 @@ const proceedLog = async (batchId: string, assesseeId: string) => {
   }
 };
 
-const proceedProctoring = async (batchId: string) => {
+const proceedProctoring = async (batchId: string, user_id: string) => {
   try {
     const s3 = new S3ClientUpload();
-    const list: any = await s3.ListObjects(batchId);
+    const list: any = await s3.ListObjects(`${batchId}/${user_id}`);
+    console.log(list);
 
     // Urutkan dari yang terbaru ke yang lama
     const sortedList = list.sort(
@@ -1072,10 +1073,11 @@ export const handleReportPersonal = async (req: Request, res: Response, next: Ne
       const reportIntro = await proceedIntro(batchId, reportDetail);
 
       // Get Report Proctoring
-      const reportProctoring = await proceedProctoring(batchId);
+      const reportProctoring = await proceedProctoring(batchId, assesseeId);
 
       // Get Report Log
       const reportLog = await proceedLog(batchId, assesseeId);
+      console.log(reportLog);
       // console.log("report proctoring", reportProctoting);
       res.status(200).send({
         message: "Success!",
@@ -1093,110 +1095,8 @@ export const handleReportPersonal = async (req: Request, res: Response, next: Ne
           profile: profile,
           intro: reportIntro,
           detail: reportDetail,
-          log: [
-            {
-              id: "01972fc4-8dff-7ccb-9814-8b488b1bb34a",
-              log: "User is changing window / minimize browser",
-              log_code: "1",
-              created_at: "2025-06-02T08:31:40.031Z",
-            },
-            {
-              id: "01972fc4-9b6a-7ccb-9814-942f8944713b",
-              log: "User is changing window / minimize browser",
-              log_code: "1",
-              created_at: "2025-06-02T08:31:43.466Z",
-            },
-            {
-              id: "01972fc6-41ab-7551-8980-8984111f3d33",
-              log: "User is changing window / minimize browser",
-              log_code: "1",
-              created_at: "2025-06-02T08:33:31.563Z",
-            },
-            {
-              id: "01972fc7-3e28-777c-8728-e185e8594668",
-              log: "User is changing window / minimize browser",
-              log_code: "1",
-              created_at: "2025-06-02T08:34:36.200Z",
-            },
-            {
-              id: "01972fc7-6eb2-777c-8728-ef8aa8e3e435",
-              log: "User is changing window / minimize browser",
-              log_code: "1",
-              created_at: "2025-06-02T08:34:48.626Z",
-            },
-            {
-              id: "01972fc7-e851-777c-8728-f640b23dd8d3",
-              log: "User is changing window / minimize browser",
-              log_code: "1",
-              created_at: "2025-06-02T08:35:19.761Z",
-            },
-            {
-              id: "01972fc8-09b3-777c-8728-faca86b42a95",
-              log: "User is changing window / minimize browser",
-              log_code: "1",
-              created_at: "2025-06-02T08:35:28.307Z",
-            },
-            {
-              id: "01972fc8-25dd-777c-8729-0162b80bed7d",
-              log: "User is changing window / minimize browser",
-              log_code: "1",
-              created_at: "2025-06-02T08:35:35.517Z",
-            },
-            {
-              id: "01972fc9-160f-777c-8729-0b617bb9c67d",
-              log: "User is changing window / minimize browser",
-              log_code: "1",
-              created_at: "2025-06-02T08:36:37.007Z",
-            },
-            {
-              id: "01972fc9-1612-777c-8729-106e96042fa9",
-              log: "User is changing window / minimize browser",
-              log_code: "1",
-              created_at: "2025-06-02T08:36:37.010Z",
-            },
-            {
-              id: "01972fc9-e9d1-777c-8729-18b371fbd1f2",
-              log: "User is changing window / minimize browser",
-              log_code: "1",
-              created_at: "2025-06-02T08:37:31.217Z",
-            },
-            {
-              id: "01972fca-7425-777c-8729-2044ad404864",
-              log: "User is changing window / minimize browser",
-              log_code: "1",
-              created_at: "2025-06-02T08:38:06.630Z",
-            },
-          ],
-          proctoring: {
-            web_cam: [
-              {
-                key: "01972f95-48b1-7331-b0e0-c854eee39e8f/user12345/01972fc3-c38d-7ccb-9813-19702c2885a8/1748853487_webcam.png",
-                lastModified: "2025-06-02T08:38:11.000Z",
-              },
-              {
-                key: "01972f95-48b1-7331-b0e0-c854eee39e8f/user12345/01972fc3-c38d-7ccb-9813-19702c2885a8/1748853451_webcam.png",
-                lastModified: "2025-06-02T08:37:36.000Z",
-              },
-              {
-                key: "01972f95-48b1-7331-b0e0-c854eee39e8f/user12345/01972fc3-c38d-7ccb-9813-19702c2885a8/1748853437_webcam.png",
-                lastModified: "2025-06-02T08:37:22.000Z",
-              },
-            ],
-            screen: [
-              {
-                key: "01972f95-48b1-7331-b0e0-c854eee39e8f/user12345/01972fc3-c38d-7ccb-9813-19702c2885a8/1748853486_screen.png",
-                lastModified: "2025-06-02T08:38:11.000Z",
-              },
-              {
-                key: "01972f95-48b1-7331-b0e0-c854eee39e8f/user12345/01972fc3-c38d-7ccb-9813-19702c2885a8/1748853451_screen.png",
-                lastModified: "2025-06-02T08:37:35.000Z",
-              },
-              {
-                key: "01972f95-48b1-7331-b0e0-c854eee39e8f/user12345/01972fc3-c38d-7ccb-9813-19702c2885a8/1748853437_screen.png",
-                lastModified: "2025-06-02T08:37:21.000Z",
-              },
-            ],
-          },
+          log: reportLog,
+          proctoring: reportProctoring,
         },
       });
     } else if (generatingStatus.is_generate === true) {

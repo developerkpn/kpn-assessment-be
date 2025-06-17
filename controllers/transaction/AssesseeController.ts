@@ -171,7 +171,7 @@ export const handleResetToken = async (req: Request, res: Response, next: NextFu
     const token_auth = req.headers.authorization.split(" ")[2];
     const decoded_token = decode(token_auth, { complete: true });
     const user_data = decoded_token?.payload as JwtPayload;
-    const user_id = user_data.user_id;
+    const user_id = user_data?.user_id;
     if (!user_id) {
       throw new ResponseError(403, "Forbidden");
     }
