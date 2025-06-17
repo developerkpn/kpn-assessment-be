@@ -54,7 +54,7 @@ export const getSubTest = async () => {
   }
 };
 
-export const updateSubTest = async (subtestId: string, headerPayload: any, deletedSeries: any, addSeries: any) => {
+export const updateSubTest = async (subtestId: string, headerPayload: any, addSeries: any) => {
   const client = await db.connect();
   try {
     await client.query(TRANS.BEGIN);
@@ -67,15 +67,23 @@ export const updateSubTest = async (subtestId: string, headerPayload: any, delet
 
     console.log("masuk 1s");
 
-    if (deletedSeries.length > 0) {
-      for (const item of deletedSeries) {
-        const [Q, V] = deleteQuery("mst_subtest_det", item);
-        await client.query(Q, V);
-      }
-    }
+    await client.query(
+      `
+        DELETE FROM mst_subtest_det
+        WHERE subtest_id = $1 
+        `,
+      [subtestId]
+    );
+
+    // if (deletedSeries.length > 0) {
+    //   for (const item of deletedSeries) {
+    //     const [Q, V] = deleteQuery("mst_subtest_det", item);
+    //     await client.query(Q, V);
+    //   }
+    // }
 
     console.log("masuk 2s");
-
+    console.log(addSeries);
     if (addSeries.length > 0) {
       const [Q, V] = insertQuery("mst_subtest_det", addSeries);
       await client.query(Q, V);
@@ -189,15 +197,32 @@ export const getSubTestDetail = async (id: string) => {
     );
 
     console.log("masuk series example");
-    const seriesExample = await client.query(
-      `
+
+    let seriesExample;
+    if (result.rows[0].series_example_id) {
+      seriesExample = await client.query(
+        `
         SELECT
-          *
-        FROM mst_series
-        WHERE id = $1
+          s.id,
+          s.series_name,
+          s.series_code,
+          s.created_date,
+          a.fullname as created_by,
+          (
+          SELECT COUNT(sd.question_id)
+          FROM mst_series_det sd
+          WHERE sd.series_id = s.id
+          ) AS question_count
+        FROM mst_series s
+        LEFT JOIN mst_series_det sd ON s.id = sd.series_id
+        LEFT JOIN mst_admin_web a ON s.created_by = a.id 
+        WHERE s.id = $1
         `,
-      [result.rows[0].series_example_id]
-    );
+        [result.rows[0].series_example_id]
+      );
+    }
+
+    console.log(seriesExample);
 
     if (result.rows.length === 0) {
       return null;
@@ -251,9 +276,12 @@ export const getSubTestDetail = async (id: string) => {
       updated_at: result.rows[0].updated_at,
       is_criteria: result.rows[0].is_criteria,
       example_series: {
-        series_id: seriesExample.rows[0].id ? seriesExample.rows[0].id : null,
-        series_name: seriesExample.rows[0].series_name ? seriesExample.rows[0].series_name : null,
-        series_code: seriesExample.rows[0].series_code ? seriesExample.rows[0].series_code : null,
+        series_id: seriesExample ? seriesExample.rows[0].id : null,
+        series_name: seriesExample ? seriesExample.rows[0].series_name : null,
+        series_code: seriesExample ? seriesExample.rows[0].series_code : null,
+        added_by: seriesExample ? seriesExample.rows[0].created_by : null,
+        added_at: seriesExample ? seriesExample.rows[0].created_date : null,
+        question_count: seriesExample ? seriesExample.rows[0].question_count : null,
       },
       criteria: {
         value_id: result.rows[0].value_id,

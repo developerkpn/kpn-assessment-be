@@ -23,10 +23,12 @@ export const createQuestion = async (payload: QuestionRequest) => {
 export const updateQuestion = async (payload: QuestionRequest, id: string) => {
   const client = await db.connect();
   try {
+    console.log("cek model payload", payload);
     await client.query(TRANS.BEGIN);
     const [q, v] = updateQuery("mst_question_answer", payload, { id: id }, "id");
     const result = await client.query(q, v);
     await client.query(TRANS.COMMIT);
+    console.log("berhenti");
     return result.rows[0].id;
   } catch (error) {
     console.error(error);

@@ -71,7 +71,7 @@ export class SubTestValidation {
         .max(16)
         .transform((val) => val.toUpperCase())
         .optional(),
-      is_duration: z.boolean().optional(),
+      is_duration: z.boolean().optional().nullable(),
       subtest_desc: z.string().min(0).max(255),
       subtest_duration: z
         .string()
@@ -81,20 +81,11 @@ export class SubTestValidation {
       intro_desc: z.string().trim().min(1).optional().nullable(),
       series_example_id: z.string().uuid().optional().nullable(),
       is_example_answer_shown: z.boolean().optional().nullable(),
-      deleted_series: z
-        .array(
-          z.object({
-            series_id: z.string().uuid("Invalid UUID format for deleted_series.series_id"),
-          })
-        )
-        .optional(),
-      selected_series: z
-        .array(
-          z.object({
-            series_id: z.string().uuid("Invalid UUID format for selected_series.series_id"),
-          })
-        )
-        .optional(),
+      series: z.array(
+        z.object({
+          series_id: z.string().uuid("Invalid UUID format for selected_series.series_id"),
+        })
+      ),
       criteria_id: z.string().uuid("Criteria should be selected").optional().nullable(),
       is_criteria: z.boolean().nullable().optional(),
     })

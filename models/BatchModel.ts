@@ -10,6 +10,7 @@ import axios from "axios";
 import { axiosDarwin } from "@/config/axiosDarwin.js";
 import { AxiosResponse } from "axios";
 import { DataEmpDarwin } from "@/types/MasterDataTypes.js";
+import moment from "moment";
 
 export const createBatch = async (headerPayload: any, batchCodePayload: any, ccPayload: any, assesseePayload: any) => {
   const client = await db.connect();
@@ -117,7 +118,7 @@ export const updateBatch = async (
     console.log("masuk 4");
     if (deletedAssesseePayload.length > 0) {
       for (const item of deletedAssesseePayload) {
-        const [Q, V] = deleteQuery("t_batch_cc", item);
+        const [Q, V] = deleteQuery("t_batch_assessee", item);
         await client.query(Q, V);
       }
     }
@@ -321,7 +322,11 @@ export const getBatchDetail = async (id: string) => {
     const ccEmail = ccEmails.rows;
 
     const data = {
-      batch: batchDetail,
+      batch: {
+        ...batchDetail,
+        start_period: moment(batchDetail.start_period).tz("Asia/Jakarta").toISOString(),
+        end_period: moment(batchDetail.end_period).tz("Asia/Jakarta").toISOString(),
+      },
       assessees: assessees,
       cc_email: ccEmail,
     };
@@ -490,6 +495,7 @@ export const getDarwinUser = async (nik_darwin: string) => {
         datasetKey: process.env.DATASET_KEY,
         employee_ids: [nik_darwin],
       });
+    console.log("cek axios", axiosDarwin);
     if (darwinUsers.status == 0) {
       throw Error(darwinUsers.message);
     }

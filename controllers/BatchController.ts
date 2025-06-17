@@ -91,8 +91,8 @@ export const handleCreateBatch = async (req: Request, res: Response, next: NextF
       type: validatedRequest.type,
       // is_published: validatedRequest.is_published,
       batch_code: currentCode,
-      start_period: moment(validatedRequest.start_period).toISOString(),
-      end_period: moment(validatedRequest.end_period).toISOString(),
+      start_period: moment(validatedRequest.start_period).tz("Asia/Jakarta").toISOString(),
+      end_period: moment(validatedRequest.end_period).tz("Asia/Jakarta").toISOString(),
       created_by: req.userDecode!.user_id,
       created_at: new Date(),
     };
@@ -255,8 +255,8 @@ export const handleUpdateBatch = async (req: Request, res: Response, next: NextF
       note: validatedRequest.note,
       description: validatedRequest.description,
       type: validatedRequest.type,
-      start_period: moment(validatedRequest.start_period).toISOString(),
-      end_period: moment(validatedRequest.end_period).toISOString(),
+      start_period: moment(validatedRequest.start_period).tz("Asia/Jakarta").toISOString(),
+      end_period: moment(validatedRequest.end_period).tz("Asia/Jakarta").toISOString(),
       updated_by: req.userDecode?.user_id,
       updated_at: new Date(),
     };

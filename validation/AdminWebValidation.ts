@@ -7,17 +7,11 @@ export class AdminWebValidation {
   });
 
   static readonly CREATEADMIN: ZodType = z.object({
-    id: z.string().uuid({ message: "Invalid ID format. Please provide a valid UUID." }),
     fullname: z.string().trim().min(1, { message: "Full name is required. Please enter the full name." }),
     username: z.string().trim().min(6, { message: "Username must be at least 6 characters long." }),
     email: z.string().trim().email({ message: "Invalid email format. Please enter a valid email address." }),
-    password: z
-      .string()
-      .min(6, { message: "Password must be at least 6 characters long." })
-      .regex(/^(?=.*[A-Z])(?=.*[!@#$%^&*(),.?":{}|<>])(?=.*\d).+$/, {
-        message: "Password must contain at least one uppercase letter, one special character, and one number.",
-      }),
     role_id: z.string().uuid({ message: "Invalid role ID. Please provide a valid UUID." }),
+    is_active: z.boolean({ message: "Should be active or inactive" }),
   });
 
   static readonly ID: ZodType = z.string().uuid({

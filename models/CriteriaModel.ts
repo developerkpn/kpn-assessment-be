@@ -97,6 +97,9 @@ export const deleteCriteria = async (id: string) => {
 export const updateCriteria = async (payload: CriteriaGroup, newCriteria: Criteria[], id: string) => {
   const client = await db.connect();
   try {
+    console.log("masuk update criteria model");
+    console.log(payload);
+    console.log(newCriteria);
     await client.query(TRANS.BEGIN);
 
     // UPDATE CATEGORY
@@ -109,8 +112,12 @@ export const updateCriteria = async (payload: CriteriaGroup, newCriteria: Criter
     });
     await client.query(deleteCriteriaQ, deleteCriteriaV);
 
+    console.log("add new criteria model");
+    console.log(newCriteria);
     // ADD NEW CRITERIA
     const [insertCriteriaQ, insertCriteriaV] = insertQuery("mst_criteria", newCriteria);
+    console.log("cek query");
+    console.log(insertCriteriaQ, insertCriteriaV);
     await client.query(insertCriteriaQ, insertCriteriaV);
 
     await client.query(TRANS.COMMIT);
