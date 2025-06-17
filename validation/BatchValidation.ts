@@ -32,13 +32,15 @@ export class BatchValidation {
         )
         .optional(),
     }),
-    assessees: z.array(
-      z.object({
-        assessee_nik: z.string().trim().length(11, { message: "NIK must be exactly 11 characters." }).optional(),
-        assessee_name: z.string().trim().min(1, { message: "Assessee name is required." }),
-        assessee_email: z.string().trim().email({ message: "Invalid assessee email format." }),
-      })
-    ),
+    assessees: z
+      .array(
+        z.object({
+          assessee_nik: z.string().trim().length(11, { message: "NIK must be exactly 11 characters." }).optional(),
+          assessee_name: z.string().trim().min(1, { message: "Assessee name is required." }),
+          assessee_email: z.string().trim().email({ message: "Invalid assessee email format." }),
+        })
+      )
+      .min(1, { message: "Assessee must be filled in" }),
   });
 
   static readonly UPDATE: ZodType = z.object({
