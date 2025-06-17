@@ -207,6 +207,7 @@ export const getBatchDetail = async (id: string) => {
                 h.bu_id,
                 h.function_id,
                 h.template_email_id,
+                e.subject,
                 h.created_by,
                 h.updated_by,
                 h.created_at,
@@ -225,6 +226,7 @@ export const getBatchDetail = async (id: string) => {
                     t_batch_head h 
                 LEFT JOIN
                     t_batch_assessee d ON h.id = d.batch_id
+                LEFT JOIN mst_email_template e ON h.template_email_id = e.id
                 WHERE h.id = $1 
                 GROUP BY h.id,
                     h.batch_name,
@@ -233,6 +235,7 @@ export const getBatchDetail = async (id: string) => {
                     h.bu_id,
                     h.function_id,
                     h.template_email_id,
+                    e.subject,
                     h.created_by,
                     h.updated_by,
                     h.created_at,
