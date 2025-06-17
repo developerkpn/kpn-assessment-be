@@ -106,19 +106,37 @@ export const handleGetAssesseeProfile = async (req: Request, res: Response, next
   }
 };
 
+export const checkBatchPeriod = async (batchStartPeriod: string, batchEndPeriod: string) => {
+  try {
+    const now = moment().tz("Asia/Jakarta");
+    const start = moment.tz(batchStartPeriod, "Asia/Jakarta");
+    const end = moment.tz(batchEndPeriod, "Asia/Jakarta");
+
+    if (now.isBefore(start)) {
+      throw new ResponseError(400, "Batch's period has not started yet");
+    }
+
+    if (now.isAfter(end)) {
+      throw new ResponseError(400, "Batch's period has already ended");
+    }
+  } catch (e) {
+    throw e;
+  }
+};
+
 export const handleGetBatchDetail = async (req: Request, res: Response, next: NextFunction) => {
   try {
     // Validate and get token
     const token: any = await handleAssessmentToken(req.params.token);
-    const batch = await getBatchByAssessment(token.batch_id);
+    const { batch } = await getBatchDetail(token.batch_id);
 
-    // Check if user has permission
+    await checkBatchPeriod(batch.start_period, batch.end_period);
+
     const progressHead = await getProgressHead(token.user_id, token.batch_id);
     if (!progressHead) {
       throw new ResponseError(401, "You haven't been assigned to this assessment");
     }
 
-    // Check existing progress
     const progressDet = await getProgressDetail(progressHead.id);
     if (progressDet) {
       res.status(200).send({
@@ -168,7 +186,9 @@ export const handleGetBatchDetail = async (req: Request, res: Response, next: Ne
 export const handleGetAsssessmentQuestion = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const progressDetailId = req.params.id;
-
+    const token: any = await handleAssessmentToken(req.params.token);
+    const { batch } = await getBatchDetail(token.batch_id);
+    await checkBatchPeriod(batch.start_period, batch.end_period);
     // Cek apakah sudah disubmit
     const checkIfAlreadySubmitted = await checkSubmissionStatus(progressDetailId);
     console.log(checkIfAlreadySubmitted);
@@ -562,6 +582,11 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
 export const handleStoreAnswer = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { det_id, question_id, answer } = req.body;
+
+    const token: any = await handleAssessmentToken(req.params.token);
+    const { batch } = await getBatchDetail(token.batch_id);
+    await checkBatchPeriod(batch.start_period, batch.end_period);
+
     // Ambil Subtest Id
     const subtest = await getSubtestIdbyProgressId(det_id);
     // Cek apakah sudah disubmit
@@ -677,8 +702,10 @@ export const countSubTest = async (detId: string) => {
 export const handleGetAssessmentTest = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const token: any = await handleAssessmentToken(req.params.token);
-    console.log(token);
     const progressHeadId = await getProgressHead(token.user_id, token.batch_id);
+    const { batch } = await getBatchDetail(token.batch_id);
+
+    await checkBatchPeriod(batch.start_period, batch.end_period);
 
     const tests: any[] = await getAssessmentTest(progressHeadId.id);
     // tests will contain unique test entries (no duplicates based on test_id)
