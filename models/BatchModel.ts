@@ -205,7 +205,9 @@ export const getBatchDetail = async (id: string) => {
                 h.batch_code,
                 h.grouptest_id,
                 h.bu_id,
+                bu.bu_name,
                 h.function_id,
+                fm.fm_name,
                 h.template_email_id,
                 h.created_by,
                 h.updated_by,
@@ -225,13 +227,18 @@ export const getBatchDetail = async (id: string) => {
                     t_batch_head h 
                 LEFT JOIN
                     t_batch_assessee d ON h.id = d.batch_id
+                LEFT JOIN mst_email_template e ON h.template_email_id = e.id
+                LEFT JOIN mst_function_menu fm ON h.function_id = fm.id
+                LEFT JOIN mst_business_unit bu ON h.bu_id = bu.id
                 WHERE h.id = $1 
                 GROUP BY h.id,
                     h.batch_name,
                     h.batch_code,
                     h.grouptest_id,
                     h.bu_id,
+                    bu.bu_name,
                     h.function_id,
+                    fm.fm_name,
                     h.template_email_id,
                     h.created_by,
                     h.updated_by,
@@ -257,6 +264,20 @@ export const getBatchDetail = async (id: string) => {
         WHERE batch_id = $1
         `,
       [id]
+    );
+
+    const email = await client.query(
+      `
+        SELECT
+          id,
+          subject,
+          title,
+          header,
+          footer
+         FROM mst_email_template
+         WHERE id = $1
+        `,
+      [result.rows[0].template_email_id]
     );
 
     const batchAssessees = await client.query(
@@ -326,6 +347,14 @@ export const getBatchDetail = async (id: string) => {
         ...batchDetail,
         start_period: moment(batchDetail.start_period).tz("Asia/Jakarta").toISOString(),
         end_period: moment(batchDetail.end_period).tz("Asia/Jakarta").toISOString(),
+        email: {
+          id: email ? email.rows[0].id : null,
+
+          subject: email ? email.rows[0].subject : null,
+          title: email ? email.rows[0].title : null,
+          header: email ? email.rows[0].header : null,
+          footer: email ? email.rows[0].footer : null,
+        },
       },
       assessees: assessees,
       cc_email: ccEmail,
@@ -400,6 +429,7 @@ export const publishBatch = async (id: string, status: string) => {
     console.log("keluar query");
     const updateStatus = await client.query(Q, V);
     console.log("keluar query 2");
+
     await client.query(TRANS.COMMIT);
     console.log("disini");
     console.log(updateStatus.rows[0].template_email_id);
