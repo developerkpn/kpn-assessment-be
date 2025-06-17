@@ -659,11 +659,11 @@ const proceedLog = async (batchId: string, assesseeId: string) => {
   }
 };
 
-const proceedProctoring = async (batchId: string) => {
+const proceedProctoring = async (batchId: string, user_id: string) => {
   try {
     const s3 = new S3ClientUpload();
-    const list: any = await s3.ListObjects(batchId);
-    console.log("list proctoring", list);
+    const list: any = await s3.ListObjects(`${batchId}/${user_id}`);
+    console.log(list);
 
     // Urutkan dari yang terbaru ke yang lama
     const sortedList = list.sort(
@@ -1073,7 +1073,7 @@ export const handleReportPersonal = async (req: Request, res: Response, next: Ne
       const reportIntro = await proceedIntro(batchId, reportDetail);
 
       // Get Report Proctoring
-      const reportProctoring = await proceedProctoring(batchId);
+      const reportProctoring = await proceedProctoring(batchId, assesseeId);
 
       // Get Report Log
       const reportLog = await proceedLog(batchId, assesseeId);

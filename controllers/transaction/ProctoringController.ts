@@ -37,6 +37,7 @@ const ProctoringController = {
       const batch_id = fields?.batch_id as [string];
       const subtest_id = fields?.subtest_id as [string];
       const user_id = fields?.user_id as [string];
+      console.log("user_id proc", user_id);
       const screen = fs.readFileSync(files?.screen?.[0].filepath as string);
       const webcam = fs.readFileSync(files?.webcam?.[0].filepath as string);
       if (!(batch_id[0] && subtest_id[0] && user_id[0])) {
