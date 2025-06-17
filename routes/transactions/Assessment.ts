@@ -14,11 +14,11 @@ import {
   handleSubtestExampleisTaken,
   handleUpdateExampleTaken,
 } from "@/controllers/transaction/AssessmentController.js";
-import { isAuthDarwin } from "@/middleware/auth.js";
+import { isAuthAssessee, isAuthDarwin } from "@/middleware/auth.js";
 
 const Assessment = Router();
 Assessment.get("/assessee/:nik", handleGetAssessmentsByUserId);
-Assessment.get("/darwin/assessee/:nik", isAuthDarwin, handleGetAssessmentsByUserId);
+Assessment.get("/darwin/assessee", isAuthAssessee, handleGetAssessmentsByUserId);
 Assessment.put("/subtest/submission", handleSubmissionConfirmation);
 
 Assessment.get("/:token/profile", handleGetAssesseeProfile);

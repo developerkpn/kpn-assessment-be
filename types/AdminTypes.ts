@@ -19,6 +19,10 @@ export type TokenPayload = {
   }>;
 };
 
+export type TokenAssesseePayload = Omit<TokenPayload, "email" | "role_id" | "permission"> & {
+  type: "external" | "internal";
+};
+
 export type Permission = {
   menu_id: number;
   fcreate: boolean;

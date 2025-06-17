@@ -4,6 +4,7 @@ import {
   checkRegisteredExternalAssessee,
   getAssesseeExternalbyEmail,
   getAssesseeExternalProfile,
+  getAssesseeInternal,
   getExternalDashboard,
   loginExternalAssessee,
   storeExternalAssesseeAccount,
@@ -89,14 +90,22 @@ export const handleExternalLogin = async (req: Request, res: Response, next: Nex
   }
 };
 
-export const handleGetExternalAssesseeInformation = async (req: Request, res: Response, next: NextFunction) => {
+export const handleGetAssesseeInformation = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const id = req.userDecode?.user_id as string;
-    const profile = await getAssesseeExternalProfile(id);
+    const type = req.userDecode?.type as string;
+    let profile: any;
+
+    if (type == "external") {
+      profile = await getAssesseeExternalProfile(id);
+    } else {
+      profile = await getAssesseeInternal(id);
+    }
 
     res.status(200).send({
       message: "Success!",
-      data: profile,
+      data: { ...profile, user_id: id },
+      type: type,
     });
   } catch (e) {
     next(e);
