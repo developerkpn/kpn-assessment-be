@@ -90,7 +90,7 @@ export const handleUpdateBrief = async (req: Request, res: Response, next: NextF
     const validatedRequest = Validation.validate(TermsPPValidation.UPDATESB, payload);
     let result = await updateShortBrief(validatedRequest, BRIEF_ID);
     res.status(200).send({
-      message: `Success update short brief`,
+      message: `Brief updated succesfully`,
       id: result,
     });
   } catch (error: any) {
