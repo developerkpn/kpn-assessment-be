@@ -199,7 +199,7 @@ export const handleGetBatchInformationForReport = async (req: Request, res: Resp
       message: "Success!",
       data: {
         report_id: reportHead ? reportHead.id : null,
-        cover_id: reportHead.cover_id,
+        cover_id: reportHead?.cover_id,
         guide: {
           content: getReportIntro[0].content,
         },
@@ -663,6 +663,7 @@ const proceedProctoring = async (batchId: string) => {
   try {
     const s3 = new S3ClientUpload();
     const list: any = await s3.ListObjects(batchId);
+    console.log("list proctoring", list);
 
     // Urutkan dari yang terbaru ke yang lama
     const sortedList = list.sort(
@@ -1094,36 +1095,7 @@ export const handleReportPersonal = async (req: Request, res: Response, next: Ne
           intro: reportIntro,
           detail: reportDetail,
           log: reportLog,
-          proctoring: {
-            web_cam: [
-              {
-                key: "01972f95-48b1-7331-b0e0-c854eee39e8f/user12345/01972fc3-c38d-7ccb-9813-19702c2885a8/1748853487_webcam.png",
-                lastModified: "2025-06-02T08:38:11.000Z",
-              },
-              {
-                key: "01972f95-48b1-7331-b0e0-c854eee39e8f/user12345/01972fc3-c38d-7ccb-9813-19702c2885a8/1748853451_webcam.png",
-                lastModified: "2025-06-02T08:37:36.000Z",
-              },
-              {
-                key: "01972f95-48b1-7331-b0e0-c854eee39e8f/user12345/01972fc3-c38d-7ccb-9813-19702c2885a8/1748853437_webcam.png",
-                lastModified: "2025-06-02T08:37:22.000Z",
-              },
-            ],
-            screen: [
-              {
-                key: "01972f95-48b1-7331-b0e0-c854eee39e8f/user12345/01972fc3-c38d-7ccb-9813-19702c2885a8/1748853486_screen.png",
-                lastModified: "2025-06-02T08:38:11.000Z",
-              },
-              {
-                key: "01972f95-48b1-7331-b0e0-c854eee39e8f/user12345/01972fc3-c38d-7ccb-9813-19702c2885a8/1748853451_screen.png",
-                lastModified: "2025-06-02T08:37:35.000Z",
-              },
-              {
-                key: "01972f95-48b1-7331-b0e0-c854eee39e8f/user12345/01972fc3-c38d-7ccb-9813-19702c2885a8/1748853437_screen.png",
-                lastModified: "2025-06-02T08:37:21.000Z",
-              },
-            ],
-          },
+          proctoring: reportProctoring,
         },
       });
     } else if (generatingStatus.is_generate === true) {
