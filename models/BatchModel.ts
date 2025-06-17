@@ -400,6 +400,7 @@ export const publishBatch = async (id: string, status: string) => {
     console.log("keluar query");
     const updateStatus = await client.query(Q, V);
     console.log("keluar query 2");
+
     await client.query(TRANS.COMMIT);
     console.log("disini");
     console.log(updateStatus.rows[0].template_email_id);
