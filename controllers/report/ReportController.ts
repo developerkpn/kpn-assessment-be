@@ -975,6 +975,10 @@ const proceeedProfile = async (type: string, assesseeId: string, assesseeEmail: 
       assessee_email: type === "internal" ? assesseeData.company_email_id : assesseeData.email,
       assessee_gender: type === "internal" ? assesseeData.gender : assesseeData.gender,
       work_place: type === "internal" ? assesseeData.group_company : assesseeData.institution,
+      assessee_age: moment().diff(
+        moment(type === "internal" ? assesseeData.date_of_birth : assesseeData.date_of_birth, "YYYY-MM-DD"),
+        "years"
+      ),
     };
 
     return profile;
@@ -1078,6 +1082,7 @@ export const handleReportPersonal = async (req: Request, res: Response, next: Ne
       // Get Report Log
       const reportLog = await proceedLog(batchId, assesseeId);
       // console.log("report proctoring", reportProctoting);
+      console.log("HALOOO");
       res.status(200).send({
         message: "Success!",
         data: {
