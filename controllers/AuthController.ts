@@ -4,7 +4,7 @@ import { getDarwinUser } from "@/models/BatchModel.js";
 import { isAxiosError } from "axios";
 import { Request, Response } from "express";
 import jwt from "jsonwebtoken";
-import { refreshExpiry } from "@/constant";
+import { refreshExpiry } from "@/constant.js";
 
 const AuthController = {
   VerifyDarwinToken: async (req: Request<{ payload: string }>, res: Response) => {

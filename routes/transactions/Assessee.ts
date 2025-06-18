@@ -10,7 +10,7 @@ import {
   handleUpdateExternalAssesseeInformation,
 } from "@/controllers/transaction/AssesseeController.js";
 import { isAuthAssessee } from "@/middleware/auth.js";
-import { errorMiddleware } from "@/middleware/errorMiddleware";
+import { errorMiddleware } from "@/middleware/errorMiddleware.js";
 
 const Assessee = Router();
 Assessee.post("/registration", handleExternalRegistration);

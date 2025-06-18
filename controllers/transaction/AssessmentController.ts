@@ -221,7 +221,7 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
       console.log("Keluar");
 
       // Ambil waktu sekarang
-      const now = moment();
+      const now = moment().tz("Asia/Jakarta");
       console.log("Current time:", now.format());
 
       // Ambil waktu selesai dari database (sudah dalam zona +07:00)
@@ -229,7 +229,7 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
       console.log("Raw finishAt from DB:", finishAtFromDB);
 
       // Langsung parse tanpa .utc()
-      const shouldBeFinishedAt = moment.utc(finishAtFromDB.should_be_finished_at);
+      const shouldBeFinishedAt = moment.utc(finishAtFromDB.should_be_finished_at).tz("Asia/Jakarta");
       console.log("Parsed shouldBeFinishedAt:", shouldBeFinishedAt.format());
 
       // Jika waktu sudah habis, lempar error
@@ -426,7 +426,7 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
       };
 
       // Menggunakan moment.js untuk menangani tanggal dan waktu
-      const takenAt = moment(); // waktu saat ini
+      const takenAt = moment().tz("Asia/Jakarta"); // waktu saat ini
 
       // Membuat payload untuk update assessment (mengonversi kembali ke objek Date jika diperlukan)
       const updatePayload = {
@@ -509,7 +509,7 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
       };
 
       // Menggunakan moment.js untuk menangani tanggal dan waktu
-      const takenAt = moment(); // waktu saat ini
+      const takenAt = moment().tz("Asia/Jakarta"); // waktu saat ini
       // Mengonversi string durasi ("00:30:00") menjadi objek duration
       const subtestDuration = moment.duration(subtestDurations.subtest_duration);
       // Menambahkan durasi ke waktu pengambilan

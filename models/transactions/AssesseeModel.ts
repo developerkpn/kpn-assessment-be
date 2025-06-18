@@ -6,7 +6,7 @@ import jwt, { Secret } from "jsonwebtoken";
 const { sign, verify } = jwt;
 import { accessExpiry, refreshExpiry } from "@/constant.js";
 import { validatePassword } from "@/helper/auth/password.js";
-import { getDarwinUser } from "../BatchModel";
+import { getDarwinUser } from "@/models/BatchModel.js";
 
 export const checkRegisteredExternalAssessee = async (email: string) => {
   const client = await db.connect();

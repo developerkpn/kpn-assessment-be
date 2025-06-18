@@ -47,12 +47,15 @@ const ProctoringController = {
         throw new Error("File is not provided");
       }
 
-      let result_screen;
-      let result_webcam;
+      // let result_screen;
+      // let result_webcam;
 
-      result_screen = await ProctoringModel.UploadFile(batch_id[0], user_id[0], subtest_id[0], screen, "screen");
-      result_webcam = await ProctoringModel.UploadFile(batch_id[0], user_id[0], subtest_id[0], webcam, "webcam");
-      res.status(200).send({ result_screen, result_webcam });
+      // result_screen = await ProctoringModel.UploadFile(batch_id[0], user_id[0], subtest_id[0], screen, "screen");
+      // result_webcam = await ProctoringModel.UploadFile(batch_id[0], user_id[0], subtest_id[0], webcam, "webcam");
+      await ProctoringModel.UploadFile(batch_id[0], user_id[0], subtest_id[0], screen, "screen");
+      await ProctoringModel.UploadFile(batch_id[0], user_id[0], subtest_id[0], webcam, "webcam");
+      // res.status(200).send({ result_screen, result_webcam });
+      res.status(200).send({ message: "Success!" });
     } catch (error) {
       console.error(error);
       res.status(500).send({
