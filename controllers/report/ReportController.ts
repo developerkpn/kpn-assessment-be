@@ -747,8 +747,6 @@ const proceedIntro = async (batchId: string, detail: any) => {
         }
       } else if (category.summary_type === "detail") {
         for (const test of categoryDetails) {
-          // data.norm.push(...(test.norm || []));
-
           if (test.summary_type === "subtest") {
             const subtests = test.subtests || [];
             const values = Object.values(subtests);
@@ -777,11 +775,7 @@ const proceedSubtestCriteria = async (criteriaId: string, subtestPoint: number) 
     let matchingCriteria = criteria.criterias.find((criteria: any) => {
       return subtestPoint >= Number(criteria.minimum_score) && subtestPoint <= Number(criteria.maximum_score);
     });
-    console.log("testing subtest criteria");
-    console.log("subtest point");
-    console.log("cek criterianya", criteria);
-    console.log(subtestPoint);
-    console.log(matchingCriteria);
+
     if (matchingCriteria) {
       return matchingCriteria;
     } else {
@@ -837,13 +831,11 @@ const proceedDetail = async (batchId: string, assesseeEmail: string) => {
 
           for (const subtest of resultBySubtest) {
             const result = await proceedSubtestCriteria(subtest.criteria_id, Number(subtest.subtest_point));
-            console.log("cek subtest point", subtest.subtest_point);
             if (!isNaN(Number(subtest.subtest_point))) {
               sumSubtestPoint = sumSubtestPoint + Number(subtest.subtest_point);
               countSubtest++;
             }
-            console.log("cek sum subtest point", sumSubtestPoint);
-            console.log("point tiap subtest", subtest.subtest_point);
+
             const proceedSubtest = {
               subtest_id: subtest.subtest_id,
               subtest_name: subtest.subtest_name,
@@ -857,17 +849,10 @@ const proceedDetail = async (batchId: string, assesseeEmail: string) => {
               },
             };
 
-            // console.log("cek proceednya", proceedSubtest);
-            // const values = Object.values(proceedSubtest);
-            // console.log("cek valuesnya", values);
             testMapping[testId].subtests.push(proceedSubtest);
           }
 
-          console.log("masuk formula");
-          // Formula
           let testResult;
-          console.log("sub Subtest Point");
-          console.log(sumSubtestPoint);
           let finalTestPoint: number = Number(sumSubtestPoint);
 
           if (test.summary_type === "sum") {
@@ -876,12 +861,8 @@ const proceedDetail = async (batchId: string, assesseeEmail: string) => {
             finalTestPoint = countSubtest > 0 && !isNaN(sumSubtestPoint) ? finalTestPoint / countSubtest : 0;
           }
 
-          console.log("cek final test result");
-          // Cek criteria test
-          console.log(test.criteria_id);
           const testCriteria = await proceedSubtestCriteria(test.criteria_id, finalTestPoint);
-          console.log("test criteria hay");
-          console.log(testCriteria);
+
           testResult = {
             test_point: !isNaN(finalTestPoint) ? finalTestPoint : 0,
             criteria: testCriteria.criteria_name ? testCriteria.criteria_name : null,
@@ -889,13 +870,8 @@ const proceedDetail = async (batchId: string, assesseeEmail: string) => {
             description: testCriteria.description ? testCriteria.description : null,
           };
 
-          console.log("FIX BANGET YA ALLAH");
-          console.log(finalTestPoint);
-          console.log(testResult);
-
           testMapping[testId].result = testResult;
         } else if (test.summary_type === "category") {
-          console.log("masuk category coy");
           const resultByCategory: any = await getPersonalReportData(batchId, assesseeEmail, "category", test.test_id);
           let maxPoint = -Infinity;
           let bestCategory = null;
@@ -918,8 +894,15 @@ const proceedDetail = async (batchId: string, assesseeEmail: string) => {
               };
             }
 
-            const categoryPoint = Number(category.category_point);
-            const matchedCriteria = await proceedSubtestCriteria(category.category_criteria_id, categoryPoint);
+            let categoryPoint;
+            let matchedCriteria;
+            if (test.summary_formula === "sum") {
+              categoryPoint = Number(category.category_point);
+              matchedCriteria = await proceedSubtestCriteria(category.category_criteria_id, categoryPoint);
+            } else if (test.summary_formula === "avg") {
+              categoryPoint = Number(category.category_point_avg);
+              matchedCriteria = await proceedSubtestCriteria(category.category_criteria_id, categoryPoint);
+            }
 
             subtestMapping[subtestId].result.categories.push({
               category_id: category.category_id,
@@ -929,15 +912,13 @@ const proceedDetail = async (batchId: string, assesseeEmail: string) => {
               description: matchedCriteria?.description ?? null,
             });
 
-            // Cari kategori dengan point tertinggi
-            if (categoryPoint > maxPoint) {
-              maxPoint = categoryPoint;
+            if (categoryPoint! > maxPoint) {
+              maxPoint = Number(categoryPoint);
               bestCategory = category;
               bestCriteria = matchedCriteria;
             }
           }
 
-          // Setelah loop selesai, isi hasil utama
           if (bestCategory) {
             const subtestId = bestCategory.subtest_id;
             subtestMapping[subtestId].result.subtest_point = Number(bestCategory.category_point);
@@ -961,14 +942,9 @@ const proceedDetail = async (batchId: string, assesseeEmail: string) => {
 
 const proceeedProfile = async (type: string, assesseeId: string, assesseeEmail: string) => {
   try {
-    console.log("type", type);
-    console.log("assesseeId", assesseeId);
-    console.log("assesseeEmail", assesseeEmail);
     const assesseeData: any =
       type === "internal" ? await getDarwinUser(String(assesseeId)) : await getAssesseeExternalProfile(assesseeEmail);
 
-    console.log("cek assessee data");
-    console.log(assesseeData);
     const profile = {
       assessee_id: type === "internal" ? assesseeData.employee_id : assesseeData.id,
       assessee_name: type === "internal" ? assesseeData.full_name : assesseeData.name,
@@ -1054,23 +1030,10 @@ export const handleReportPersonal = async (req: Request, res: Response, next: Ne
     console.log(generatingStatus);
     if (generatingStatus.is_generate === false) {
       // Get Report Guide
-      // const reportGuide = await proceedGuide();
 
       const batchInformation = await getSpecificBatchInformationForReport(batchId, assesseeId);
-      // Get Report Design
-      console.log("masuk report design");
-      console.log(batchInformation);
-      // const reportDesign = await proceedReportDesign(batchId);
-
-      // console.log("HALOOOO");
-      // console.log("cek report design", reportDesign);
-
-      console.log("masuk profile");
-      // Get Profile Assessee
-      console.log(assesseeEmail);
       const profile = await proceeedProfile(batchInformation.type, assesseeId, assesseeEmail);
 
-      // Get Report Detail
       const reportDetail = await proceedDetail(batchId, assesseeEmail);
 
       // Get Report Intro
