@@ -54,9 +54,7 @@ export const handleCreateBatch = async (req: Request, res: Response, next: NextF
 
     // Generate Batch Code
     const code = await getFMandBUCode(validatedRequest.function_id, validatedRequest.bu_id);
-    console.log(code);
     const checkIfCodeIsExist = await getBatchCode(code.fmCode, code.buCode, month, year);
-    console.log("keluar");
     let currentBatch;
     if (checkIfCodeIsExist?.batch != null) {
       currentBatch = checkIfCodeIsExist.batch + 1;
@@ -77,6 +75,13 @@ export const handleCreateBatch = async (req: Request, res: Response, next: NextF
     };
 
     // Create Batch
+
+    const startPeriod = moment(validatedRequest.start_period).tz("Asia/Jakarta").toISOString();
+    const endPeriod = moment(validatedRequest.end_period).tz("Asia/Jakarta").toISOString();
+
+    console.log(startPeriod);
+    console.log(endPeriod);
+
     const batchHeadPayload: any = {
       id: batchId,
       batch_name: validatedRequest.batch_name,
@@ -91,8 +96,8 @@ export const handleCreateBatch = async (req: Request, res: Response, next: NextF
       type: validatedRequest.type,
       // is_published: validatedRequest.is_published,
       batch_code: currentCode,
-      start_period: moment(validatedRequest.start_period).tz("Asia/Jakarta").toISOString(),
-      end_period: moment(validatedRequest.end_period).tz("Asia/Jakarta").toISOString(),
+      start_period: startPeriod,
+      end_period: endPeriod,
       created_by: req.userDecode!.user_id,
       created_at: new Date(),
     };
@@ -207,6 +212,8 @@ export const handleCreateBatch = async (req: Request, res: Response, next: NextF
       message: `Success!`,
       data: {
         batch_id: batchId,
+        start_period: startPeriod,
+        end_period: endPeriod,
       },
     });
   } catch (e) {
