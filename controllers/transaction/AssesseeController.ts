@@ -164,45 +164,50 @@ export const handleCheckExternUser = async (
 };
 
 export const handleResetToken = async (req: Request, res: Response, next: NextFunction) => {
-  return await ClientAction(async (client) => {
-    if (!req.headers.authorization) {
-      throw new ResponseError(403, "Forbidden");
-    }
-    const token_auth = req.headers.authorization.split(" ")[2];
-    const decoded_token = decode(token_auth, { complete: true });
-    const user_data = decoded_token?.payload as JwtPayload;
-    const user_id = user_data?.user_id;
-    if (!user_id) {
-      throw new ResponseError(403, "Forbidden");
-    }
-
-    try {
-      const { rows: check_res_token } = await client.query(
-        `select refresh_token, user_id, email from mst_user_extern where user_id = $1`,
-        [user_id]
-      );
-      const ref_token = check_res_token[0].refresh_token;
-      if (!ref_token) {
+  try {
+    const result = await ClientAction(async (client) => {
+      if (!req.headers.authorization) {
         throw new ResponseError(403, "Forbidden");
       }
-      const verif_token = verify(ref_token, process.env.SECRETJWT as Secret);
-      const new_access_tok = sign(
-        {
-          user_id: check_res_token[0].user_id,
-          email: check_res_token[0].email,
-        },
-        process.env.SECRETJWT as Secret,
-        {
-          expiresIn: accessExpiry,
+      const token_auth = req.headers.authorization.split(" ")[2];
+      const decoded_token = decode(token_auth, { complete: true });
+      const user_data = decoded_token?.payload as JwtPayload;
+      const user_id = user_data?.user_id;
+      if (!user_id) {
+        throw new ResponseError(403, "Forbidden");
+      }
+
+      try {
+        const { rows: check_res_token } = await client.query(
+          `select refresh_token, user_id, email from mst_user_extern where user_id = $1`,
+          [user_id]
+        );
+        const ref_token = check_res_token[0].refresh_token;
+        if (!ref_token) {
+          throw new ResponseError(403, "Forbidden");
         }
-      );
-      res.status(200).send({
-        access_token: new_access_tok,
-      });
-    } catch (error) {
-      next(error);
-    }
-  });
+        const verif_token = verify(ref_token, process.env.SECRETJWT as Secret);
+        const new_access_tok = sign(
+          {
+            user_id: check_res_token[0].user_id,
+            email: check_res_token[0].email,
+          },
+          process.env.SECRETJWT as Secret,
+          {
+            expiresIn: accessExpiry,
+          }
+        );
+        return new_access_tok;
+      } catch (error) {
+        throw error;
+      }
+    });
+    res.status(200).send({
+      access_token: result,
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
 export const handleExternalAssesseeLogout = async (req: Request, res: Response, next: NextFunction) => {
