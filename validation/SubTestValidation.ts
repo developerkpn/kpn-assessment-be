@@ -72,7 +72,7 @@ export class SubTestValidation {
         .transform((val) => val.toUpperCase())
         .optional(),
       is_duration: z.boolean().optional().nullable(),
-      subtest_desc: z.string().min(0).max(255),
+      subtest_desc: z.string().min(1),
       subtest_duration: z
         .string()
         .regex(/^(?:[0-1][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$/, "Invalid time format. Must be hh:mm:ss")
