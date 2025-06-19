@@ -840,7 +840,7 @@ const proceedDetail = async (batchId: string, assesseeEmail: string) => {
               subtest_id: subtest.subtest_id,
               subtest_name: subtest.subtest_name,
               subtest_code: subtest.subtest_code,
-              description: subtest.description ? subtest.description : null,
+              description: subtest.subtest_desc ? subtest.subtest_desc : null,
               result: {
                 subtest_point: !isNaN(Number(subtest.subtest_point)) ? Number(subtest.subtest_point) : 0,
                 subtest_criteria: result ? result.criteria_name : "Undefined",
@@ -885,6 +885,7 @@ const proceedDetail = async (batchId: string, assesseeEmail: string) => {
                 subtest_id: subtestId,
                 subtest_name: category.subtest_name,
                 subtest_code: category.subtest_code,
+                description: category.subtest_desc,
                 result: {
                   subtest_point: null,
                   subtest_criteria: null,

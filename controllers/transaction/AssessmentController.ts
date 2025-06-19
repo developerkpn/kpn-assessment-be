@@ -150,6 +150,8 @@ export const handleGetBatchDetail = async (req: Request, res: Response, next: Ne
         throw new ResponseError(404, "No tests found in this group");
       }
 
+      console.log("take test yang error");
+      console.log(tests);
       // Create progress details for each test and its subtests
       const progressDetails = [];
       for (const test of tests) {
