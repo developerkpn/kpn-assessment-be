@@ -439,3 +439,35 @@ export const updateRole = async (id: string, payload: any, permPayload: any) => 
     client.release();
   }
 };
+
+export const updateAdmin = async (id: string, payload: any) => {
+  const client = await db.connect();
+  try {
+    await client.query(TRANS.BEGIN);
+    const [queryAdminUpdate, valueAdminUpdate] = updateQuery("mst_admin_web", payload, { id: id });
+    await client.query(queryAdminUpdate, valueAdminUpdate);
+    await client.query(TRANS.COMMIT);
+  } catch (e) {
+    throw e;
+  } finally {
+    client.release();
+  }
+};
+
+export const deleteAdmin = async (id: string) => {
+  const client = await db.connect();
+  try {
+    await client.query(TRANS.BEGIN);
+    await client.query(
+      `
+      DELETE FROM mst_admin_web WHERE id = $1
+    `,
+      [id]
+    );
+    await client.query(TRANS.COMMIT);
+  } catch (e) {
+    throw e;
+  } finally {
+    client.release();
+  }
+};

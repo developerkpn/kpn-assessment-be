@@ -3,6 +3,7 @@ import { hashPassword } from "@/helper/auth/password.js";
 import {
   createAdmin,
   createRole,
+  deleteAdmin,
   getAdminById,
   getAllAdmin,
   getNewToken,
@@ -12,6 +13,7 @@ import {
   loginAdmin,
   reqResetPassword,
   resetPassword,
+  updateAdmin,
   updateRole,
 } from "@/models/AdminWebModel.js";
 import { Emailer } from "@/services/mail/Emailer.js";
@@ -344,6 +346,36 @@ export const handleUpdateRole = async (req: Request, res: Response, next: NextFu
     res.status(200).send({
       message: `Success update role`,
       id: result,
+    });
+  } catch (e) {
+    next(e);
+  }
+};
+
+export const handleUpdateAdmin = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const adminId = req.params.id;
+    const payload = {
+      fullname: req.body.fullname,
+      role_id: req.body.role_id,
+    };
+    await updateAdmin(adminId, payload);
+    res.status(200).send({
+      message: "Success!",
+    });
+  } catch (e) {
+    next(e);
+  }
+};
+
+export const handleDeleteAdmin = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const adminId = req.params.id;
+
+    await deleteAdmin(adminId);
+
+    res.status(200).send({
+      message: `Success!`,
     });
   } catch (e) {
     next(e);
