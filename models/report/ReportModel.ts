@@ -7,15 +7,15 @@ import { v7 as uuid } from "uuid";
 import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url); // get the resolved path to the file
 const __dirname = path.dirname(__filename); // get the name of the directory
-import { getDarwinUser } from "@/models/BatchModel";
-import { getCriteriaDetail } from "@/models/CriteriaModel";
-import { transformResponseFormat } from "@/helper/transformers";
-import { getAssesseeExternalProfile } from "@/models/transactions/AssesseeModel";
+import { getDarwinUser } from "@/models/BatchModel.js";
+import { getCriteriaDetail } from "@/models/CriteriaModel.js";
+import { transformResponseFormat } from "@/helper/transformers.js";
+import { getAssesseeExternalProfile } from "@/models/transactions/AssesseeModel.js";
 import moment from "moment";
-import S3ClientUpload from "@/helper/S3UploadClass";
+import S3ClientUpload from "@/helper/S3UploadClass.js";
 import { ResponseError } from "@/error/response-error.js";
 import { async } from "rxjs";
-import { CriteriasReport, ReportCriteria, ReportDetailSection, ReportIntro } from "@/types/Report";
+import { CriteriasReport, ReportCriteria, ReportDetailSection, ReportIntro } from "@/types/Report.js";
 
 export const getBatchForReport = async () => {
   const client = await db.connect();
