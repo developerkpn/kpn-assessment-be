@@ -111,6 +111,7 @@ export const getAssesseeExternalProfile = async (id: string) => {
     const result = await client.query(
       `
         SELECT 
+        id,
         name,
         email, 
         age, 

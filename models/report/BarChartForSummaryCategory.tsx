@@ -1,10 +1,11 @@
 import { ReportDetailSubtest } from "@/types/Report";
 import { ChartJSNodeCanvas } from "chartjs-node-canvas";
 const chartWidth = 550;
-const chartHeight = 300;
+const chartHeight = 200;
 
 export const BarChartSummaryCategory = async (subtest: ReportDetailSubtest) => {
   const categories = subtest.result.categories;
+  console.log(categories);
   const ChartLabels = categories.map((cat) => cat.category_code);
   const ChartValues = categories.map((cat) => cat.category_point ?? 0);
   const chart = new ChartJSNodeCanvas({ width: chartWidth, height: chartHeight });
@@ -12,7 +13,7 @@ export const BarChartSummaryCategory = async (subtest: ReportDetailSubtest) => {
   const config = {
     type: "bar" as const,
     data: {
-      ChartLabels,
+      labels: ChartLabels,
       datasets: [
         {
           label: "Scores",
@@ -31,6 +32,7 @@ export const BarChartSummaryCategory = async (subtest: ReportDetailSubtest) => {
         },
       },
     },
+    animation: false,
   };
   const result = await chart.renderToBuffer(config);
   return result;

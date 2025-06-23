@@ -1024,7 +1024,7 @@ export const proceeedProfile = async (type: string, assesseeId: string, assessee
   try {
     const assesseeData: any =
       type === "internal" ? await getDarwinUser(String(assesseeId)) : await getAssesseeExternalProfile(assesseeEmail);
-
+    console.log(assesseeData);
     const profile = {
       assessee_id: type === "internal" ? assesseeData.employee_id : assesseeData.id,
       assessee_name: type === "internal" ? assesseeData.full_name : assesseeData.name,

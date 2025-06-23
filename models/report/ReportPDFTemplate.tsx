@@ -85,8 +85,6 @@ export const ReportPDFTemplate = async (batchId: string, assesseeId: string, ass
     }
   }
 
-  console.log(resultChart);
-
   return (
     <Document>
       {/* Cover Page */}

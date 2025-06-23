@@ -17,8 +17,12 @@ export const PDFController = {
   },
   RenderReport: async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { batch_id, assessee_id, assessee_email } = req.body;
-      const streampdf = await PDFModel.renderReport(batch_id, assessee_id, assessee_email);
+      const { batch_id, assessee_id, assessee_email } = req.query;
+      const streampdf = await PDFModel.renderReport(
+        batch_id as string,
+        assessee_id as string,
+        assessee_email as string
+      );
       res.setHeader("Content-Type", "application/pdf");
       res.setHeader("Content-Disposition", 'attachment; filename="document.pdf"');
       streampdf.pipe(res);

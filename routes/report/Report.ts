@@ -39,6 +39,6 @@ Report.get("/template/:batchId", handleGetBatchInformationForReport);
 Report.post("/uploadcover", handleUploadCover, errorMiddleware);
 Report.get("/cover/:id", handleGetCover, errorMiddleware);
 Report.get("/allcover", handleGetAllCover, errorMiddleware);
-Report.post("/pdfgen", PDFController.RenderReport);
+Report.get("/pdfgen", PDFController.RenderReport);
 Report.get("/download/:batchId", handleDownloadBatchReport);
 export default Report;
