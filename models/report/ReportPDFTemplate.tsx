@@ -1,6 +1,6 @@
 import React from "react";
 import { generateReportIndividual } from "@/models/report/ReportModel.js";
-import { AssessmentReportPDFProps } from "@/types/Report";
+// import { AssessmentReportPDFProps } from "@/types/Report";
 import S3ClientUpload from "@/helper/S3UploadClass.js";
 import { SubtestChartSection } from "@/models/report/ChartForSummarySubtest.js";
 import { BarChartSummaryCategory } from "@/models/report/BarChartForSummaryCategory.js";
