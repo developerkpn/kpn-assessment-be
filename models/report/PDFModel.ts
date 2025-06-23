@@ -1,36 +1,15 @@
-// import { PDFService } from "./PDFService";
-// // import { generateBusinessReport } from "./DocumentBuilder";
-//
-// const PDFModel = {
-//   renderPdf: async () => {
-//     try {
-//       return await PDFService.renderToStream();
-//     } catch (error) {
-//       console.error("PDFModel renderPdf error:", error);
-//       throw error;
-//     }
-//   },
-//
-//   renderPdfBuffer: async () => {
-//     try {
-//       return await PDFService.renderToBuffer();
-//     } catch (error) {
-//       console.error("PDFModel renderPdfBuffer error:", error);
-//       throw error;
-//     }
-//   },
-//
-//   // If you need to generate business report
-//   generateBusinessReport: async (data: any) => {
-//     try {
-//       // Add your business logic here
-//       // const reportData = await generateBusinessReport(data);
-//       return await PDFService.renderToBuffer();
-//     } catch (error) {
-//       console.error("PDFModel generateBusinessReport error:", error);
-//       throw error;
-//     }
-//   },
-// };
-//
-// export default PDFModel;
+import react from "react";
+import { generateBusinessReport } from "./DocumentBuilder.js";
+import { TryRenderPDF } from "@/models/report/ReactPDFTemplate.js";
+import { StreamReportPDF } from "@/models/report/ReportPDFTemplate.js";
+
+const PDFModel = {
+  renderPdf: async () => {
+    return TryRenderPDF();
+  },
+  renderReport: async (batchId: string, assesseeId: string, assesseeEmail: string) => {
+    return await StreamReportPDF(batchId, assesseeId, assesseeEmail);
+  },
+};
+
+export default PDFModel;

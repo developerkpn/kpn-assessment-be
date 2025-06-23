@@ -5,14 +5,16 @@
     "moduleResolution": "node",
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
+    "skipLibCheck": true,
     "strict": true,
     "outDir": "./dist",
     "rootDir": "./",
     "baseUrl": ".",
+    "jsx" : "react",
     "paths": {
       "@/*": ["./*"]
     }
   },
-  "include": ["**/*.ts"],
+"include": ["**/*.ts", "**/*.tsx", "./assets"],
   "exclude": ["node_modules", "dist"]
 }

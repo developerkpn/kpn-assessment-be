@@ -7,7 +7,6 @@ const __dirname = path.dirname(__filename); // get the name of the directory
 dotenv.config({ path: path.resolve(__dirname, `../${process.env.NODE_ENV}.env`) });
 
 // ⬇️ Tambah log di sini sebelum axios.create
-console.log("📌 DARWIN_BASE_URL =", process.env.DARWIN_BASE_URL);
 
 export const axiosDarwin = axios.create({
   baseURL: process.env.DARWIN_BASE_URL,

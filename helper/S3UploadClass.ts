@@ -72,6 +72,31 @@ class S3ClientUpload {
       throw error;
     }
   }
+
+  async GetObjectAsBuffer(path: string) {
+    try {
+      const GetObject_cmd = new GetObjectCommand({
+        Bucket: "kpnapps-assessment",
+        Key: path,
+      });
+      const GetObj = await this.Client.send(GetObject_cmd);
+
+      // Ensure the Body is a Readable stream
+      const stream = GetObj.Body as Readable;
+
+      // Convert stream to buffer
+      const chunks: Buffer[] = [];
+
+      for await (const chunk of stream) {
+        chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
+      }
+
+      const buffer = Buffer.concat(chunks);
+      return buffer;
+    } catch (error) {
+      throw error;
+    }
+  }
   async ListObjects(prefix: string = "") {
     try {
       const listCommand = new ListObjectsV2Command({

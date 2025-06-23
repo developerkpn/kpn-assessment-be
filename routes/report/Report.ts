@@ -17,7 +17,7 @@ import {
   handleUploadCover,
   handleUploadReportPDF,
 } from "@/controllers/report/ReportController.js";
-// import { PDFController } from "@/controllers/report/PDFController.js";
+import { PDFController } from "@/controllers/report/PDFController.js";
 import ProctoringController from "@/controllers/transaction/ProctoringController.js";
 import { uploadSingleFile } from "@/middleware/fileMiddleware.js";
 import { errorMiddleware } from "@/middleware/errorMiddleware.js";
@@ -39,6 +39,6 @@ Report.get("/template/:batchId", handleGetBatchInformationForReport);
 Report.post("/uploadcover", handleUploadCover, errorMiddleware);
 Report.get("/cover/:id", handleGetCover, errorMiddleware);
 Report.get("/allcover", handleGetAllCover, errorMiddleware);
-// Report.get("/pdfgen", PDFController.RenderPDF);
+Report.post("/pdfgen", PDFController.RenderReport);
 Report.get("/download/:batchId", handleDownloadBatchReport);
 export default Report;
