@@ -1,12 +1,12 @@
 import React from "react";
-import { generateReportIndividual } from "@/models/report/ReportModel";
+import { generateReportIndividual } from "@/models/report/ReportModel.js";
 import { AssessmentReportPDFProps } from "@/types/Report";
-import S3ClientUpload from "@/helper/S3UploadClass";
-import { SubtestChartSection } from "@/models/report/ChartForSummarySubtest";
-import { BarChartSummaryCategory } from "@/models/report/BarChartForSummaryCategory";
+import S3ClientUpload from "@/helper/S3UploadClass.js";
+import { SubtestChartSection } from "@/models/report/ChartForSummarySubtest.js";
+import { BarChartSummaryCategory } from "@/models/report/BarChartForSummaryCategory.js";
 import { Document, Image, Page, Text, View } from "@react-pdf/renderer";
-import { styles, stylesheetrtc } from "@/models/report/report_styles";
-import { ClientAction } from "@/helper/queryBuilder";
+import { styles, stylesheetrtc } from "@/models/report/report_styles.js";
+import { ClientAction } from "@/helper/queryBuilder.js";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
