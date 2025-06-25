@@ -247,6 +247,7 @@ export const handleUpdateReportDesign = async (req: Request, res: Response, next
   try {
     const body: any = req.body;
     const reportId: string = req.params.reportId;
+    const batchId: string = req.body.batch_id;
 
     const headPayload = {
       cover_id: body.cover_id,
@@ -274,7 +275,14 @@ export const handleUpdateReportDesign = async (req: Request, res: Response, next
     console.log(detailPayload);
 
     console.log("masuk update");
-    await assignReportDesign(introPayload, detailPayload, headPayload, true, reportId);
+
+    const generateStatus = {
+      is_generate: false,
+      error_message: null,
+    };
+
+    await assignReportDesign(introPayload, detailPayload, headPayload, true, reportId, batchId, generateStatus);
+
     await res.status(201).send({
       message: "Success!",
     });

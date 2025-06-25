@@ -142,7 +142,9 @@ export const assignReportDesign = async (
   reportDetail: any,
   reportHead: any,
   update: boolean = false,
-  report_id?: string
+  report_id?: string,
+  batchId?: string,
+  generateStatus?: any
 ) => {
   const client = await db.connect();
   try {
@@ -184,6 +186,8 @@ export const assignReportDesign = async (
       const [detailQ, detailV] = insertQuery("report_test_detail", reportDetail);
       await client.query(detailQ, detailV);
       console.log("insert 2");
+      const [updateStatusQ, updateStatusV] = updateQuery("t_batch_assessee", generateStatus, { batch_id: batchId });
+      await client.query(updateStatusQ, updateStatusV);
     }
     await client.query(TRANS.COMMIT);
   } catch (e) {
@@ -358,20 +362,6 @@ export const getExternalAssesseeProfile = async (assesseeEmail: string) => {
 };
 
 export const getAssesseeProfile = async (assesseeId: string) => {
-  const client = await db.connect();
-  try {
-  } catch (e) {
-  } finally {
-    client.release();
-  }
-};
-
-export const storeReporDesign = async (introPayload: any, detailPayload: any) => {
-  try {
-  } catch (e) {}
-};
-
-export const checkReportDesign = async (reportId: string) => {
   const client = await db.connect();
   try {
   } catch (e) {
@@ -1133,5 +1123,27 @@ export const generateReportIndividual = async (batchId: string, assesseeId: stri
     return result;
   } catch (error) {
     throw error;
+  }
+};
+
+export const checkGenerate = async (batchId: string, assesseeId: string) => {
+  const client = await db.connect();
+  try {
+    await client.query(TRANS.BEGIN);
+    const result = await client.query(
+      `
+        SELECT * FROM
+        t_batch_assessee
+        WHERE batch_id = $1 AND assessee_nik = $2
+        `,
+      [batchId, assesseeId]
+    );
+    await client.query(TRANS.COMMIT);
+    return result.rows[0];
+  } catch (e) {
+    await client.query(TRANS.ROLLBACK);
+    throw e;
+  } finally {
+    client.release();
   }
 };
