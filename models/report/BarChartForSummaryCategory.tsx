@@ -1,5 +1,6 @@
 import { ReportDetailSubtest } from "@/types/Report";
 import { ChartJSNodeCanvas } from "chartjs-node-canvas";
+
 const chartWidth = 550;
 const chartHeight = 200;
 
@@ -8,7 +9,14 @@ export const BarChartSummaryCategory = async (subtest: ReportDetailSubtest) => {
   console.log(categories);
   const ChartLabels = categories.map((cat) => cat.category_code);
   const ChartValues = categories.map((cat) => cat.category_point ?? 0);
-  const chart = new ChartJSNodeCanvas({ width: chartWidth, height: chartHeight });
+  const chart = new ChartJSNodeCanvas({
+    width: chartWidth,
+    height: chartHeight,
+    chartCallback: (ChartJS) => {
+      ChartJS.defaults.font.family = "Arial";
+    },
+  });
+  chart.registerFont("./assets/fonts/ARIAL.TTF", { family: "Arial" });
 
   const config = {
     type: "bar" as const,
@@ -29,6 +37,16 @@ export const BarChartSummaryCategory = async (subtest: ReportDetailSubtest) => {
         y: {
           beginAtZero: true,
           max: 100,
+        },
+      },
+      plugins: {
+        legend: {
+          labels: {
+            font: {
+              family: "Arial", // or another simple, embedded font
+              size: 12,
+            },
+          },
         },
       },
     },
