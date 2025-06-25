@@ -536,7 +536,7 @@ export const ReportPDFTemplate = async (batchId: string, assesseeId: string, ass
         <View wrap style={{ marginTop: 20, marginHorizontal: 25 }}>
           <Text style={{ fontSize: 14, fontWeight: "bold", marginBottom: 8 }}>Webcam Proctoring</Text>
           {!resultWebcam && <Text style={{ fontSize: 10, fontStyle: "italic" }}>Tidak ada gambar webcam.</Text>}
-          <View style={{ display: "flex", flexDirection: "row", gap: 10 }}>
+          <View style={{ display: "flex", flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
             {resultWebcam &&
               resultWebcam.map((values, key) => (
                 <View
@@ -566,7 +566,7 @@ export const ReportPDFTemplate = async (batchId: string, assesseeId: string, ass
         <View wrap style={{ marginTop: 20, marginHorizontal: 25, display: "flex", gap: 2 }}>
           <Text style={{ fontSize: 14, fontWeight: "bold", marginBottom: 8 }}>Screen Proctoring</Text>
           {!resultSS && <Text style={{ fontSize: 10, fontStyle: "italic" }}>Tidak ada gambar screen.</Text>}
-          <View style={{ display: "flex", flexDirection: "row", gap: 10 }}>
+          <View style={{ display: "flex", flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
             {resultSS &&
               resultSS.map((imgDataUrl, idx) => (
                 <View
