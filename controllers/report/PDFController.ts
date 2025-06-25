@@ -3,6 +3,7 @@ import { NextFunction, Request, Response } from "express";
 import { checkGenerate, storeReportPDF } from "@/models/report/ReportModel.js";
 import fs from "fs";
 import path from "path";
+import { pipeline } from "stream/promises";
 
 export const PDFController = {
   RenderPDF: async (req: Request, res: Response, next: NextFunction) => {
@@ -35,13 +36,17 @@ export const PDFController = {
       const status = await checkGenerate(batch_id as string, assessee_id as string);
       const isGenerated = status?.is_generate;
 
+      // 🔁 Jika sudah tersedia dan tidak ingin generate ulang
       if (isGenerated && fs.existsSync(filePath)) {
         res.setHeader("Content-Type", "application/pdf");
         res.setHeader("Content-Disposition", `attachment; filename="${assessee_id}.pdf"`);
-        const fileStream = fs.createReadStream(filePath);
-        fileStream.pipe(res);
+
+        await pipeline(fs.createReadStream(filePath), res);
+
+        return;
       }
 
+      // 🔄 Render ulang PDF
       const streampdf = await PDFModel.renderReport(
         batch_id as string,
         assessee_id as string,
@@ -52,47 +57,47 @@ export const PDFController = {
         fs.mkdirSync(uploadDir, { recursive: true });
       }
 
+      // Jika sudah ada file lama, hapus
       if (fs.existsSync(filePath)) {
         fs.unlinkSync(filePath);
       }
 
       const writeStream = fs.createWriteStream(filePath);
-      streampdf.pipe(writeStream);
 
-      writeStream.on("finish", async () => {
-        const report = {
+      // 📦 Pipe PDF hasil render ke file dan juga ke response
+      await pipeline(streampdf, writeStream);
+
+      // Simpan metadata ke DB
+      await storeReportPDF(
+        {
           is_generate: true,
           report_path: `${batch_id}/${assessee_id}.pdf`,
-        };
-        await storeReportPDF(report, batch_id as string, assessee_id as string);
+        },
+        batch_id as string,
+        assessee_id as string
+      );
 
-        res.setHeader("Content-Type", "application/pdf");
-        res.setHeader("Content-Disposition", `attachment; filename="${assessee_id}.pdf"`);
-        const fileStream = fs.createReadStream(filePath);
-        fileStream.pipe(res);
-      });
+      // 📤 Setelah disimpan, kirim sebagai response
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", `attachment; filename="${assessee_id}.pdf"`);
 
-      writeStream.on("error", async (err) => {
-        console.error("Error writing PDF file:", err);
-        const errorReport = {
-          is_generate: false,
-          error_generate: `Write stream error: ${err.message}`,
-        };
-        await storeReportPDF(errorReport, batch_id as string, assessee_id as string);
-        res.status(500).send({ message: "Failed to write PDF file" });
-      });
+      await pipeline(fs.createReadStream(filePath), res);
     } catch (error) {
+      console.log("error", error);
       const { batch_id, assessee_id } = req.query;
+      const message = (error as Error).message;
 
-      const errorReport = {
-        is_generate: false,
-        error_generate: (error as Error).message,
-      };
-      await storeReportPDF(errorReport, batch_id as string, assessee_id as string);
+      // Simpan error generate
+      await storeReportPDF(
+        {
+          is_generate: false,
+          error_generate: message,
+        },
+        batch_id as string,
+        assessee_id as string
+      );
 
-      res.status(500).send({
-        message: (error as Error).message,
-      });
+      res.status(500).json({ message });
     }
   },
 

@@ -12,6 +12,7 @@ import fs from "fs";
 import { fileURLToPath } from "url";
 import Html from "react-pdf-html";
 import moment from "moment";
+import pLimit from "p-limit";
 
 const __filename = fileURLToPath(import.meta.url); // get the resolved path to the file
 const __dirname = path.dirname(__filename);
@@ -21,7 +22,7 @@ export const ReportPDFTemplate = async (batchId: string, assesseeId: string, ass
   const dataReportIndividual = await generateReportIndividual(batchId, assesseeId, assesseeEmail);
   const data = dataReportIndividual;
   const S3Client = new S3ClientUpload();
-  const logo = fs.readFileSync(path.join(__dirname, "../../assets/KPN_CORP_NEW_LOGO.png"));
+  // const logo = fs.readFileSync(path.join(__dirname, "../../assets/KPN_CORP_NEW_LOGO.png"));
   const placeholderImg = fs.readFileSync(path.join(__dirname, "../../assets/place-holder.jpg"));
   const testDate = moment(data.batch.taken_at).locale("id").format("LLLL");
 
@@ -46,20 +47,17 @@ export const ReportPDFTemplate = async (batchId: string, assesseeId: string, ass
   });
 
   // get images file
-  let promisesSS = [];
-  let promisesWebcam = [];
   let resultChart: Record<string, any> = {};
-  const webcamurls = dataReportIndividual.proctoring.web_cam;
-  const ssurls = dataReportIndividual.proctoring.screen;
-  for (const webcam of webcamurls) {
-    promisesWebcam.push(await S3Client.GetObjectAsBuffer(webcam.key));
-  }
-  for (const ss of ssurls) {
-    promisesSS.push(await S3Client.GetObjectAsBuffer(ss.key));
-  }
-  const resultSS = await Promise.all(promisesSS);
+  const limit = pLimit(5); // Batasi ke max 5 request sekaligus
+
+  const webcamurls = dataReportIndividual.proctoring.web_cam || [];
+  const ssurls = dataReportIndividual.proctoring.screen || [];
+
+  const promisesWebcam = webcamurls.map((webcam) => limit(() => S3Client.GetObjectAsBuffer(webcam.key)));
+  const promisesSS = ssurls.map((ss) => limit(() => S3Client.GetObjectAsBuffer(ss.key)));
+
   const resultWebcam = await Promise.all(promisesWebcam);
-  //get charts
+  const resultSS = await Promise.all(promisesSS); //get charts
   const detailsChart = dataReportIndividual.detail;
   for (const detail of detailsChart) {
     // const sum_view = detail.summary_view
@@ -106,9 +104,9 @@ export const ReportPDFTemplate = async (batchId: string, assesseeId: string, ass
       <Page size="A4" style={styles.page}>
         <View style={styles.headerContainer}>
           <View style={styles.headerTop}>
-            <View style={styles.logo}>
-              <Image src={logo} />
-            </View>
+            {/*<View style={styles.logo}>*/}
+            {/*  /!*<Image src={logo} />*!/*/}
+            {/*</View>*/}
             <View style={styles.confidentialBadge}>
               <Text>STRICTLY CONFIDENTIAL</Text>
             </View>
@@ -127,9 +125,9 @@ export const ReportPDFTemplate = async (batchId: string, assesseeId: string, ass
       <Page size="A4" style={styles.page}>
         <View style={styles.psychographHeader}>
           <View style={styles.headerTop}>
-            <View style={styles.logo}>
-              <Image src={logo} />
-            </View>
+            {/*<View style={styles.logo}>*/}
+            {/*  <Image src={logo} />*/}
+            {/*</View>*/}
             <View style={styles.confidentialBadge}>
               <Text>STRICTLY CONFIDENTIAL</Text>
             </View>
@@ -308,9 +306,9 @@ export const ReportPDFTemplate = async (batchId: string, assesseeId: string, ass
         <Page key={index} size="A4" style={styles.page}>
           <View style={styles.psychographHeader}>
             <View style={styles.headerTop}>
-              <View style={styles.logo}>
-                <Image src={logo} />
-              </View>
+              {/*<View style={styles.logo}>*/}
+              {/*  /!*<Image src={logo} />*!/*/}
+              {/*</View>*/}
               <View style={styles.confidentialBadge}>
                 <Text>STRICTLY CONFIDENTIAL</Text>
               </View>
@@ -503,9 +501,9 @@ export const ReportPDFTemplate = async (batchId: string, assesseeId: string, ass
       <Page size="A4" style={styles.page}>
         <View style={styles.psychographHeader}>
           <View style={styles.headerTop}>
-            <View style={styles.logo}>
-              <Image src={logo} />
-            </View>
+            {/*<View style={styles.logo}>*/}
+            {/*  <Image src={logo} />*/}
+            {/*</View>*/}
             <View style={styles.confidentialBadge}>
               <Text>STRICTLY CONFIDENTIAL</Text>
             </View>
