@@ -29,6 +29,7 @@ export class SubTestValidation {
       is_example_answer_shown: z.boolean().optional().nullable(),
       criteria_id: z.string().uuid("Criteria should be selected").optional().nullable(),
       is_criteria: z.boolean(),
+      is_mandatory: z.boolean(),
     })
     .superRefine((data, ctx) => {
       if (data.is_duration && !data.subtest_duration) {
@@ -88,6 +89,7 @@ export class SubTestValidation {
       ),
       criteria_id: z.string().uuid("Criteria should be selected").optional().nullable(),
       is_criteria: z.boolean().nullable().optional(),
+      is_mandatory: z.boolean().optional(),
     })
     .superRefine((data, ctx) => {
       if (data.is_duration && !data.subtest_duration) {

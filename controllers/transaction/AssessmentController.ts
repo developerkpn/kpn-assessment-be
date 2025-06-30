@@ -203,36 +203,22 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
     // Ambil nama subtest
     const subtestName = await getSubtestNamebyId(subtest.subtest_id);
 
-    console.log("Masuk hey");
-    console.log(progressDetailId);
-    console.log(subtest);
-
     // Cek apakah ada det_id pada t_store_answer
     const checkQuestionIsAlreadyTaken = await checkSubTestIsTaken(progressDetailId);
     // check apakah subtest memiliki durasi
     const isDuration = await getSubtestDurationById(subtest.subtest_id);
 
-    console.log(checkQuestionIsAlreadyTaken);
-    console.log("check duration");
-    console.log(isDuration);
     let response;
     // Kalo ada dia berarti udah pernah diambil
     if (checkQuestionIsAlreadyTaken && isDuration.is_duration === true) {
-      console.log("udah pernah ngambil ada duration");
-      console.log("Masuk hey 1");
-      console.log("Keluar");
-
       // Ambil waktu sekarang
       const now = moment().tz("Asia/Jakarta");
-      console.log("Current time:", now.format());
 
       // Ambil waktu selesai dari database (sudah dalam zona +07:00)
       const finishAtFromDB = await getFinishAt(progressDetailId);
-      console.log("Raw finishAt from DB:", finishAtFromDB);
 
       // Langsung parse tanpa .utc()
       const shouldBeFinishedAt = moment.utc(finishAtFromDB.should_be_finished_at).tz("Asia/Jakarta");
-      console.log("Parsed shouldBeFinishedAt:", shouldBeFinishedAt.format());
 
       // Jika waktu sudah habis, lempar error
       if (now.isAfter(shouldBeFinishedAt)) {
@@ -246,7 +232,6 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
 
       // Hitung sisa durasi dalam detik
       const remainingDurationSeconds = shouldBeFinishedAt.diff(now, "seconds");
-      console.log("Remaining seconds: ada duration udah ambil", remainingDurationSeconds);
 
       // Konversi ke format "hh:mm:ss"
       const remainingDurationFormatted = moment.utc(remainingDurationSeconds * 1000).format("HH:mm:ss");
@@ -271,6 +256,7 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
         det_id: progressDetailId,
         duration: remainingDurationFormatted,
         is_duration: true,
+        is_mandatory: subtestName.is_mandatory,
         subtest_name: subtestName.subtest_name,
         questions: questions.map((q: any) => {
           // Cari taken question yang sesuai berdasarkan question_id
@@ -324,6 +310,7 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
         det_id: progressDetailId,
         duration: null,
         is_duration: false,
+        is_mandatory: subtestName.is_mandatory,
         subtest_name: subtestName.subtest_name,
         questions: questions.map((q: any) => {
           // Cari taken question yang sesuai berdasarkan question_id
@@ -369,28 +356,16 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
       // Get and randomize questions
       const questionList = await getQuestionsBySeriesId(choosenSeriesId);
       const shuffledQuestions = questionList.sort(() => Math.random() - 0.5);
-      console.log(questionList);
-      // [
-      //     { question_id: 'bf58979f-e72e-47eb-adb7-cbecf1668792' },
-      //     { question_id: 'bf58979f-e72e-47eb-adb7-cbecf1668792' },
-      //     { question_id: 'bf58979f-e72e-47eb-adb7-cbecf1668792' },
-      //     { question_id: '032bd1b3-f1b6-4136-ba3e-1676478580b8' },
-      //     { question_id: 'a83e564e-fae2-47c5-96d4-b01ee40eb647' }
-      // ]
-      console.log(shuffledQuestions);
 
       // Get detailed question information
       const questions = await getQuestionAssessment(shuffledQuestions.map((q) => q.question_id));
-      console.log(questions);
 
       const storeQuestion = questionList.map((question: any) => ({
         ...question,
         id: uuid(), // id baru dengan UUID
         det_id: progressDetailId,
       }));
-      console.log(questionList);
-      console.log("store the question");
-      console.log(storeQuestion);
+
       await storeTakenQuestions(storeQuestion);
 
       // Format response
@@ -398,6 +373,7 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
         det_id: progressDetailId,
         duration: null, // Default 1 hour if not specified
         is_duration: false,
+        is_mandatory: subtestName.is_mandatory,
         subtest_name: subtestName.subtest_name,
         questions: questions.map((q: any) => ({
           question_id: q.id,
@@ -453,13 +429,6 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
       const questionList = await getQuestionsBySeriesId(choosenSeriesId);
       const shuffledQuestions = questionList.sort(() => Math.random() - 0.5);
       console.log(questionList);
-      // [
-      //     { question_id: 'bf58979f-e72e-47eb-adb7-cbecf1668792' },
-      //     { question_id: 'bf58979f-e72e-47eb-adb7-cbecf1668792' },
-      //     { question_id: 'bf58979f-e72e-47eb-adb7-cbecf1668792' },
-      //     { question_id: '032bd1b3-f1b6-4136-ba3e-1676478580b8' },
-      //     { question_id: 'a83e564e-fae2-47c5-96d4-b01ee40eb647' }
-      // ]
       console.log(shuffledQuestions);
 
       // Get detailed question information
@@ -481,6 +450,7 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
         det_id: progressDetailId,
         duration: subtestDurations.subtest_duration, // Default 1 hour if not specified
         is_duration: true,
+        is_mandatory: subtestName.is_mandatory,
         subtest_name: subtestName.subtest_name,
         questions: questions.map((q: any) => ({
           question_id: q.id,
@@ -515,10 +485,8 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
       // Mengonversi string durasi ("00:30:00") menjadi objek duration
       const subtestDuration = moment.duration(subtestDurations.subtest_duration);
       // Menambahkan durasi ke waktu pengambilan
-
       const shouldBeFinishedAt = moment(takenAt).add(subtestDuration);
-      console;
-      // Membuat payload untuk update assessment (mengonversi kembali ke objek Date jika diperlukan)
+
       const updatePayload = {
         taken_at: takenAt.toDate(),
         should_be_finished_at: shouldBeFinishedAt.toDate(),
@@ -527,13 +495,6 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
 
       await updateAssessmentStart(progressDetailId, updatePayload);
     }
-    // Jalankan fungsi kalo dia dah pernah diambil
-    // Ambil soal yang udah diambil
-    // Ambil jawaban yang udah dipilih
-    // Cek durasinya sisa durasi
-    // Kalo ga ada berarti dia belum pernah diambil
-    // Jalankan fungsi belum pernah diambil
-    // Store question_id pada t_store_answer
 
     res.status(200).json({
       message: "Success!",
@@ -543,43 +504,6 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
     next(e);
   }
 };
-
-// export const handleStoreAnswer = async (req: Request, res: Response, next: NextFunction) => {
-//   try {
-//     const { id, questions } = req.body; // Get questions array from request body
-//
-//     // Array to store all answer records to be inserted
-//     const answerRecords: any = [];
-//
-//     // Process each question's answers
-//     questions.forEach((questionItem: any) => {
-//       const { question_id, answers } = questionItem;
-//
-//       // Handle each answer for this question
-//       answers.forEach((answerItem: any) => {
-//         answerRecords.push({
-//           id: uuid(), // Generate unique ID for each answer record
-//           det_id: id, // Use the ID from request params
-//           question_id: question_id,
-//           answer: answerItem.answer,
-//         });
-//         0;
-//       });
-//     });
-//
-//     // Store each answer record separately
-//     for (const payload of answerRecords) {
-//       console.log(payload);
-//       await storeAnswer(payload);
-//     }
-//
-//     res.status(200).send({
-//       message: "Answers stored successfully!",
-//     });
-//   } catch (e) {
-//     next(e);
-//   }
-// };
 
 export const handleStoreAnswer = async (req: Request, res: Response, next: NextFunction) => {
   try {

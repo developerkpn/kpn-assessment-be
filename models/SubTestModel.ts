@@ -150,6 +150,7 @@ export const getSubTestDetail = async (id: string) => {
         h.is_example_answer_shown,
         h.is_active,
         h.is_criteria,
+        h.is_mandatory,
         a.fullname AS created_by,
         h.created_at,
         au.fullname AS updated_by,
@@ -275,6 +276,7 @@ export const getSubTestDetail = async (id: string) => {
       updated_by: result.rows[0].updated_by,
       updated_at: result.rows[0].updated_at,
       is_criteria: result.rows[0].is_criteria,
+      is_mandatory: result.rows[0].is_mandatory,
       example_series: {
         series_id: seriesExample ? seriesExample.rows[0].id : null,
         series_name: seriesExample ? seriesExample.rows[0].series_name : null,

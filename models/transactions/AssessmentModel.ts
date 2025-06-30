@@ -184,7 +184,7 @@ export const getSubtestNamebyId = async (subTestId: string) => {
   try {
     const result = await client.query(
       `
-        SELECT subtest_name
+        SELECT subtest_name, is_mandatory
         FROM mst_subtest_head
         WHERE id = $1
         `,

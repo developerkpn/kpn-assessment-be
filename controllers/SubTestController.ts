@@ -35,6 +35,7 @@ export const handleCreateSubTest = async (req: Request, res: Response, next: Nex
       is_example_answer_shown: validatedRequest.is_example_answer_shown,
       criteria_id: validatedRequest.criteria_id,
       is_criteria: validatedRequest.is_criteria,
+      is_mandatory: validatedRequest.is_mandatory,
       created_by: creator,
       created_at: date,
     };
@@ -94,6 +95,7 @@ export const handleUpdateSubTest = async (req: Request, res: Response, next: Nex
       is_example_answer_shown: validatedRequest.is_example_answer_shown,
       criteria_id: validatedRequest.criteria_id,
       is_criteria: validatedRequest.is_criteria,
+      is_mandatory: validatedRequest.is_mandatory,
     };
 
     console.log("masuk 1");
