@@ -38,8 +38,15 @@ export type CriteriaGroup = {
   value_group: string;
 };
 
-// FUNCTION MENU
-export type FunctionMenuRequest = {
+export type StandardizedPayload = {
+  id: string;
+  value_id: string;
+  raw_score: number;
+  standardized_score: number;
+};
+
+export // FUNCTION MENU
+type FunctionMenuRequest = {
   id: string;
   fm_code: string;
   fm_name: string;

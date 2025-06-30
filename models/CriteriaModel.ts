@@ -1,7 +1,7 @@
 import { db } from "@/config/connection.js";
 import { TRANSACTION as TRANS } from "@/config/transaction.js";
 import { deleteQuery, insertQuery, updateCriteriaQuery, updateQuery } from "@/helper/queryBuilder.js";
-import { Criteria, CriteriaGroup } from "@/types/MasterDataTypes.js";
+import { Criteria, CriteriaGroup, StandardizedPayload } from "@/types/MasterDataTypes.js";
 
 export const getCriteriaColor = async () => {
   const client = await db.connect();
@@ -21,7 +21,11 @@ export const getCriteriaColor = async () => {
   }
 };
 
-export const createCriteria = async (groupPayload: CriteriaGroup, criteriaPayload: Criteria[]) => {
+export const createCriteria = async (
+  groupPayload: CriteriaGroup,
+  criteriaPayload: Criteria[],
+  standardizedPayload: StandardizedPayload[]
+) => {
   const client = await db.connect();
   try {
     await client.query(TRANS.BEGIN);
@@ -30,7 +34,10 @@ export const createCriteria = async (groupPayload: CriteriaGroup, criteriaPayloa
     const groupResult = await client.query(groupQ, groupV);
     const [criteriaQ, criteriaV] = insertQuery("mst_criteria", criteriaPayload, "criteria_name");
     const criteriaResult = await client.query(criteriaQ, criteriaV);
-
+    if (standardizedPayload !== undefined) {
+      const [standardizedQ, standardizedV] = insertQuery("mst_standardized_score", standardizedPayload);
+      const standardizedResult = await client.query(standardizedQ, standardizedV);
+    }
     await client.query(TRANS.COMMIT);
     return groupResult.rows[0].value_name;
   } catch (error) {
@@ -47,11 +54,12 @@ export const getCriteria = async () => {
   try {
     const result = await client.query(
       `
-    SELECT cr.*, v.value_code, v.value_name, v.id AS value_id, cl.id as color_id, cl.name as color_name, cl.hex_code 
+    SELECT cr.*, v.value_code, v.value_name, v.id AS value_id, cl.id as color_id, cl.name as color_name, cl.hex_code, ss.id as standardized_id, ss.value_id as standardized_value_id, ss.raw_score, ss.standardized_score 
     FROM mst_criteria cr
     JOIN mst_value v ON cr.category_fk = v.id
     LEFT JOIN mst_criteria_color cl ON cr.color_id = cl.id
-    ORDER BY v.created_date DESC, v.value_name DESC, cr.minimum_score ASC
+    LEFT JOIN mst_standardized_score ss ON v.id = ss.value_id
+    ORDER BY v.created_date DESC, v.value_name DESC, cr.minimum_score ASC, ss.raw_score ASC
     `
     );
     return result.rows;
@@ -94,7 +102,12 @@ export const deleteCriteria = async (id: string) => {
   }
 };
 
-export const updateCriteria = async (payload: CriteriaGroup, newCriteria: Criteria[], id: string) => {
+export const updateCriteria = async (
+  payload: CriteriaGroup,
+  newCriteria: Criteria[],
+  id: string,
+  standardizedPayload: StandardizedPayload
+) => {
   const client = await db.connect();
   try {
     console.log("masuk update criteria model");
@@ -119,6 +132,20 @@ export const updateCriteria = async (payload: CriteriaGroup, newCriteria: Criter
     console.log("cek query");
     console.log(insertCriteriaQ, insertCriteriaV);
     await client.query(insertCriteriaQ, insertCriteriaV);
+
+    // DELETE PREV STANDARDIZED
+    await client.query(
+      `
+      DELETE FROM mst_standardized_score WHERE value_id = $1
+        `,
+      [id]
+    );
+
+    if (standardizedPayload !== undefined) {
+      // ADD NEW SRANDARDIZED
+      const [standardizedQ, standardizedV] = insertQuery("mst_standardized_score", standardizedPayload);
+      const standardizedResult = await client.query(standardizedQ, standardizedV);
+    }
 
     await client.query(TRANS.COMMIT);
     return groupResult.rows[0].value_name;

@@ -24,6 +24,7 @@ export const handleGetCriteriaColor = async (req: Request, res: Response, next: 
     next(e);
   }
 };
+
 export const handleCreateCriteria = async (req: Request, res: Response, next: NextFunction) => {
   const payload = req.body;
   const today = new Date();
@@ -47,6 +48,15 @@ export const handleCreateCriteria = async (req: Request, res: Response, next: Ne
     created_date: today,
   }));
 
+  let standardizedScore;
+  if (payload.standardized.length > 0) {
+    standardizedScore = payload.standardized.map((prev: any) => ({
+      ...prev,
+      id: uuidv4(),
+      value_id: groupId,
+    }));
+  }
+
   console.log("cek 1");
   console.log(groupPayload);
   console.log("cek 2");
@@ -54,7 +64,7 @@ export const handleCreateCriteria = async (req: Request, res: Response, next: Ne
   try {
     const validatedGroupPayloadRequest = Validation.validate(CriteriaValidation.CREATEGROUP, groupPayload);
     const validatedCriteriaPayloadRequest = Validation.validate(CriteriaValidation.CREATECRITERIA, criteriaPayload);
-    let result = await createCriteria(validatedGroupPayloadRequest, validatedCriteriaPayloadRequest);
+    let result = await createCriteria(validatedGroupPayloadRequest, validatedCriteriaPayloadRequest, standardizedScore);
     res.status(200).send({
       message: `Success create criteria`,
       category_name: result,
@@ -75,11 +85,20 @@ export const handleGetCriteria = async (req: Request, res: Response, next: NextF
       category_fk: item.value_id,
     }));
 
-    // 2) reduce: group by value_id, dan konsisten pakai acc[value_id]
+    // 2) reduce: group by value_id, dan deduplikasi criteria berdasarkan id
     const groupedByValueId = Object.values(
       mapped.reduce(
         (acc: any, item: any) => {
-          const { value_code, value_name, value_id, ...criteria } = item;
+          const {
+            value_code,
+            value_name,
+            value_id,
+            standardized_id,
+            standardized_value_id,
+            raw_score,
+            standardized_score,
+            ...criteria
+          } = item;
 
           // kalau belum ada grup untuk value_id ini, inisialisasi
           if (!acc[value_id]) {
@@ -87,12 +106,47 @@ export const handleGetCriteria = async (req: Request, res: Response, next: NextF
               value_code,
               value_name,
               value_id,
-              criteria: [] as Array<Omit<typeof item, "value_code" | "value_name" | "value_id">>,
+              criteria: [] as Array<
+                Omit<
+                  typeof item,
+                  | "value_code"
+                  | "value_name"
+                  | "value_id"
+                  | "standardized_id"
+                  | "standardized_value_id"
+                  | "raw_score"
+                  | "standardized_score"
+                >
+              >,
+              standardized: [] as Array<{
+                id: string;
+                value_id: string;
+                raw_score: number;
+                standardized_score: number;
+              }>,
             };
           }
 
-          // masukkan sisa properti sebagai satu elemen criteria
-          acc[value_id].criteria.push(criteria);
+          // cek apakah criteria dengan id ini sudah ada untuk menghindari duplikasi
+          const existingCriteria = acc[value_id].criteria.find((c: any) => c.id === criteria.id);
+          if (!existingCriteria) {
+            acc[value_id].criteria.push(criteria);
+          }
+
+          // jika ada standardized data, tambahkan ke array standardized
+          if (standardized_id !== null) {
+            // cek apakah standardized dengan id ini sudah ada
+            const existingStandardized = acc[value_id].standardized.find((s: any) => s.id === standardized_id);
+            if (!existingStandardized) {
+              acc[value_id].standardized.push({
+                id: standardized_id,
+                value_id: value_id,
+                raw_score: raw_score,
+                standardized_score: standardized_score,
+              });
+            }
+          }
+
           return acc;
         },
         {} as Record<
@@ -102,6 +156,7 @@ export const handleGetCriteria = async (req: Request, res: Response, next: NextF
             value_name: string;
             value_id: string;
             criteria: any[];
+            standardized: any[];
           }
         >
       )
@@ -157,11 +212,21 @@ export const handleUpdateCriteria = async (req: Request, res: Response, next: Ne
 
   console.log("cek update criteria", criteria);
 
+  let standardizedScore;
+  if (payload.standardized.length > 0) {
+    standardizedScore = payload.standardized.map((prev: any) => ({
+      ...prev,
+      id: uuidv4(),
+      value_id: validatedId,
+    }));
+  }
+
   delete payload.user_id;
   delete payload.criteria;
+  delete payload.standardized;
 
   try {
-    let result = await updateCriteria(payload, criteria, validatedId);
+    let result = await updateCriteria(payload, criteria, validatedId, standardizedScore);
     res.status(200).send({
       message: `Success update criteria`,
       value_name: result,
