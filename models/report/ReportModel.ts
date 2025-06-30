@@ -1057,26 +1057,18 @@ const proceedProctoring = async (batchId: string, user_id: string) => {
   try {
     const s3 = new S3ClientUpload();
     const list: any = await s3.ListObjects(`${batchId}/${user_id}`);
-    console.log(list);
 
-    // Urutkan dari yang terbaru ke yang lama
-    const sortedList = list.sort(
-      (a: any, b: any) => new Date(b.lastModified).getTime() - new Date(a.lastModified).getTime()
-    );
+    const filteredWebCam = list.filter((item: any) => item.key.includes("_webcam"));
+    const filteredScreen = list.filter((item: any) => item.key.includes("_screen"));
 
-    // Filter file yang mengandung "_webcam" atau "_screen"
-    const filteredWebCam: { key: string; lastModified: string }[] = sortedList.filter((item: any) =>
-      item.key.includes("_webcam")
-    );
+    const getRandomItems = <T>(arr: T[], n: number): T[] => {
+      const shuffled = [...arr].sort(() => 0.5 - Math.random());
+      return shuffled.slice(0, n);
+    };
 
-    const filteredScreen: { key: string; lastModified: string }[] = sortedList.filter((item: any) =>
-      item.key.includes("_screen")
-    );
-
-    // Ambil 3 item teratas
     const result = {
-      web_cam: filteredWebCam.slice(0, 3),
-      screen: filteredScreen.slice(0, 3),
+      web_cam: getRandomItems(filteredWebCam, 8),
+      screen: getRandomItems(filteredScreen, 8),
     };
 
     return result;

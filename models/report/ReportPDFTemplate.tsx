@@ -53,8 +53,8 @@ export const ReportPDFTemplate = async (batchId: string, assesseeId: string, ass
   const webcamurls = dataReportIndividual.proctoring.web_cam || [];
   const ssurls = dataReportIndividual.proctoring.screen || [];
 
-  const promisesWebcam = webcamurls.map((webcam) => limit(() => S3Client.GetObjectAsBuffer(webcam.key)));
-  const promisesSS = ssurls.map((ss) => limit(() => S3Client.GetObjectAsBuffer(ss.key)));
+  const promisesWebcam = webcamurls.map((webcam: any) => limit(() => S3Client.GetObjectAsBuffer(webcam.key)));
+  const promisesSS = ssurls.map((ss: any) => limit(() => S3Client.GetObjectAsBuffer(ss.key)));
 
   const resultWebcam = await Promise.all(promisesWebcam);
   const resultSS = await Promise.all(promisesSS); //get charts
