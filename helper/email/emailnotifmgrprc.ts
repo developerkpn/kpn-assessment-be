@@ -457,7 +457,7 @@ export const emailTemplateHTML = `
                             </tr>
                             <tr class="detail">
                                 <td width="20%" style="padding: 0.1em 2.5em">
-                                    Bussiness Unit
+                                    Business Unit
                                 </td>
                                 <td style="padding: 0.1em 2.5em" width="1%">
                                     :
