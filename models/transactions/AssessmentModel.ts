@@ -570,16 +570,66 @@ export const getAssessmentByUserNIK = async (userId: string) => {
             h.batch_name, 
             h.batch_code,
             h.start_period,
-            h.end_period
+            h.end_period,
+            COALESCE(
+              (SELECT COUNT(*) FROM t_progress_batch_det bd 
+               WHERE bd.head_id = p.id AND bd.status = 'Not Taken'), 0
+            ) as count_not_taken,
+            COALESCE(
+              (SELECT COUNT(*) FROM t_progress_batch_det bd 
+               WHERE bd.head_id = p.id AND bd.status = 'In Progress'), 0
+            ) as count_in_progress,
+            COALESCE(
+              (SELECT COUNT(*) FROM t_progress_batch_det bd 
+               WHERE bd.head_id = p.id AND bd.status = 'Completed'), 0
+            ) as count_completed,
+            COALESCE(
+              (SELECT COUNT(*) FROM t_progress_batch_det bd 
+               WHERE bd.head_id = p.id), 0
+            ) as total_tests
         FROM t_progress_batch_head p 
         LEFT JOIN t_batch_head h ON p.batch_id = h.id
-        WHERE assessee_id = $1
-        order by start_period desc
+        WHERE p.assessee_id = $1
+        ORDER BY h.start_period DESC
         `,
       [userId]
     );
 
-    return result.rows;
+    console.log("resultnya", result.rows);
+    // Process each assessment to determine status and add progress info
+    const assessmentsWithProgress = result.rows.map((assessment) => {
+      let status = "Not Taken";
+
+      // Converting string counts to numbers
+      const notTaken = parseInt(assessment.count_not_taken) || 0;
+      const inProgress = parseInt(assessment.count_in_progress) || 0;
+      const completed = parseInt(assessment.count_completed) || 0;
+      const totalTests = parseInt(assessment.total_tests) || 0;
+
+      // Determine overall status based on test progress
+      if (totalTests === notTaken) {
+        status = "Not Taken";
+      } else if (completed === totalTests && completed > 0) {
+        status = "Completed";
+      } else if (inProgress > 0 || notTaken < totalTests) {
+        status = "In Progress";
+      }
+
+      return {
+        token: assessment.token,
+        batch_id: assessment.batch_id,
+        batch_name: assessment.batch_name,
+        batch_code: assessment.batch_code,
+        start_period: assessment.start_period,
+        end_period: assessment.end_period,
+        progress: {
+          status: status,
+          completion_percentage: totalTests > 0 ? Math.round((completed / totalTests) * 100) : 0,
+        },
+      };
+    });
+
+    return assessmentsWithProgress;
   } catch (e) {
     console.error(e);
     throw e;

@@ -349,7 +349,6 @@ export const getBatchDetail = async (id: string) => {
         end_period: moment(batchDetail.end_period).tz("Asia/Jakarta").toISOString(),
         email: {
           id: email ? email.rows[0].id : null,
-
           subject: email ? email.rows[0].subject : null,
           title: email ? email.rows[0].title : null,
           header: email ? email.rows[0].header : null,

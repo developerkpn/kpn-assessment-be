@@ -175,25 +175,87 @@ export const getExternalDashboard = async (email: string) => {
     console.log(email);
     const result = await client.query(
       `
-        select
+        SELECT
            p.assessee_email,
+           p.assessee_nik,
            h.id as batch_id,
            h.batch_name,
            h.batch_code,
            h.start_period,
            h.end_period,
-           d.token
+           d.token,
+           COALESCE(
+             (SELECT COUNT(*) FROM t_progress_batch_det bd 
+              JOIN t_progress_batch_head bh ON bd.head_id = bh.id 
+              WHERE bh.assessee_id = p.assessee_nik AND bh.batch_id = h.id AND bd.status = 'Not Taken'), 0
+           ) as count_not_taken,
+           COALESCE(
+             (SELECT COUNT(*) FROM t_progress_batch_det bd 
+              JOIN t_progress_batch_head bh ON bd.head_id = bh.id 
+              WHERE bh.assessee_id = p.assessee_nik AND bh.batch_id = h.id AND bd.status = 'In Progress'), 0
+           ) as count_in_progress,
+           COALESCE(
+             (SELECT COUNT(*) FROM t_progress_batch_det bd 
+              JOIN t_progress_batch_head bh ON bd.head_id = bh.id 
+              WHERE bh.assessee_id = p.assessee_nik AND bh.batch_id = h.id AND bd.status = 'Completed'), 0
+           ) as count_completed,
+           COALESCE(
+             (SELECT COUNT(*) FROM t_progress_batch_det bd 
+              JOIN t_progress_batch_head bh ON bd.head_id = bh.id 
+              WHERE bh.assessee_id = p.assessee_nik AND bh.batch_id = h.id), 0
+           ) as total_tests
         FROM t_batch_assessee p
         LEFT JOIN t_progress_batch_head d ON p.assessee_nik = d.assessee_id
         LEFT JOIN t_batch_head h ON d.batch_id = h.id
         WHERE p.assessee_email = $1
-        group by p.assessee_email, h.id, h.batch_code, d.assessee_id, d.token;
+        GROUP BY p.assessee_email, p.assessee_nik, h.id, h.batch_name, h.batch_code, 
+                 h.start_period, h.end_period, d.token;
         `,
       [email]
     );
+
     console.log("hello");
     console.log(result.rows);
-    return result.rows;
+
+    // Process batch status based on test progress (similar to getBatchDetail logic)
+    const batchesWithStatus = result.rows.map((batch) => {
+      let status = "Not Taken";
+
+      // Converting string counts to numbers
+      const notTaken = parseInt(batch.count_not_taken) || 0;
+      const inProgress = parseInt(batch.count_in_progress) || 0;
+      const completed = parseInt(batch.count_completed) || 0;
+      const totalTests = parseInt(batch.total_tests) || 0;
+
+      // If no tests are associated yet or all counts are 0, status is Not Taken
+      if (totalTests === 0 || (notTaken === 0 && inProgress === 0 && completed === 0)) {
+        status = "Not Taken";
+      }
+      // If all tests are completed and there's at least one completed test
+      else if (completed === totalTests && completed > 0) {
+        status = "Completed";
+      }
+      // If any test is in progress, status is In Progress
+      else if (inProgress > 0) {
+        status = "In Progress";
+      }
+
+      return {
+        assessee_email: batch.assessee_email,
+        batch_id: batch.batch_id,
+        batch_name: batch.batch_name,
+        batch_code: batch.batch_code,
+        start_period: batch.start_period,
+        end_period: batch.end_period,
+        token: batch.token,
+        progress: {
+          status: status,
+          completion_percentage: totalTests > 0 ? Math.round((completed / totalTests) * 100) : 0,
+        },
+      };
+    });
+
+    return batchesWithStatus;
   } catch (e) {
     throw e;
   } finally {
