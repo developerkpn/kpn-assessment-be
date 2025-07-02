@@ -272,10 +272,6 @@ export const handleUpdateReportDesign = async (req: Request, res: Response, next
       report_id: reportId,
     }));
 
-    console.log(detailPayload);
-
-    console.log("masuk update");
-
     const generateStatus = {
       is_generate: false,
       error_message: null,
@@ -291,29 +287,6 @@ export const handleUpdateReportDesign = async (req: Request, res: Response, next
   }
 };
 
-// export const handleGetReportDesignDetail = async (req: Request, res: Response, next: NextFunction) => {
-//   try {
-//     const batchId = req.params.batchId;
-//     const batchInformation = await getBatchInformationForReport(batchId);
-//     console.log("get batch info");
-//     console.log(batchInformation);
-//     const reportDesign = await getReportDesignDetail(batchId);
-//     console.log("get report design");
-//     console.log(reportDesign);
-//     console.log("putus");
-//     // Transform the response to the desired format
-//     const transformedResponse = await transformResponseFormat(batchInformation, reportDesign);
-//     console.log("transform", transformedResponse);
-//     res.status(200).send({
-//       message: "Success!",
-//       data: transformedResponse,
-//     });
-//   } catch (e) {
-//     next(e);
-//   }
-// };
-
-// Tipe untuk respons dari model
 interface BatchReportRow {
   batch_id: string;
   batch_name: string;

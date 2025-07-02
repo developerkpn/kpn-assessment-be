@@ -174,10 +174,14 @@ export const getCriteriaDetail = async (id: string) => {
         cr.description, 
         cr.color_id, 
         cl.name as color_name,
-        cl.hex_code
+        cl.hex_code,
+        st.id as standardized_id,
+        st.raw_score,
+        st.standardized_score
       FROM mst_value v
       LEFT JOIN mst_criteria cr ON v.id = cr.category_fk
       LEFT JOIN mst_criteria_color cl ON cr.color_id = cl.id
+      LEFT JOIN mst_standardized_score st ON v.id = st.value_id
       WHERE v.id = $1
       ORDER BY cr.minimum_score ASC
       `,
@@ -191,47 +195,3 @@ export const getCriteriaDetail = async (id: string) => {
     client.release();
   }
 };
-
-// export const updateCriteria1 = async (
-//   payload: CriteriaGroup,
-//   addedCriteria: Criteria[],
-//   editedCriteria: Criteria[],
-//   deletedCriteria: Criteria[]
-// ) => {
-//   const client = await db.connect();
-//   try {
-//     await client.query(TRANS.BEGIN);
-
-//     // UPDATE CATEGORY QUERY
-//     const [groupQ, groupV] = updateQuery("mst_value", payload, { id: payload.id }, "value_name");
-
-//     // ADD CRITERIA QUERY
-//     const [insertCriteriaQ, insertCriteriaV] = insertQuery("mst_criteria", addedCriteria);
-
-//     // UPDATE CRITERIA QUERY
-//     const updateCriteriaQ = updateCriteriaQuery(editedCriteria);
-
-//     // DELETE CRITERIA QUERY
-//     const deleteCriteriaQ = `
-//       DELETE FROM mst_criteria
-//       WHERE id IN (${deletedCriteria.map((item) => `'${item}'`).join(", ")})`;
-//     console.log(deleteCriteriaQ);
-
-//     // EXECUTE ALL QUERY PARALLEL
-//     const [groupResult, insertItem, editItem, deleteItem] = await Promise.all([
-//       await client.query(groupQ, groupV),
-//       addedCriteria.length !== 0 ? client.query(insertCriteriaQ, insertCriteriaV) : null,
-//       editedCriteria.length !== 0 ? client.query(updateCriteriaQ) : null,
-//       deletedCriteria.length !== 0 ? client.query(deleteCriteriaQ) : null,
-//     ]);
-
-//     await client.query(TRANS.COMMIT);
-//     return groupResult.rows[0].value_name;
-//   } catch (error) {
-//     console.error(error);
-//     await client.query(TRANS.ROLLBACK);
-//     throw error;
-//   } finally {
-//     client.release();
-//   }
-// };

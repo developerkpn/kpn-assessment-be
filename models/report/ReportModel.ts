@@ -730,13 +730,16 @@ export const getAllDataCover = async () => {
 
 const getCriteriaForReport = async (criteriaId: string): Promise<ReportCriteria> => {
   try {
+    console.log("masuk raw data");
     const rawData = await getCriteriaDetail(criteriaId);
 
-    const groupedData = {
-      value_name: rawData[0]?.value_name ? rawData[0].value_name : null,
-      value_code: rawData[0]?.value_code ? rawData[0].value_code : null,
-      criterias: rawData.reduce((acc: any, row: any): CriteriasReport[] => {
-        if (row.criteria_name) {
+    const groupedData: ReportCriteria = {
+      value_name: rawData[0]?.value_name || null,
+      value_code: rawData[0]?.value_code || null,
+
+      // Hilangkan duplikasi berdasarkan criteria_id
+      criterias: rawData.reduce((acc: CriteriasReport[], row: any) => {
+        if (row.criteria_id && !acc.some((c) => c.criteria_id === row.criteria_id)) {
           acc.push({
             criteria_id: row.criteria_id,
             criteria_name: row.criteria_name,
@@ -750,7 +753,21 @@ const getCriteriaForReport = async (criteriaId: string): Promise<ReportCriteria>
         }
         return acc;
       }, []),
+
+      // Hilangkan duplikasi berdasarkan standardized_id
+      standardized: rawData.reduce((acc: any[], row: any) => {
+        if (row.standardized_id && !acc.some((s) => s.standardized_id === row.standardized_id)) {
+          acc.push({
+            standardized_id: row.standardized_id,
+            raw_score: row.raw_score,
+            standardized_score: row.standardized_score,
+          });
+        }
+        return acc;
+      }, []),
     };
+
+    console.log("group datanya", groupedData);
     return groupedData;
   } catch (e) {
     throw e;
@@ -837,25 +854,94 @@ export const proceedIntro = async (batchId: string, detail: ReportDetailSection[
 
 export const proceedSubtestCriteria = async (criteriaId: string, subtestPoint: number) => {
   try {
-    const criteria = await getCriteriaForReport(criteriaId);
-    let matchingCriteria = criteria.criterias.find((criteria: any) => {
-      return subtestPoint >= Number(criteria.minimum_score) && subtestPoint <= Number(criteria.maximum_score);
-    });
+    let criteria;
+    if (criteriaId) {
+      criteria = await getCriteriaForReport(criteriaId);
+    }
+    let matchingCriteria: any = null;
+    let matchingStandardizedScore: any = null;
 
-    if (matchingCriteria) {
-      return matchingCriteria;
-    } else {
-      const invalidCriteria = {
-        criteria_name: null,
-        criteria_color: null,
-        minimum_score: null,
-        maximum_score: null,
-        description: "Criteria is not valid",
-        color_id: null,
-        color_name: null,
-        hex_code: "#000000",
+    if (criteria && criteria.standardized.length > 0) {
+      matchingStandardizedScore = criteria.standardized.find((item) => {
+        return subtestPoint === item.raw_score;
+      });
+
+      if (!matchingStandardizedScore) {
+        matchingStandardizedScore = criteria.standardized.reduce((prev, curr) => {
+          return Math.abs(curr.raw_score - subtestPoint) < Math.abs(prev.raw_score - subtestPoint) ? curr : prev;
+        });
+      }
+
+      matchingCriteria = criteria.criterias.find((item: any) => {
+        return (
+          matchingStandardizedScore.standardized_score >= Number(item.minimum_score) &&
+          matchingStandardizedScore.standardized_score <= Number(item.maximum_score)
+        );
+      });
+
+      if (!matchingCriteria) {
+        matchingCriteria = criteria.criterias.reduce((prev: any, curr: any) => {
+          const diffPrev = Math.min(
+            Math.abs(Number(prev.minimum_score) - matchingStandardizedScore.standardized_score),
+            Math.abs(Number(prev.maximum_score) - matchingStandardizedScore.standardized_score)
+          );
+          const diffCurr = Math.min(
+            Math.abs(Number(curr.minimum_score) - matchingStandardizedScore.standardized_score),
+            Math.abs(Number(curr.maximum_score) - matchingStandardizedScore.standardized_score)
+          );
+          return diffCurr < diffPrev ? curr : prev;
+        });
+      }
+    } else if (criteria && criteria.standardized.length === 0) {
+      matchingCriteria = criteria.criterias.find((item: any) => {
+        return subtestPoint >= Number(item.minimum_score) && subtestPoint <= Number(item.maximum_score);
+      });
+
+      if (!matchingCriteria) {
+        matchingCriteria = criteria.criterias.reduce((prev: any, curr: any) => {
+          const diffPrev = Math.min(
+            Math.abs(Number(prev.minimum_score) - subtestPoint),
+            Math.abs(Number(prev.maximum_score) - subtestPoint)
+          );
+          const diffCurr = Math.min(
+            Math.abs(Number(curr.minimum_score) - subtestPoint),
+            Math.abs(Number(curr.maximum_score) - subtestPoint)
+          );
+          return diffCurr < diffPrev ? curr : prev;
+        });
+      }
+    }
+
+    if (criteria && matchingCriteria && matchingStandardizedScore) {
+      return {
+        matchingCriteria,
+        matchingStandardizedScore,
       };
-      return invalidCriteria;
+    } else if (criteria && matchingCriteria && matchingStandardizedScore === null) {
+      return {
+        matchingCriteria,
+        matchingStandardizedScore: {
+          raw_score: subtestPoint,
+          standardized_score: subtestPoint,
+        },
+      };
+    } else {
+      return {
+        matchingCriteria: {
+          criteria_name: null,
+          criteria_color: null,
+          minimum_score: null,
+          maximum_score: null,
+          description: "Criteria is not valid",
+          color_id: null,
+          color_name: null,
+          hex_code: "#000000",
+        },
+        matchingStandardizedScore: {
+          raw_score: subtestPoint,
+          standardized_score: subtestPoint,
+        },
+      };
     }
   } catch (e) {
     throw e;
@@ -887,10 +973,10 @@ export const proceedDetail = async (batchId: string, assesseeEmail: string): Pro
           norm: [],
           subtests: [],
         };
-
+        console.log("masuk norm");
         const norm = await getCriteriaForReport(test.criteria_id);
         testMapping[testId].norm.push(...norm.criterias);
-
+        console.log("keluar norm");
         if (test.summary_type === "subtest") {
           // if detail summary is subtest
           const resultBySubtest: any = await getPersonalReportData(batchId, assesseeEmail, "subtest", test.test_id);
@@ -898,8 +984,10 @@ export const proceedDetail = async (batchId: string, assesseeEmail: string): Pro
           let countSubtest = 0;
 
           for (const subtest of resultBySubtest) {
-            const result = await proceedSubtestCriteria(subtest.criteria_id, Number(subtest.subtest_point));
+            let result = await proceedSubtestCriteria(subtest.criteria_id, Number(subtest.subtest_point));
+
             if (!isNaN(Number(subtest.subtest_point))) {
+              console.log("sub subtest pointnya", subtest.subtest_point);
               sumSubtestPoint = sumSubtestPoint + Number(subtest.subtest_point);
               countSubtest++;
             }
@@ -910,9 +998,11 @@ export const proceedDetail = async (batchId: string, assesseeEmail: string): Pro
               subtest_code: subtest.subtest_code,
               description: subtest.subtest_desc ? subtest.subtest_desc : null,
               result: {
-                subtest_point: !isNaN(Number(subtest.subtest_point)) ? Number(subtest.subtest_point) : 0,
-                subtest_criteria: result ? result.criteria_name : "Undefined",
-                criteria_color: result ? result.hex_code : "#CCCCCC",
+                subtest_point: !isNaN(Number(result.matchingStandardizedScore.standardized_score))
+                  ? Number(result.matchingStandardizedScore.standardized_score)
+                  : 0,
+                subtest_criteria: result ? result.matchingCriteria.criteria_name : "Undefined",
+                criteria_color: result ? result.matchingCriteria.hex_code : "#CCCCCC",
                 categories: [],
               },
             };
@@ -922,21 +1012,27 @@ export const proceedDetail = async (batchId: string, assesseeEmail: string): Pro
 
           let testResult;
           let finalTestPoint: number = Number(sumSubtestPoint);
-
+          console.log("final test poinnya", finalTestPoint);
           if (test.summary_type === "sum") {
             finalTestPoint *= 1;
           } else if (test.summary_type === "average") {
             finalTestPoint = countSubtest > 0 && !isNaN(sumSubtestPoint) ? finalTestPoint / countSubtest : 0;
           }
 
-          const testCriteria = await proceedSubtestCriteria(test.criteria_id, finalTestPoint);
+          const testCriteria: any = await proceedSubtestCriteria(test.criteria_id, finalTestPoint);
 
           testResult = {
-            test_point: !isNaN(finalTestPoint) ? finalTestPoint : 0,
-            criteria: testCriteria.criteria_name ? testCriteria.criteria_name : null,
-            criteria_color: testCriteria.criteria_color ? testCriteria.criteria_color : 0,
-            description: testCriteria.description ? testCriteria.description : null,
+            test_point: !isNaN(testCriteria.matchingStandardizedScore.standardized_score)
+              ? testCriteria.matchingStandardizedScore.standardized_score
+              : 0,
+            criteria: testCriteria.matchingCriteria.criteria_name ? testCriteria.matchingCriteria.criteria_name : null,
+            criteria_color: testCriteria.matchingCriteria.criteria_color
+              ? testCriteria.matchingCriteria.criteria_color
+              : 0,
+            description: testCriteria.matchingCriteria.description ? testCriteria.matchingCriteria.description : null,
           };
+
+          console.log(testResult);
 
           testMapping[testId].result = testResult;
         } else if (test.summary_type === "category") {
@@ -965,13 +1061,13 @@ export const proceedDetail = async (batchId: string, assesseeEmail: string): Pro
             }
 
             let categoryPoint;
-            let matchedCriteria;
+            let criteria: any;
             if (test.summary_formula === "sum") {
               categoryPoint = Number(category.category_point);
-              matchedCriteria = await proceedSubtestCriteria(category.category_criteria_id, categoryPoint);
+              criteria = await proceedSubtestCriteria(category.category_criteria_id, categoryPoint);
             } else if (test.summary_formula === "avg") {
               categoryPoint = Number(category.category_point_avg);
-              matchedCriteria = await proceedSubtestCriteria(category.category_criteria_id, categoryPoint);
+              criteria = await proceedSubtestCriteria(category.category_criteria_id, categoryPoint);
             }
 
             subtestMapping[subtestId].result.categories.push({
@@ -979,13 +1075,13 @@ export const proceedDetail = async (batchId: string, assesseeEmail: string): Pro
               category_name: category.category_name,
               category_code: category.category_code,
               category_point: categoryPoint,
-              description: matchedCriteria?.description ?? null,
+              description: criteria.matchingCriteria?.description ?? null,
             });
 
             if (categoryPoint! > maxPoint) {
               maxPoint = Number(categoryPoint);
               bestCategory = category;
-              bestCriteria = matchedCriteria;
+              bestCriteria = criteria.matchingCriteria;
             }
           }
 
@@ -1026,19 +1122,8 @@ export const proceeedProfile = async (type: string, assesseeId: string, assessee
         "years"
       ),
     };
-
+    console.log("sebelum return");
     return profile;
-  } catch (e) {
-    throw e;
-  }
-};
-
-export const proceedReportDesign = async (batchId: string) => {
-  try {
-    const batchInformation = await getBatchInformationForReport(batchId);
-    const design = await getReportDesignDetail(batchId);
-    const reportDesign = await transformResponseFormat(batchInformation, design);
-    return reportDesign;
   } catch (e) {
     throw e;
   }
@@ -1083,9 +1168,9 @@ export const generateReportIndividual = async (batchId: string, assesseeId: stri
 
     const batchInformation = await getSpecificBatchInformationForReport(batchId, assesseeId);
     const profile = await proceeedProfile(batchInformation.type, assesseeId, assesseeEmail);
-
+    console.log("keluar profile");
     const reportDetail = await proceedDetail(batchId, assesseeEmail);
-
+    console.log("keluar report detail");
     // Get Report Intro
     const reportIntro = await proceedIntro(batchId, reportDetail);
 

@@ -134,10 +134,17 @@ export type CriteriasReport = {
   hex_code?: string | null;
 };
 
+export type StandardizedReport = {
+  standardized_id: string;
+  raw_score: number;
+  standardized_score: number;
+};
+
 export type ReportCriteria = {
   value_name: string;
   value_code: string;
   criterias: CriteriasReport[];
+  standardized: StandardizedReport[];
 };
 
 export type ReportDetailSection = {
