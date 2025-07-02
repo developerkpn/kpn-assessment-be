@@ -17,10 +17,26 @@ import pLimit from "p-limit";
 const __filename = fileURLToPath(import.meta.url); // get the resolved path to the file
 const __dirname = path.dirname(__filename);
 
+// Utility function to strip HTML tags
+const stripHtmlTags = (html: string): string => {
+  if (!html) return "";
+  return html
+    .replace(/<[^>]*>/g, "") // Remove HTML tags
+    .replace(/&nbsp;/g, " ") // Replace &nbsp; with space
+    .replace(/&amp;/g, "&") // Replace &amp; with &
+    .replace(/&lt;/g, "<") // Replace &lt; with <
+    .replace(/&gt;/g, ">") // Replace &gt; with >
+    .replace(/&quot;/g, '"') // Replace &quot; with "
+    .replace(/&#39;/g, "'") // Replace &#39; with '
+    .replace(/\s+/g, " ") // Replace multiple spaces with single space
+    .trim(); // Remove leading/trailing whitespace
+};
+
 export const ReportPDFTemplate = async (batchId: string, assesseeId: string, assesseeEmail: string) => {
-  // get data skeleton
-  const dataReportIndividual = await generateReportIndividual(batchId, assesseeId, assesseeEmail);
+  const rawDataReportIndividual = await generateReportIndividual(batchId, assesseeId, assesseeEmail);
+  const dataReportIndividual = rawDataReportIndividual;
   const data = dataReportIndividual;
+
   const S3Client = new S3ClientUpload();
   // const logo = fs.readFileSync(path.join(__dirname, "../../assets/KPN_CORP_NEW_LOGO.png"));
   const placeholderImg = fs.readFileSync(path.join(__dirname, "../../assets/place-holder.jpg"));
@@ -168,7 +184,7 @@ export const ReportPDFTemplate = async (batchId: string, assesseeId: string, ass
           </View>
         </View>
 
-        {data.intro.map((intro, index) => (
+        {data.intro.map((intro: any, index: any) => (
           <View key={index}>
             <View style={styles.subheaderContainer}>
               <Text style={styles.categoryTitle}>{intro.category_name}</Text>
@@ -188,7 +204,7 @@ export const ReportPDFTemplate = async (batchId: string, assesseeId: string, ass
                         Assessment
                       </Text>
                     </View>
-                    {intro.tests?.map((test, index) => (
+                    {intro.tests?.map((test: any, index: any) => (
                       <View key={index} style={[styles.boxLightPrimary, { marginTop: 5 }]}>
                         <Text style={{ fontSize: 10, textAlign: "center" }}>{test.test_name}</Text>
                       </View>
@@ -206,10 +222,10 @@ export const ReportPDFTemplate = async (batchId: string, assesseeId: string, ass
                         Definition
                       </Text>
                     </View>
-                    {intro.tests?.map((test, index) => (
+                    {intro.tests?.map((test: any, index: any) => (
                       <View key={index} style={[styles.boxLightPrimary, { marginTop: 5 }]}>
                         <Text style={{ fontSize: 10, textAlign: "justify" }}>
-                          {test.description || "No description available"}
+                          {stripHtmlTags(test.description) || "No description available"}
                         </Text>
                       </View>
                     ))}
@@ -226,7 +242,7 @@ export const ReportPDFTemplate = async (batchId: string, assesseeId: string, ass
                         Score
                       </Text>
                     </View>
-                    {intro.tests?.map((test, index) => (
+                    {intro.tests?.map((test: any, index: any) => (
                       <View key={index} style={[styles.boxLightPrimary, { marginTop: 5 }]}>
                         <Text style={{ fontSize: 10, textAlign: "center" }}>
                           {test.test_result?.test_point || "N/A"}
@@ -249,7 +265,7 @@ export const ReportPDFTemplate = async (batchId: string, assesseeId: string, ass
                         Assessment
                       </Text>
                     </View>
-                    {intro.subtests?.map((subtest, index) => (
+                    {intro.subtests?.map((subtest: any, index: any) => (
                       <View key={index} style={[styles.boxLightPrimary, { marginTop: 5 }]}>
                         <Text style={{ fontSize: 10, textAlign: "center" }}>{subtest.subtest_name}</Text>
                       </View>
@@ -267,10 +283,10 @@ export const ReportPDFTemplate = async (batchId: string, assesseeId: string, ass
                         Definition
                       </Text>
                     </View>
-                    {intro.subtests?.map((subtest, index) => (
+                    {intro.subtests?.map((subtest: any, index: any) => (
                       <View key={index} style={[styles.boxLightPrimary, { marginTop: 5 }]}>
                         <Text style={{ fontSize: 10, textAlign: "justify" }}>
-                          {subtest.description || "No description available"}
+                          {stripHtmlTags(subtest.description) || "No description available"}
                         </Text>
                       </View>
                     ))}
@@ -287,7 +303,7 @@ export const ReportPDFTemplate = async (batchId: string, assesseeId: string, ass
                         Type
                       </Text>
                     </View>
-                    {intro.subtests?.map((subtest, index) => (
+                    {intro.subtests?.map((subtest: any, index: any) => (
                       <View key={index} style={[styles.boxLightPrimary, { marginTop: 5 }]}>
                         <Text style={{ fontSize: 10, textAlign: "center" }}>
                           {subtest.result?.subtest_criteria || "N/A"}
@@ -302,7 +318,7 @@ export const ReportPDFTemplate = async (batchId: string, assesseeId: string, ass
         ))}
       </Page>
 
-      {data.detail.map((detail, index) => (
+      {data.detail.map((detail: any, index: any) => (
         <Page key={index} size="A4" style={styles.page}>
           <View style={styles.psychographHeader}>
             <View style={styles.headerTop}>
@@ -371,7 +387,7 @@ export const ReportPDFTemplate = async (batchId: string, assesseeId: string, ass
 
               <SubtestChartSection subtests={detail.subtests} />
               <View style={{ display: "flex", flexDirection: "row", gap: 5, justifyContent: "center" }}>
-                {detail.norm?.map((norm, index) => (
+                {detail.norm?.map((norm: any, index: any) => (
                   <View key={index}>
                     <View style={{ padding: 10, backgroundColor: "#d74e4a" }}>
                       <Text style={{ fontSize: 10, textAlign: "center", color: "white" }}>{norm.criteria_name}</Text>
@@ -387,7 +403,7 @@ export const ReportPDFTemplate = async (batchId: string, assesseeId: string, ass
             </>
           ) : (
             <>
-              {detail.subtests.map((sub) => {
+              {detail.subtests.map((sub: any) => {
                 return (
                   <View style={{ margin: "10 25" }} key={sub.subtest_id}>
                     <View style={{ padding: 10, backgroundColor: "#d74e4a" }}>
@@ -396,7 +412,9 @@ export const ReportPDFTemplate = async (batchId: string, assesseeId: string, ass
                       </Text>
                     </View>
                     <View style={{ padding: 10, backgroundColor: "#ffdcdc", marginTop: 2 }}>
-                      <Text style={{ fontSize: 10, textAlign: "justify" }}>{detail.description}</Text>
+                      <Text style={{ fontSize: 10, textAlign: "justify" }}>
+                        {stripHtmlTags(detail.description) || "No description available"}
+                      </Text>
                     </View>
                     <View style={{ margin: "15 25 0 25", display: "flex", flexDirection: "column" }}>
                       {resultChart && resultChart[`${detail.test_code}-${sub.subtest_code}`] ? (
@@ -407,7 +425,7 @@ export const ReportPDFTemplate = async (batchId: string, assesseeId: string, ass
                     </View>
 
                     {(() => {
-                      return sub.result.categories.map((cat, idx) => (
+                      return sub.result.categories.map((cat: any, idx: any) => (
                         <View key={`${idx}-${sub.subtest_id}`}>
                           <View
                             style={{
@@ -521,7 +539,7 @@ export const ReportPDFTemplate = async (batchId: string, assesseeId: string, ass
           </View>
 
           {data.log &&
-            data.log.map((entry, idx) => {
+            data.log.map((entry: any, idx: any) => {
               const formattedDate = moment(entry.created_at).format("DD-MMM-YYYY HH:mm:ss");
               const isEven = idx % 2 === 1;
               return (
