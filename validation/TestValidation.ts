@@ -11,6 +11,7 @@ export class TestValidation {
       .transform((val) => val.toUpperCase()),
     category_id: z.number().positive("Category ID must be a positive number"),
     description: z.string().trim().min(1, "Description is required"),
+    intro_desc: z.string().trim().min(1, "Intro Description is required"),
     subtests: z.array(
       z.object({
         subtest_id: z.string().uuid("Subtest ID must be a valid UUID"),
@@ -37,6 +38,7 @@ export class TestValidation {
     category_id: z.number().positive("Category ID must be a positive number").optional(),
     is_active: z.boolean().optional(),
     description: z.string().trim().min(1, "Description cannot be empty").optional(),
+    intro_desc: z.string().trim().min(1, "Intro Description is required").optional(),
     subtests: z
       .array(
         z

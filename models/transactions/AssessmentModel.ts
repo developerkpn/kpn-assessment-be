@@ -306,7 +306,7 @@ export const getAssessmentSubTest = async (progressHeadId: string, testId: strin
       `
             SELECT 
                 test_name,
-                description
+                intro_desc as description
             FROM 
                 mst_test_head
             WHERE id = $1

@@ -214,6 +214,7 @@ export type TestHeaderRequest = {
   summary_type?: string;
   summary_formula?: string;
   description?: string;
+  intro_desc?: string;
   is_active?: boolean;
   created_by?: string;
   created_at?: Date;
