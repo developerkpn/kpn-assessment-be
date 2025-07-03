@@ -40,7 +40,7 @@ export const ReportPDFTemplate = async (batchId: string, assesseeId: string, ass
   const S3Client = new S3ClientUpload();
   // const logo = fs.readFileSync(path.join(__dirname, "../../assets/KPN_CORP_NEW_LOGO.png"));
   const placeholderImg = fs.readFileSync(path.join(__dirname, "../../assets/place-holder.jpg"));
-  const testDate = moment(data.batch.taken_at).locale("id").format("LLLL");
+  const testDate = moment(data.batch.taken_at).tz("Asia/Jakarta").locale("id").format("LLLL");
 
   //get cover
 
@@ -158,11 +158,13 @@ export const ReportPDFTemplate = async (batchId: string, assesseeId: string, ass
               <Text style={styles.profileColon}>:</Text>
               <Text>{data.profile.assessee_name}</Text>
             </View>
-            <View style={styles.profileRow}>
-              <Text style={styles.profileLabel}>Age</Text>
-              <Text style={styles.profileColon}>:</Text>
-              <Text>{data.profile.assessee_age}</Text>
-            </View>
+            {data.profile.assessee_age && !isNaN(Number(data.profile.assessee_age)) && (
+              <View style={styles.profileRow}>
+                <Text style={styles.profileLabel}>Age</Text>
+                <Text style={styles.profileColon}>:</Text>
+                <Text>{data.profile.assessee_age}</Text>
+              </View>
+            )}
             <View style={styles.profileRow}>
               <Text style={styles.profileLabel}>Gender</Text>
               <Text style={styles.profileColon}>:</Text>
