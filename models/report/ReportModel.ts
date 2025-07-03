@@ -599,14 +599,19 @@ export const getReportLog = async (batchId: string, assesseeId: string) => {
            l.log,
            l.log_code,
            l.created_at
-        from t_batch_log l
+        FROM t_batch_log l
         WHERE l.batch_id = $1 AND l.user_id = $2
         ORDER BY created_at ASC
-    `,
+      `,
       [batchId, assesseeId]
     );
 
-    return result.rows;
+    const formattedLogs = result.rows.map((row: any) => ({
+      ...row,
+      created_at: moment(row.created_at).tz("Asia/Jakarta").format("YYYY-MM-DD HH:mm:ss"),
+    }));
+
+    return formattedLogs;
   } catch (e) {
     throw e;
   } finally {
@@ -635,9 +640,18 @@ export const getAssesseeListForReport = async (batchId: string) => {
       [batchId]
     );
 
-    return result.rows;
+    const formatted = result.rows.map((row: any) => ({
+      ...row,
+      first_taken_subtest_at: row.first_taken_subtest_at
+        ? moment(row.first_taken_subtest_at).tz("Asia/Jakarta").format("YYYY-MM-DD HH:mm:ss")
+        : null,
+      last_finished_subtest_at: row.last_finished_subtest_at
+        ? moment(row.last_finished_subtest_at).tz("Asia/Jakarta").format("YYYY-MM-DD HH:mm:ss")
+        : null,
+    }));
+
+    return formatted;
   } catch (e) {
-    console.error("Error fetching assessee list for report:", e);
     throw e;
   } finally {
     client.release();

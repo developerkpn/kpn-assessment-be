@@ -223,7 +223,7 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
       // Jika waktu sudah habis, lempar error
       if (now.isAfter(shouldBeFinishedAt)) {
         const payload = {
-          submit_at: new Date(),
+          submit_at: moment().tz("Asia/Jakarta"),
           status: "Completed",
         };
         await assessmentSubmission(progressDetailId, payload);
@@ -408,7 +408,7 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
 
       // Membuat payload untuk update assessment (mengonversi kembali ke objek Date jika diperlukan)
       const updatePayload = {
-        taken_at: takenAt.toDate(),
+        taken_at: takenAt,
         status: "In Progress",
       };
 
@@ -488,7 +488,7 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
       const shouldBeFinishedAt = moment(takenAt).add(subtestDuration);
 
       const updatePayload = {
-        taken_at: takenAt.toDate(),
+        taken_at: takenAt,
         should_be_finished_at: shouldBeFinishedAt.toDate(),
         status: "In Progress",
       };
@@ -597,7 +597,7 @@ export const handleSubmissionConfirmation = async (req: Request, res: Response, 
       throw new ResponseError(400, "Subtest's already submitted");
     } else {
       const payload = {
-        submit_at: new Date(),
+        submit_at: moment().tz("Asia/Jakarta"),
         status: "Completed",
       };
 
@@ -711,7 +711,7 @@ export const handleStoringLog = async (req: Request, res: Response, next: NextFu
       id: uuid(),
       batch_id: tokenDecode.batch_id,
       subtest_id: subtestId,
-      created_at: moment(),
+      created_at: moment().tz("Asia/Jakarta"),
       user_id: tokenDecode.user_id,
       log: req.body.log,
       log_code: req.body.log_code,

@@ -422,16 +422,60 @@ export const publishBatch = async (id: string, status: string) => {
   const client = await db.connect();
   try {
     await client.query(TRANS.BEGIN);
-    console.log("masuk query");
-
     const [Q, V] = updateQuery("t_batch_head", { status: status }, { id: id }, "template_email_id");
-    console.log("keluar query");
     const updateStatus = await client.query(Q, V);
-    console.log("keluar query 2");
-
+    // const is_active = true;
+    // const groupTestData: any = await client.query(
+    //   `
+    //   SELECT grouptest_id
+    //   FROM t_batch_head
+    //   WHERE id = $1
+    // `,
+    //   [id]
+    // );
+    //
+    // console.log("grouptest data", groupTestData);
+    //
+    // // Update group test head
+    // const [updateGTQ, updateGTV] = updateQuery("mst_grouptest_head", is_active, { id: id });
+    // await client.query(updateGTQ, updateGTV);
+    //
+    // // Cari test dari group test
+    // const testsData: any = await client.query(
+    //   `
+    //     SELECT
+    //         test_id
+    //     FROM mst_test_det
+    //     WHERE grouptest_id = $1
+    //     `,
+    //   [groupTestData.id]
+    // );
+    //
+    // // Update test-test head
+    // let subtestData;
+    // let seriesData;
+    // let questionData;
+    //
+    // for (const testDatas of testsData) {
+    //   const [updateTQ, updateTV] = updateQuery("mst_test_head", is_active, { id: testDatas.test_id });
+    //   await client.query(updateTQ, updateTV);
+    // }
+    //
+    // // Cari masing-masing subtest dari test
+    //
+    // // for
+    //
+    // // Update masing-masing subtest head
+    // // Cari masing-masing series dari subtest
+    // // Update masing-masing dari series head
+    // // Cari masing-masing question dari series
+    // // Update masing-masing question head
+    //
+    // // const [updateTQ];
     await client.query(TRANS.COMMIT);
     console.log("disini");
     console.log(updateStatus.rows[0].template_email_id);
+
     return updateStatus.rows[0].template_email_id;
   } catch (error) {
     console.error(error);

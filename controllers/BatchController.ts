@@ -468,9 +468,7 @@ export const handleDeleteBatchAssessee = async (req: Request, res: Response, nex
   try {
     const validatedBatchId = Validation.validate(BatchValidation.ID, req.params.id);
     const validateAssesseeId = Validation.validate(BatchValidation.ID, req.params.assesseeId);
-    console.log("halo");
     await deleteBatchAssessee(validatedBatchId, validateAssesseeId);
-    console.log("halo 2");
     res.status(200).send({
       message: "Success!",
     });
