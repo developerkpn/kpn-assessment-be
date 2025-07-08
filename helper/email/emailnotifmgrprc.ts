@@ -3,7 +3,7 @@ export const emailTemplateHTML = `
 <html lang="en">
     <head>
         <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Email Notification</title>
         <link
             href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700&display=swap"
@@ -53,7 +53,7 @@ export const emailTemplateHTML = `
 
             .body-content {
                 word-wrap: break-word;
-                white-space: normal
+                white-space: normal;
             }
 
             .section-detail > td {
@@ -71,6 +71,8 @@ export const emailTemplateHTML = `
             /* What it does: Uses a better rendering method when resizing images in IE. */
             img {
                 -ms-interpolation-mode: bicubic;
+                max-width: 100% !important;
+                height: auto !important;
             }
 
             /* What it does: Prevents Windows 10 Mail from underlining links despite inline CSS. Styles for underlined links should be inline. */
@@ -79,9 +81,9 @@ export const emailTemplateHTML = `
             }
 
             /* What it does: A work-around for email clients meddling in triggered links. */
-            *[x-apple-data-detectors],  /* iOS */
-        .unstyle-auto-detected-links *,
-        .aBn {
+            *[x-apple-data-detectors],
+            .unstyle-auto-detected-links *,
+            .aBn {
                 border-bottom: 0 !important;
                 cursor: default !important;
                 color: inherit !important;
@@ -140,8 +142,58 @@ export const emailTemplateHTML = `
                 background-color: #f2f2f2;
             }
 
-            /* What it does: Removes right gutter in Gmail iOS app: https://github.com/TedGoas/Cerberus/issues/89  */
-            /* Create one of these media queries for each additional viewport size you'd like to fix */
+            /* iOS specific fixes */
+            @media only screen and (max-width: 600px) {
+                .email-container {
+                    width: 100% !important;
+                    max-width: 100% !important;
+                }
+                
+                .responsive-table {
+                    width: 100% !important;
+                }
+                
+                .responsive-td {
+                    display: block !important;
+                    width: 100% !important;
+                    text-align: left !important;
+                    padding: 0.5em 1em !important;
+                }
+                
+                .detail-row {
+                    display: block !important;
+                    width: 100% !important;
+                }
+                
+                .detail-label {
+                    display: block !important;
+                    width: 100% !important;
+                    font-weight: bold !important;
+                    margin-bottom: 0.2em !important;
+                }
+                
+                .detail-separator {
+                    display: none !important;
+                }
+                
+                .detail-value {
+                    display: block !important;
+                    width: 100% !important;
+                    margin-bottom: 1em !important;
+                }
+                
+                .title {
+                    font-size: 18pt !important;
+                }
+                
+                .section-detail {
+                    font-size: 14pt !important;
+                }
+                
+                .detail {
+                    font-size: 12pt !important;
+                }
+            }
 
             /* iPhone 4, 4S, 5, 5S, 5C, and 5SE */
             @media only screen and (min-device-width: 320px) and (max-device-width: 374px) {
@@ -163,9 +215,7 @@ export const emailTemplateHTML = `
             }
         </style>
 
-        <!-- CSS Reset : END -->
-
-        <!-- Progressive Enhancements : BEGIN -->
+        <!-- Progressive Enhancements -->
         <style>
             .primary {
                 background: #2f89fc;
@@ -237,10 +287,7 @@ export const emailTemplateHTML = `
                 color: #2f89fc;
             }
 
-            table {
-            }
             /*LOGO*/
-
             .logo h1 {
                 margin: 0;
             }
@@ -337,7 +384,6 @@ export const emailTemplateHTML = `
             }
 
             /*FOOTER*/
-
             .footer {
                 color: rgba(255, 255, 255, 0.5);
             }
@@ -358,6 +404,9 @@ export const emailTemplateHTML = `
             }
 
             @media screen and (max-width: 500px) {
+                .email-section {
+                    padding: 1.5em !important;
+                }
             }
         </style>
     </head>
@@ -367,14 +416,15 @@ export const emailTemplateHTML = `
             margin: 0;
             padding: 0 !important;
             mso-line-height-rule: exactly;
-            background-color: #222222;
+            background-color: #f1f1f1;
         "
     >
         <center style="width: 100%; background-color: #f1f1f1">
             <div
-                style="max-width: 1000px; margin: 0 auto"
+                style="max-width: 600px; margin: 0 auto; width: 100%;"
                 class="email-container"
             >
+                <!-- Main Content Table -->
                 <table
                     align="center"
                     role="presentation"
@@ -382,14 +432,15 @@ export const emailTemplateHTML = `
                     cellpadding="0"
                     border="0"
                     width="100%"
-                    style="margin: auto"
-                    class="bg_white"
+                    style="margin: auto; width: 100%;"
+                    class="bg_white responsive-table"
                 >
+                    <!-- Logo Section -->
                     <tr>
                         <td
                             valign="top"
                             class="bg_white"
-                            style="padding: 1em 2.5em"
+                            style="padding: 1em 2.5em; width: 100%;"
                         >
                             <table
                                 role="presentation"
@@ -403,131 +454,139 @@ export const emailTemplateHTML = `
                                         <img
                                             width="40%"
                                             src="https://safetyfirstindonesia.co.id/assets/uploads/images/9f09b-kpn-corp.png"
+                                            style="max-width: 200px; height: auto;"
                                         />
                                     </td>
                                 </tr>
                             </table>
                         </td>
                     </tr>
+                    
+                    <!-- Body Content -->
                     <tr>
-                        <table style="width: 100%">
-                            <tr>
-                                <td
-                                    valign="top"
-                                    class="body-content, bg_white"
-                                    style="padding: 1em 2.5em"
-                                >
-                                    <h1 class="title">{{title}}</h1>
-                                    <p style="word-wrap: break-word; white-space: normal;">{{{header}}}</p>
-                                    <p style="word-wrap: break-word; white-space: normal;">{{{body}}}</p>
-                                </td>
-                            </tr>
-                        </table>
+                        <td
+                            valign="top"
+                            class="body-content bg_white responsive-td"
+                            style="padding: 1em 2.5em; width: 100%;"
+                        >
+                            <h1 class="title">{{title}}</h1>
+                            <p style="word-wrap: break-word; white-space: normal;">{{{header}}}</p>
+                            <p style="word-wrap: break-word; white-space: normal;">{{{body}}}</p>
+                        </td>
                     </tr>
+                    
+                    <!-- Assessment Details Header -->
                     <tr>
-                        <table class="bg_white" width="100%">
-                            <tr class="section-detail">
-                                <td>Assessment Details</td>
-                            </tr>
-                        </table>
+                        <td class="bg_white" style="width: 100%;">
+                            <table class="bg_white responsive-table" width="100%">
+                                <tr class="section-detail">
+                                    <td style="padding: 0.5em 2.5em;">Assessment Details</td>
+                                </tr>
+                            </table>
+                        </td>
                     </tr>
+                    
+                    <!-- Assessment Details Content -->
                     <tr>
-                        <table class="bg_white" width="100%">
-                            <tr class="detail">
-                                <td width="20%" style="padding: 0.1em 2.5em">
-                                    Batch Name
-                                </td>
-                                <td style="padding: 0.1em 2.5em" width="1%">
-                                    :
-                                </td>
-                                <td style="padding: 0.1em 2.5em">
-                                    {{batch_name}}
-                                </td>
-                            </tr>
-                            <tr class="detail">
-                                <td width="20%" style="padding: 0.1em 2.5em">
-                                    Batch Code
-                                </td>
-                                <td style="padding: 0.1em 2.5em" width="1%">
-                                    :
-                                </td>
-                                <td style="padding: 0.1em 2.5em">
-                                    {{batch_code}}
-                                </td>
-                            </tr>
-                            <tr class="detail">
-                                <td width="20%" style="padding: 0.1em 2.5em">
-                                    Business Unit
-                                </td>
-                                <td style="padding: 0.1em 2.5em" width="1%">
-                                    :
-                                </td>
-                                <td style="padding: 0.1em 2.5em">
-                                    {{bu_name}}
-                                </td>
-                            </tr>
-                            <tr class="detail">
-                                <td width="20%" style="padding: 0.1em 2.5em">
-                                    Purpose
-                                </td>
-                                <td style="padding: 0.1em 2.5em" width="1%">
-                                    :
-                                </td>
-                                <td style="padding: 0.1em 2.5em">
-                                    {{fm_name}}
-                                </td>
-                            </tr>
-                            <tr class="detail">
-                                <td width="20%" style="padding: 0.1em 2.5em">
-                                    Start Period
-                                </td>
-                                <td style="padding: 0.1em 2.5em" width="1%">
-                                    :
-                                </td>
-                                <td style="padding: 0.1em 2.5em">
-                                    {{start_period}}
-                                </td>
-                            </tr>
-                            <tr class="detail">
-                                <td width="20%" style="padding: 0.1em 2.5em">
-                                    End Period
-                                </td>
-                                <td style="padding: 0.1em 2.5em" width="1%">
-                                    :
-                                </td>
-                                <td style="padding: 0.1em 2.5em">
-                                    {{end_period}}
-                                </td>
-                            </tr>
-                            <tr class="detail">
-                                <td width="20%" style="padding: 0.1em 2.5em">
-                                    Link
-                                </td>
-                                <td style="padding: 0.1em 2.5em" width="1%">
-                                    :
-                                </td>
-                                <td style="padding: 0.1em 2.5em">
-                                    <a href={{ batch_link }}>Click this link</a>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td style="padding-top: 1rem"></td>
-                            </tr>
-                        </table>
+                        <td class="bg_white" style="width: 100%;">
+                            <table class="bg_white responsive-table" width="100%">
+                                <tr class="detail detail-row">
+                                    <td class="detail-label" style="padding: 0.1em 2.5em; width: 20%;">
+                                        Batch Name
+                                    </td>
+                                    <td class="detail-separator" style="padding: 0.1em 0.5em; width: 1%;">
+                                        :
+                                    </td>
+                                    <td class="detail-value" style="padding: 0.1em 2.5em;">
+                                        {{batch_name}}
+                                    </td>
+                                </tr>
+                                <tr class="detail detail-row">
+                                    <td class="detail-label" style="padding: 0.1em 2.5em; width: 20%;">
+                                        Batch Code
+                                    </td>
+                                    <td class="detail-separator" style="padding: 0.1em 0.5em; width: 1%;">
+                                        :
+                                    </td>
+                                    <td class="detail-value" style="padding: 0.1em 2.5em;">
+                                        {{batch_code}}
+                                    </td>
+                                </tr>
+                                <tr class="detail detail-row">
+                                    <td class="detail-label" style="padding: 0.1em 2.5em; width: 20%;">
+                                        Business Unit
+                                    </td>
+                                    <td class="detail-separator" style="padding: 0.1em 0.5em; width: 1%;">
+                                        :
+                                    </td>
+                                    <td class="detail-value" style="padding: 0.1em 2.5em;">
+                                        {{bu_name}}
+                                    </td>
+                                </tr>
+                                <tr class="detail detail-row">
+                                    <td class="detail-label" style="padding: 0.1em 2.5em; width: 20%;">
+                                        Purpose
+                                    </td>
+                                    <td class="detail-separator" style="padding: 0.1em 0.5em; width: 1%;">
+                                        :
+                                    </td>
+                                    <td class="detail-value" style="padding: 0.1em 2.5em;">
+                                        {{fm_name}}
+                                    </td>
+                                </tr>
+                                <tr class="detail detail-row">
+                                    <td class="detail-label" style="padding: 0.1em 2.5em; width: 20%;">
+                                        Start Period
+                                    </td>
+                                    <td class="detail-separator" style="padding: 0.1em 0.5em; width: 1%;">
+                                        :
+                                    </td>
+                                    <td class="detail-value" style="padding: 0.1em 2.5em;">
+                                        {{start_period}}
+                                    </td>
+                                </tr>
+                                <tr class="detail detail-row">
+                                    <td class="detail-label" style="padding: 0.1em 2.5em; width: 20%;">
+                                        End Period
+                                    </td>
+                                    <td class="detail-separator" style="padding: 0.1em 0.5em; width: 1%;">
+                                        :
+                                    </td>
+                                    <td class="detail-value" style="padding: 0.1em 2.5em;">
+                                        {{end_period}}
+                                    </td>
+                                </tr>
+                                <tr class="detail detail-row">
+                                    <td class="detail-label" style="padding: 0.1em 2.5em; width: 20%;">
+                                        Link
+                                    </td>
+                                    <td class="detail-separator" style="padding: 0.1em 0.5em; width: 1%;">
+                                        :
+                                    </td>
+                                    <td class="detail-value" style="padding: 0.1em 2.5em;">
+                                        <a href="{{batch_link}}" style="color: #2f89fc; text-decoration: none;">Click this link</a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td colspan="3" style="padding-top: 1rem;"></td>
+                                </tr>
+                            </table>
+                        </td>
                     </tr>
+                    
+                    <!-- Footer Content -->
                     <tr>
-                        <table style="width: 100%">
-                            <tr>
-                                <td
-                                        valign="top"
-                                        class="bg_white"
-                                        style="padding: 1em 2.5em">
-                                    <p style="word-wrap: break-word; white-space: normal;">{{{footer}}}</p>
-                                </td>
-                            </tr>
-                        </table>
+                        <td
+                            valign="top"
+                            class="bg_white responsive-td"
+                            style="padding: 1em 2.5em; width: 100%;"
+                        >
+                            <p style="word-wrap: break-word; white-space: normal;">{{{footer}}}</p>
+                        </td>
                     </tr>
                 </table>
+                
+                <!-- Copyright Footer -->
                 <table
                     align="center"
                     role="presentation"
@@ -535,16 +594,20 @@ export const emailTemplateHTML = `
                     cellpadding="0"
                     border="0"
                     width="100%"
-                    style="margin: auto"
+                    style="margin: auto; width: 100%;"
+                    class="responsive-table"
                 >
                     <tr>
                         <td
                             valign="middle"
                             class="bg_black footer email-section"
+                            style="color: rgba(255, 255, 255, 0.5); text-align: center; padding: 1.5em;"
                         >
-                            <table>
+                            <table width="100%">
                                 <tr>
-                                    <td>KPN Corp Copyright 2025</td>
+                                    <td style="text-align: center; color: rgba(255, 255, 255, 0.5);">
+                                        KPN Corp Copyright 2025
+                                    </td>
                                 </tr>
                             </table>
                         </td>

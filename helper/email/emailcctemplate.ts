@@ -3,7 +3,7 @@ export const emailCCTemplate = `
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Email Notification</title>
     <link
             href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700&display=swap"
@@ -38,16 +38,16 @@ export const emailCCTemplate = `
         }
 
         .detail {
-            font-size: 10pt;
+            font-size: 14px !important;
         }
 
         .title {
-            font-size: 24pt;
+            font-size: 24px !important;
             font-weight: bold;
         }
 
         .section-detail {
-            font-size: 12pt;
+            font-size: 16px !important;
             font-weight: bold;
         }
 
@@ -57,7 +57,7 @@ export const emailCCTemplate = `
         }
 
         .section-detail > td {
-            padding: 0.1em 2.5em;
+            padding: 0.5em 2.5em !important;
         }
 
         /* What it does: Fixes webkit padding issue. */
@@ -71,6 +71,8 @@ export const emailCCTemplate = `
         /* What it does: Uses a better rendering method when resizing images in IE. */
         img {
             -ms-interpolation-mode: bicubic;
+            max-width: 100% !important;
+            height: auto !important;
         }
 
         /* What it does: Prevents Windows 10 Mail from underlining links despite inline CSS. Styles for underlined links should be inline. */
@@ -115,22 +117,18 @@ export const emailCCTemplate = `
         }
 
         #tabledet th {
-            padding-top: 12px;
-            padding-bottom: 12px;
-            padding-left: 10px;
-            padding-right: 10px;
+            padding: 12px 10px !important;
             text-align: left;
-            font-size: 8pt;
+            font-size: 12px !important;
             background-color: #800000;
             color: white;
         }
 
         #tabledet td {
-            font-size: 8pt;
-            padding: 1rem;
+            font-size: 12px !important;
+            padding: 1rem !important;
             font-weight: 800;
             color: rgb(0, 0, 0);
-            width: 100px;
             border: 1px solid white;
             background-color: #ffd1d1;
             border-collapse: collapse;
@@ -140,25 +138,84 @@ export const emailCCTemplate = `
             background-color: #f2f2f2;
         }
 
-        /* What it does: Removes right gutter in Gmail iOS app: https://github.com/TedGoas/Cerberus/issues/89  */
-        /* Create one of these media queries for each additional viewport size you'd like to fix */
+        /* iOS Mail specific fixes */
+        @media only screen and (max-device-width: 480px) {
+            .email-container {
+                width: 100% !important;
+                max-width: 100% !important;
+            }
+            
+            .detail {
+                font-size: 16px !important;
+            }
+            
+            .title {
+                font-size: 28px !important;
+            }
+            
+            .section-detail {
+                font-size: 18px !important;
+            }
+            
+            .section-detail > td {
+                padding: 0.8em 1.5em !important;
+            }
+            
+            table[class="bg_white"] {
+                width: 100% !important;
+            }
+            
+            td[style*="padding: 0.1em 2.5em"] {
+                padding: 0.5em 1.5em !important;
+            }
+        }
 
         /* iPhone 4, 4S, 5, 5S, 5C, and 5SE */
         @media only screen and (min-device-width: 320px) and (max-device-width: 374px) {
             u ~ div .email-container {
                 min-width: 320px !important;
+                width: 100% !important;
             }
         }
         /* iPhone 6, 6S, 7, 8, and X */
         @media only screen and (min-device-width: 375px) and (max-device-width: 413px) {
             u ~ div .email-container {
                 min-width: 375px !important;
+                width: 100% !important;
             }
         }
         /* iPhone 6+, 7+, and 8+ */
         @media only screen and (min-device-width: 414px) {
             u ~ div .email-container {
                 min-width: 414px !important;
+                width: 100% !important;
+            }
+        }
+        
+        /* Additional iOS fixes */
+        @media only screen and (max-width: 600px) {
+            .email-container {
+                width: 100% !important;
+                max-width: 100% !important;
+            }
+            
+            table[role="presentation"] {
+                width: 100% !important;
+            }
+            
+            .logo img {
+                width: 60% !important;
+                max-width: 200px !important;
+            }
+            
+            .detail td {
+                font-size: 14px !important;
+                padding: 0.5em 1em !important;
+            }
+            
+            .body-content {
+                font-size: 16px !important;
+                line-height: 1.6 !important;
             }
         }
     </style>
@@ -358,6 +415,9 @@ export const emailCCTemplate = `
         }
 
         @media screen and (max-width: 500px) {
+            .email-section {
+                padding: 1.5em !important;
+            }
         }
     </style>
 </head>
@@ -367,12 +427,12 @@ export const emailCCTemplate = `
             margin: 0;
             padding: 0 !important;
             mso-line-height-rule: exactly;
-            background-color: #222222;
+            background-color: #f1f1f1;
         "
 >
 <center style="width: 100%; background-color: #f1f1f1">
     <div
-            style="max-width: 1000px; margin: 0 auto"
+            style="max-width: 600px; margin: 0 auto; width: 100%;"
             class="email-container"
     >
         <table
@@ -402,7 +462,9 @@ export const emailCCTemplate = `
                             <td class="logo" style="text-align: left">
                                 <img
                                         width="40%"
+                                        style="max-width: 200px; height: auto; display: block;"
                                         src="https://safetyfirstindonesia.co.id/assets/uploads/images/9f09b-kpn-corp.png"
+                                        alt="KPN Corp Logo"
                                 />
                             </td>
                         </tr>
@@ -410,122 +472,118 @@ export const emailCCTemplate = `
                 </td>
             </tr>
             <tr>
-                <table style="width: 100%">
-                    <tr>
-                        <td
-                                valign="top"
-                                class="body-content, bg_white"
-                                style="padding: 1em 2.5em"
-                        >
-                            <h1 class="title">Assessment's Published</h1>
-                            <p style="word-wrap: break-word; white-space: normal;">Dear HR Team,</p>
-                            <p style="word-wrap: break-word; white-space: normal;">We would like to inform you that batch with details below is already published. Please check Assessment Website to see more details.</p>
-                        </td>
-                    </tr>
-                </table>
+                <td
+                        valign="top"
+                        class="body-content bg_white"
+                        style="padding: 1em 2.5em"
+                >
+                    <h1 class="title" style="margin: 0 0 1em 0; font-size: 24px; font-weight: bold;">Assessment's Published</h1>
+                    <p style="word-wrap: break-word; white-space: normal; font-size: 15px; line-height: 1.6; margin: 0 0 1em 0;">Dear HR Team,</p>
+                    <p style="word-wrap: break-word; white-space: normal; font-size: 15px; line-height: 1.6; margin: 0 0 1em 0;">We would like to inform you that batch with details below is already published. Please check Assessment Website to see more details.</p>
+                </td>
             </tr>
             <tr>
-                <table class="bg_white" width="100%">
-                    <tr class="section-detail">
-                        <td>Assessment Details</td>
-                    </tr>
-                </table>
+                <td class="bg_white" style="padding: 0;">
+                    <table class="bg_white" width="100%" cellpadding="0" cellspacing="0" border="0">
+                        <tr class="section-detail">
+                            <td style="padding: 0.5em 2.5em; font-size: 16px; font-weight: bold;">Assessment Details</td>
+                        </tr>
+                    </table>
+                </td>
             </tr>
             <tr>
-                <table class="bg_white" width="100%">
-                    <tr class="detail">
-                        <td width="20%" style="padding: 0.1em 2.5em">
-                            Batch Name
-                        </td>
-                        <td style="padding: 0.1em 2.5em" width="1%">
-                            :
-                        </td>
-                        <td style="padding: 0.1em 2.5em">
-                            {{batch_name}}
-                        </td>
-                    </tr>
-                    <tr class="detail">
-                        <td width="20%" style="padding: 0.1em 2.5em">
-                            Batch Code
-                        </td>
-                        <td style="padding: 0.1em 2.5em" width="1%">
-                            :
-                        </td>
-                        <td style="padding: 0.1em 2.5em">
-                            {{batch_code}}
-                        </td>
-                    </tr>
-                    <tr class="detail">
-                        <td width="20%" style="padding: 0.1em 2.5em">
-                            Bussiness Unit
-                        </td>
-                        <td style="padding: 0.1em 2.5em" width="1%">
-                            :
-                        </td>
-                        <td style="padding: 0.1em 2.5em">
-                            {{bu_name}}
-                        </td>
-                    </tr>
-                    <tr class="detail">
-                        <td width="20%" style="padding: 0.1em 2.5em">
-                            Purpose
-                        </td>
-                        <td style="padding: 0.1em 2.5em" width="1%">
-                            :
-                        </td>
-                        <td style="padding: 0.1em 2.5em">
-                            {{fm_name}}
-                        </td>
-                    </tr>
-                    <tr class="detail">
-                        <td width="20%" style="padding: 0.1em 2.5em">
-                            Start Period
-                        </td>
-                        <td style="padding: 0.1em 2.5em" width="1%">
-                            :
-                        </td>
-                        <td style="padding: 0.1em 2.5em">
-                            {{start_period}}
-                        </td>
-                    </tr>
-                    <tr class="detail">
-                        <td width="20%" style="padding: 0.1em 2.5em">
-                            End Period
-                        </td>
-                        <td style="padding: 0.1em 2.5em" width="1%">
-                            :
-                        </td>
-                        <td style="padding: 0.1em 2.5em">
-                            {{end_period}}
-                        </td>
-                    </tr>
-                    <tr class="detail">
-                        <td width="20%" style="padding: 0.1em 2.5em">
-                            Total of Assessees
-                        </td>
-                        <td style="padding: 0.1em 2.5em" width="1%">
-                            :
-                        </td>
-                        <td style="padding: 0.1em 2.5em">
-                            {{total_assessee}}
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style="padding-top: 1rem"></td>
-                    </tr>
-                </table>
+                <td class="bg_white" style="padding: 0;">
+                    <table class="bg_white" width="100%" cellpadding="0" cellspacing="0" border="0">
+                        <tr class="detail">
+                            <td style="padding: 0.5em 2.5em; font-size: 14px; width: 35%; vertical-align: top;">
+                                Batch Name
+                            </td>
+                            <td style="padding: 0.5em 0.5em; font-size: 14px; width: 2%; vertical-align: top;">
+                                :
+                            </td>
+                            <td style="padding: 0.5em 2.5em 0.5em 0; font-size: 14px; vertical-align: top;">
+                                {{batch_name}}
+                            </td>
+                        </tr>
+                        <tr class="detail">
+                            <td style="padding: 0.5em 2.5em; font-size: 14px; width: 35%; vertical-align: top;">
+                                Batch Code
+                            </td>
+                            <td style="padding: 0.5em 0.5em; font-size: 14px; width: 2%; vertical-align: top;">
+                                :
+                            </td>
+                            <td style="padding: 0.5em 2.5em 0.5em 0; font-size: 14px; vertical-align: top;">
+                                {{batch_code}}
+                            </td>
+                        </tr>
+                        <tr class="detail">
+                            <td style="padding: 0.5em 2.5em; font-size: 14px; width: 35%; vertical-align: top;">
+                                Business Unit
+                            </td>
+                            <td style="padding: 0.5em 0.5em; font-size: 14px; width: 2%; vertical-align: top;">
+                                :
+                            </td>
+                            <td style="padding: 0.5em 2.5em 0.5em 0; font-size: 14px; vertical-align: top;">
+                                {{bu_name}}
+                            </td>
+                        </tr>
+                        <tr class="detail">
+                            <td style="padding: 0.5em 2.5em; font-size: 14px; width: 35%; vertical-align: top;">
+                                Purpose
+                            </td>
+                            <td style="padding: 0.5em 0.5em; font-size: 14px; width: 2%; vertical-align: top;">
+                                :
+                            </td>
+                            <td style="padding: 0.5em 2.5em 0.5em 0; font-size: 14px; vertical-align: top;">
+                                {{fm_name}}
+                            </td>
+                        </tr>
+                        <tr class="detail">
+                            <td style="padding: 0.5em 2.5em; font-size: 14px; width: 35%; vertical-align: top;">
+                                Start Period
+                            </td>
+                            <td style="padding: 0.5em 0.5em; font-size: 14px; width: 2%; vertical-align: top;">
+                                :
+                            </td>
+                            <td style="padding: 0.5em 2.5em 0.5em 0; font-size: 14px; vertical-align: top;">
+                                {{start_period}}
+                            </td>
+                        </tr>
+                        <tr class="detail">
+                            <td style="padding: 0.5em 2.5em; font-size: 14px; width: 35%; vertical-align: top;">
+                                End Period
+                            </td>
+                            <td style="padding: 0.5em 0.5em; font-size: 14px; width: 2%; vertical-align: top;">
+                                :
+                            </td>
+                            <td style="padding: 0.5em 2.5em 0.5em 0; font-size: 14px; vertical-align: top;">
+                                {{end_period}}
+                            </td>
+                        </tr>
+                        <tr class="detail">
+                            <td style="padding: 0.5em 2.5em; font-size: 14px; width: 35%; vertical-align: top;">
+                                Total of Assessees
+                            </td>
+                            <td style="padding: 0.5em 0.5em; font-size: 14px; width: 2%; vertical-align: top;">
+                                :
+                            </td>
+                            <td style="padding: 0.5em 2.5em 0.5em 0; font-size: 14px; vertical-align: top;">
+                                {{total_assessee}}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="padding-top: 1rem" colspan="3"></td>
+                        </tr>
+                    </table>
+                </td>
             </tr>
             <tr>
-                <table style="width: 100%">
-                    <tr>
-                        <td
-                                valign="top"
-                                class="bg_white"
-                                style="padding: 1em 2.5em">
-                            <p style="word-wrap: break-word; white-space: normal;">Thank you!</p>
-                        </td>
-                    </tr>
-                </table>
+                <td
+                        valign="top"
+                        class="bg_white"
+                        style="padding: 1em 2.5em">
+                    <p style="word-wrap: break-word; white-space: normal; font-size: 15px; line-height: 1.6; margin: 0;">Thank you!</p>
+                </td>
             </tr>
         </table>
         <table
@@ -541,10 +599,13 @@ export const emailCCTemplate = `
                 <td
                         valign="middle"
                         class="bg_black footer email-section"
+                        style="padding: 2.5em; text-align: center;"
                 >
-                    <table>
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0">
                         <tr>
-                            <td>KPN Corp Copyright 2025</td>
+                            <td style="color: rgba(255, 255, 255, 0.8); font-size: 14px; text-align: center;">
+                                KPN Corp Copyright 2025
+                            </td>
                         </tr>
                     </table>
                 </td>
