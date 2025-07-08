@@ -34,7 +34,7 @@ export const getBatchForReport = async () => {
       r.id AS report_id
       FROM t_batch_head b
       LEFT JOIN report_head r ON b.id = r.batch_id
-      WHERE b.end_period < NOW()
+      WHERE b.status = 'Published'
       ORDER BY end_period DESC
     `);
 
