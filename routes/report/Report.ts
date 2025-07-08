@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   handleCreateReportForBatch,
+  handleDeleteCover,
   handleDownloadBatchReport,
   handleGetAllCover,
   handleGetAssesseeListForReport,
@@ -38,6 +39,7 @@ Report.patch("/design/:reportId", handleUpdateReportDesign);
 Report.get("/template/:batchId", handleGetBatchInformationForReport);
 Report.post("/uploadcover", handleUploadCover, errorMiddleware);
 Report.get("/cover/:id", handleGetCover, errorMiddleware);
+Report.delete("/cover/:id", handleDeleteCover);
 Report.get("/allcover", handleGetAllCover, errorMiddleware);
 Report.get("/pdfgen", PDFController.RenderReport);
 Report.get("/download/:batchId", handleDownloadBatchReport);

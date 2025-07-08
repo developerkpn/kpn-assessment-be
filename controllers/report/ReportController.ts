@@ -9,6 +9,7 @@ import {
   getBatchInformationForReport,
   getCategoryCriteriaModel,
   getCoverbyID,
+  getCoverDetailData,
   getGenerateStatus,
   getIntroData,
   getPersonalReportData,
@@ -30,6 +31,9 @@ import { v7 as uuid } from "uuid";
 import path from "path";
 import fs from "fs";
 import { IncomingForm } from "formidable";
+import { fileURLToPath } from "url";
+const __filename = fileURLToPath(import.meta.url); // get the resolved path to the file
+const __dirname = path.dirname(__filename); // get the name of the directory
 /**
  * Controller to get batch information with test count by category
  */
@@ -679,5 +683,38 @@ export const handleGetAllCover = async (req: Request, res: Response, next: NextF
     res.status(500).send({
       message: (error as Error).message,
     });
+  }
+};
+
+export const handleDeleteCover = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    console.log("masuk");
+    const dir = path.join(__dirname, `../../uploads/cover/`);
+    const { file_name } = await getCoverDetailData(req.params.id);
+    console.log("filename", file_name);
+    fs.readdir(dir, (err, files) => {
+      if (err) {
+        console.error(err);
+        return;
+      }
+
+      const matchingFile = files.find((file) => file === `${file_name}`);
+      console.log("matching", matchingFile);
+      if (matchingFile) {
+        const filePath = path.join(dir, matchingFile);
+
+        fs.unlink(filePath, (err) => {
+          if (err) {
+            throw err;
+          }
+        });
+      }
+    });
+
+    res.status(200).send({
+      message: "Success!",
+    });
+  } catch (e) {
+    next(e);
   }
 };
