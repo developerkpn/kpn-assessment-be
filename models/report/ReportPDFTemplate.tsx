@@ -42,8 +42,6 @@ export const ReportPDFTemplate = async (batchId: string, assesseeId: string, ass
   const placeholderImg = fs.readFileSync(path.join(__dirname, "../../assets/place-holder.jpg"));
   const testDate = moment(data.batch.taken_at).tz("Asia/Jakarta").locale("id").format("LLLL");
 
-  //get cover
-
   const cover = await ClientAction(async (client) => {
     try {
       const { rows, rowCount: is_exist } = await client.query(`select file_name from mst_image_cover where uid = $1`, [

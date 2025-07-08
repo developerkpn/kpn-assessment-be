@@ -1054,9 +1054,9 @@ export const proceedDetail = async (batchId: string, assesseeEmail: string): Pro
         } else if (test.summary_type === "category") {
           // if summary type is category, category will be spread
           const resultByCategory: any = await getPersonalReportData(batchId, assesseeEmail, "category", test.test_id);
-          let maxPoint = -Infinity;
-          let bestCategory = null;
-          let bestCriteria = null;
+          let maxPoint: number = -Infinity;
+          let bestCategory;
+          let bestCriteria;
 
           for (const category of resultByCategory) {
             const subtestId = category.subtest_id;
@@ -1082,7 +1082,18 @@ export const proceedDetail = async (batchId: string, assesseeEmail: string): Pro
               categoryPoint = Number(category.category_point);
               criteria = await proceedSubtestCriteria(category.category_criteria_id, categoryPoint);
             } else if (test.summary_formula === "avg") {
-              categoryPoint = Number(category.category_point_avg);
+              const rawPoint = Number(category.category_point_avg);
+
+              // Custom rounding rules
+              const decimal = rawPoint % 1;
+              if (decimal > 0.5) {
+                categoryPoint = Math.ceil(rawPoint); // Naik
+              } else if (decimal < 0.5) {
+                categoryPoint = Math.floor(rawPoint); // Turun
+              } else {
+                categoryPoint = Math.trunc(rawPoint); // Tetap
+              }
+
               criteria = await proceedSubtestCriteria(category.category_criteria_id, categoryPoint);
             }
 
@@ -1095,17 +1106,20 @@ export const proceedDetail = async (batchId: string, assesseeEmail: string): Pro
             });
 
             if (categoryPoint! > maxPoint) {
-              maxPoint = Number(categoryPoint);
-              bestCategory = category;
-              bestCriteria = criteria.matchingCriteria;
+              maxPoint = categoryPoint!;
+              bestCategory = [category]; // simpan seluruh objek
+              bestCriteria = [criteria];
+            } else if (categoryPoint === maxPoint) {
+              bestCategory!.push(category);
+              bestCriteria!.push(criteria);
             }
           }
 
           if (bestCategory) {
-            const subtestId = bestCategory.subtest_id;
-            subtestMapping[subtestId].result.subtest_point = Number(bestCategory.category_point);
-            subtestMapping[subtestId].result.subtest_criteria = bestCategory.category_name;
-            subtestMapping[subtestId].result.criteria_color = bestCriteria?.hex_code ?? "#CCCCCC";
+            const subtestId = bestCategory[0].subtest_id;
+            subtestMapping[subtestId].result.subtest_point = Number(maxPoint);
+            subtestMapping[subtestId].result.subtest_criteria = bestCategory.map((cat) => cat.category_name).join(", ");
+            subtestMapping[subtestId].result.criteria_color = bestCriteria![0]?.hex_code ?? "#CCCCCC";
           }
 
           const values = Object.values(subtestMapping);
@@ -1115,6 +1129,7 @@ export const proceedDetail = async (batchId: string, assesseeEmail: string): Pro
 
       const values = Object.values(testMapping);
       detail.push(...values);
+      console.log("detailnya nih", detail);
     }
     return detail;
   } catch (e) {
@@ -1213,6 +1228,8 @@ export const generateReportIndividual = async (batchId: string, assesseeId: stri
       log: reportLog,
       proctoring: reportProctoring,
     };
+
+    console.log("resultnya", result.detail);
     return result;
   } catch (error) {
     throw error;
@@ -1233,6 +1250,24 @@ export const checkGenerate = async (batchId: string, assesseeId: string) => {
     );
     await client.query(TRANS.COMMIT);
     return result.rows[0];
+  } catch (e) {
+    await client.query(TRANS.ROLLBACK);
+    throw e;
+  } finally {
+    client.release();
+  }
+};
+
+export const getCoverDetailData = async (reportId: string) => {
+  const client = await db.connect();
+  try {
+    await client.query(TRANS.BEGIN);
+    console.log("masuk query");
+    const { rows } = await client.query(`select * from mst_image_cover where uid = $1`, [reportId]);
+    await client.query(TRANS.COMMIT);
+    console.log("keluar cover detail");
+    console.log(rows[0]);
+    return rows[0];
   } catch (e) {
     await client.query(TRANS.ROLLBACK);
     throw e;
