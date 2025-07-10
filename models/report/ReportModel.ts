@@ -874,6 +874,9 @@ export const proceedSubtestCriteria = async (criteriaId: string, subtestPoint: n
     if (criteriaId) {
       criteria = await getCriteriaForReport(criteriaId);
     }
+
+    console.log("criterianya", criteria);
+
     let matchingCriteria: any = null;
     let matchingStandardizedScore: any = null;
 
@@ -932,6 +935,13 @@ export const proceedSubtestCriteria = async (criteriaId: string, subtestPoint: n
       return {
         matchingCriteria,
         matchingStandardizedScore,
+        scale:
+          criteria.criterias && criteria.criterias.length > 0
+            ? {
+                minimum_score: Math.min(...criteria.criterias.map((c: any) => Number(c.minimum_score))),
+                maximum_score: Math.max(...criteria.criterias.map((c: any) => Number(c.maximum_score))),
+              }
+            : null,
       };
     } else if (criteria && matchingCriteria && matchingStandardizedScore === null) {
       return {
@@ -940,6 +950,13 @@ export const proceedSubtestCriteria = async (criteriaId: string, subtestPoint: n
           raw_score: subtestPoint,
           standardized_score: subtestPoint,
         },
+        scale:
+          criteria.criterias && criteria.criterias.length > 0
+            ? {
+                minimum_score: Math.min(...criteria.criterias.map((c: any) => Number(c.minimum_score))),
+                maximum_score: Math.max(...criteria.criterias.map((c: any) => Number(c.maximum_score))),
+              }
+            : null,
       };
     } else {
       return {
@@ -956,6 +973,10 @@ export const proceedSubtestCriteria = async (criteriaId: string, subtestPoint: n
         matchingStandardizedScore: {
           raw_score: subtestPoint,
           standardized_score: subtestPoint,
+        },
+        scale: {
+          minimum_score: 0,
+          maximum_score: 100,
         },
       };
     }
@@ -1001,7 +1022,6 @@ export const proceedDetail = async (batchId: string, assesseeEmail: string): Pro
 
           for (const subtest of resultBySubtest) {
             let result = await proceedSubtestCriteria(subtest.criteria_id, Number(subtest.subtest_point));
-
             if (!isNaN(Number(subtest.subtest_point))) {
               console.log("sub subtest pointnya", subtest.subtest_point);
               sumSubtestPoint = sumSubtestPoint + Number(subtest.subtest_point);
@@ -1019,10 +1039,12 @@ export const proceedDetail = async (batchId: string, assesseeEmail: string): Pro
                   : 0,
                 subtest_criteria: result ? result.matchingCriteria.criteria_name : "Undefined",
                 criteria_color: result ? result.matchingCriteria.hex_code : "#CCCCCC",
+                scale: result.scale,
                 categories: [],
               },
             };
 
+            console.log("proceedSubtest", proceedSubtest);
             testMapping[testId].subtests.push(proceedSubtest);
           }
 
@@ -1131,6 +1153,8 @@ export const proceedDetail = async (batchId: string, assesseeEmail: string): Pro
       detail.push(...values);
       console.log("detailnya nih", detail);
     }
+
+    console.log("detailnya", detail[0].subtests);
     return detail;
   } catch (e) {
     throw e;
