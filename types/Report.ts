@@ -119,6 +119,10 @@ export type ReportDetailSubtest = {
     subtest_criteria: string;
     criteria_color: string;
     categories: [] | ReportDetailByCategory[];
+    scale: {
+      minimum_score: number;
+      maximum_score: number;
+    };
   };
 };
 
