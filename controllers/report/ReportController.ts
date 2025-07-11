@@ -291,6 +291,7 @@ export const handleUpdateReportDesign = async (req: Request, res: Response, next
   }
 };
 
+// Tipe untuk respons dari model (kembali ke original)
 interface BatchReportRow {
   batch_id: string;
   batch_name: string;
@@ -318,9 +319,9 @@ export const handleDownloadBatchReport = async (req: Request, res: Response, nex
 
     // Mendapatkan data dari database
     const result = await generateReportForWholeBatch(batchId);
-    console.log(result);
+
     if (!result || result.length === 0) {
-      res.status(404).send({
+      return res.status(404).send({
         message: "Data not found for the specified batch ID",
       });
     }
@@ -342,6 +343,11 @@ export const handleDownloadBatchReport = async (req: Request, res: Response, nex
   }
 };
 
+/**
+ * Membuat file Excel dari data batch
+ * @param data Data hasil query dari database
+ * @returns Buffer Excel
+ */
 async function createExcelReport(data: BatchReportRow[]) {
   // Membuat workbook baru
   const workbook = new ExcelJS.Workbook();
@@ -364,19 +370,21 @@ async function createExcelReport(data: BatchReportRow[]) {
     // Ambil semua assessee unik untuk baris
     const uniqueAssessees = getUniqueAssessees(groupData);
 
-    // Buat headers - cell A1 kosong, lalu question_id di atasnya
+    // Buat headers - cell A1 kosong, lalu question_id di atasnya, plus kolom total
     const headers = ["Assessee Name", "Assessee Email"];
     uniqueQuestions.forEach((q) => {
       headers.push(q.question_id);
     });
+    headers.push("Subtest Total");
 
     worksheet.addRow(headers);
 
-    // Baris kedua - kosong untuk Assessee Name dan Email, lalu q_input_text
+    // Baris kedua - kosong untuk Assessee Name dan Email, lalu q_input_text, plus label untuk total
     const subHeaders = ["", ""];
     uniqueQuestions.forEach((q) => {
       subHeaders.push(q.q_input_text);
     });
+    subHeaders.push("Total Score");
 
     worksheet.addRow(subHeaders);
 
@@ -387,14 +395,21 @@ async function createExcelReport(data: BatchReportRow[]) {
     // Tambahkan data untuk setiap assessee
     uniqueAssessees.forEach((assessee) => {
       const rowData = [assessee.assessee_name, assessee.assessee_email];
+      let totalScore = 0;
 
       // Temukan point untuk setiap question
       uniqueQuestions.forEach((question) => {
-        const matchingData: any = groupData.find(
+        const matchingData = groupData.find(
           (item) => item.question_id === question.question_id && item.assessee_nik === assessee.assessee_nik
         );
-        rowData.push(matchingData?.point !== null ? matchingData?.point?.toString() : "");
+        const point = matchingData?.point || 0;
+        rowData.push(point !== null ? point.toString() : "0");
+        // Pastikan point diconvert ke number dulu sebelum di-sum
+        totalScore += Number(point) || 0;
       });
+
+      // Tambahkan total score untuk subtest sebagai number, bukan string
+      rowData.push(String(totalScore));
 
       worksheet.addRow(rowData);
     });
@@ -407,10 +422,26 @@ async function createExcelReport(data: BatchReportRow[]) {
     for (let i = 0; i < uniqueQuestions.length; i++) {
       worksheet.getColumn(i + 3).width = 15;
     }
+
+    // Set lebar untuk kolom total
+    worksheet.getColumn(uniqueQuestions.length + 3).width = 15;
+
+    // Style kolom total dengan background kuning
+    const totalColumnIndex = uniqueQuestions.length + 3;
+    for (let i = 1; i <= uniqueAssessees.length + 2; i++) {
+      worksheet.getCell(i, totalColumnIndex).fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FFFFFF00" }, // Kuning
+      };
+    }
   }
 
   // Tambahkan sheet ringkasan
   addSummarySheet(workbook, data);
+
+  // Tambahkan sheet overall scores
+  addOverallScoresSheet(workbook, data);
 
   // Simpan ke buffer
   return await workbook.xlsx.writeBuffer();
@@ -534,6 +565,121 @@ function addSummarySheet(workbook: ExcelJS.Workbook, data: BatchReportRow[]): vo
       // Normal rows
       summarySheet.getRow(i).height = 20;
     }
+  }
+}
+
+/**
+ * Menambahkan sheet overall scores untuk melihat total score setiap assessee
+ */
+function addOverallScoresSheet(workbook: ExcelJS.Workbook, data: BatchReportRow[]): void {
+  if (data.length === 0) return;
+
+  const overallSheet = workbook.addWorksheet("Overall Scores", { properties: { tabColor: { argb: "FF0000FF" } } });
+
+  // Dapatkan data unik untuk setiap assessee
+  const assesseeScores = new Map<
+    string,
+    {
+      assessee_nik: string;
+      assessee_name: string;
+      assessee_email: string;
+      total_overall_score: number;
+      test_scores: Map<string, { test_name: string; test_code: string; total_test_score: number }>;
+    }
+  >();
+
+  // Hitung scores untuk setiap assessee
+  data.forEach((row) => {
+    if (!row.assessee_nik || !row.test_id) return;
+
+    if (!assesseeScores.has(row.assessee_nik)) {
+      assesseeScores.set(row.assessee_nik, {
+        assessee_nik: row.assessee_nik,
+        assessee_name: row.assessee_name,
+        assessee_email: row.assessee_email,
+        total_overall_score: 0,
+        test_scores: new Map(),
+      });
+    }
+
+    const assesseeData = assesseeScores.get(row.assessee_nik)!;
+
+    // Inisialisasi test score jika belum ada
+    if (!assesseeData.test_scores.has(row.test_id)) {
+      assesseeData.test_scores.set(row.test_id, {
+        test_name: row.test_name,
+        test_code: row.test_code,
+        total_test_score: 0,
+      });
+    }
+
+    // Tambahkan point ke test score - pastikan convert ke number dulu
+    const point = Number(row.point) || 0;
+    assesseeData.test_scores.get(row.test_id)!.total_test_score += point;
+  });
+
+  // Hitung total overall score
+  assesseeScores.forEach((assessee) => {
+    assessee.total_overall_score = Array.from(assessee.test_scores.values()).reduce(
+      (sum, test) => sum + test.total_test_score,
+      0
+    );
+  });
+
+  // Buat header
+  const uniqueTests = Array.from(new Set(data.map((row) => row.test_id).filter((id) => id)));
+  const testHeaders = uniqueTests.map((testId) => {
+    const testData = data.find((row) => row.test_id === testId);
+    return `${testData?.test_code} (${testData?.test_name})`;
+  });
+
+  const headers = ["Assessee Name", "Assessee Email", ...testHeaders, "Total Overall Score"];
+  overallSheet.addRow(headers);
+
+  // Style header
+  overallSheet.getRow(1).font = { bold: true };
+  overallSheet.getRow(1).fill = {
+    type: "pattern",
+    pattern: "solid",
+    fgColor: { argb: "FFD3D3D3" }, // Abu-abu terang
+  };
+
+  // Tambahkan data untuk setiap assessee
+  Array.from(assesseeScores.values()).forEach((assessee) => {
+    const rowData = [assessee.assessee_name, assessee.assessee_email];
+
+    // Tambahkan score untuk setiap test
+    uniqueTests.forEach((testId) => {
+      const testScore = assessee.test_scores.get(testId);
+      rowData.push(testScore?.total_test_score?.toString() || "0");
+    });
+
+    // Tambahkan total overall score
+    rowData.push(assessee.total_overall_score.toString());
+
+    overallSheet.addRow(rowData);
+  });
+
+  // Format lebar kolom
+  overallSheet.getColumn(1).width = 30; // Assessee Name
+  overallSheet.getColumn(2).width = 30; // Assessee Email
+
+  // Set lebar untuk kolom test scores
+  for (let i = 0; i < uniqueTests.length; i++) {
+    overallSheet.getColumn(i + 3).width = 20;
+  }
+
+  // Set lebar untuk kolom total overall score
+  overallSheet.getColumn(uniqueTests.length + 3).width = 20;
+
+  // Style kolom total dengan background hijau
+  const totalColumnIndex = uniqueTests.length + 3;
+  for (let i = 1; i <= assesseeScores.size + 1; i++) {
+    overallSheet.getCell(i, totalColumnIndex).fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "FF90EE90" }, // Hijau terang
+    };
   }
 }
 
