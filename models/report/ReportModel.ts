@@ -733,6 +733,34 @@ export const getCoverbyID = async (id: string) => {
   });
 };
 
+export const checkIsCoverUserbyOtherMod = async (batch_id: string, cover_id: string) => {
+  return await ClientAction(async (client) => {
+    try {
+      const { rows, rowCount: is_exist } = await client.query(
+        `
+      select
+        mic.uid,
+        tbh.batch_code,
+        tbh.batch_name
+      from
+        mst_image_cover mic
+      left join report_head rh on
+        mic.uid = rh.cover_id
+      left join t_batch_head tbh on
+        tbh.id = rh.batch_id
+      where
+        rh.batch_id <> $1
+        and mic.uid = $2
+        `,
+        [batch_id, cover_id]
+      );
+      return { is_exist: is_exist ?? 0, existed_batch: rows };
+    } catch (error) {
+      throw error;
+    }
+  });
+};
+
 export const getAllDataCover = async () => {
   return ClientAction(async (client) => {
     try {
@@ -1298,4 +1326,27 @@ export const getCoverDetailData = async (reportId: string) => {
   } finally {
     client.release();
   }
+};
+
+export const deleteCoverData = async (id_cover: string) => {
+  return await ClientAction(async (client) => {
+    try {
+      await client.query(TRANS.BEGIN);
+      const { rows: delete_cover } = await client.query(`delete from mst_image_cover where uid = $1`, [id_cover]);
+      // set all report with this cover id to latest added existing cover
+      const { rows: get_cover } = await client.query(`select uid from mst_image_cover order by create_at desc`);
+      let cover_updated = "";
+      if (get_cover[0]?.uid) {
+        cover_updated = get_cover[0].uid;
+      }
+      const [que, val] = updateQuery("report_head", { cover_id: cover_updated }, { cover_id: id_cover });
+      await client.query(que, val);
+
+      await client.query(TRANS.COMMIT);
+      return;
+    } catch (error) {
+      await client.query(TRANS.ROLLBACK);
+      throw error;
+    }
+  });
 };

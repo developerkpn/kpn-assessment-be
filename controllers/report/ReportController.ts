@@ -1,6 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import {
   assignReportDesign,
+  checkIsCoverUserbyOtherMod,
+  deleteCoverData,
   generateReportForWholeBatch,
   generateReportIndividual,
   getAllDataCover,
@@ -324,6 +326,7 @@ export const handleDownloadBatchReport = async (req: Request, res: Response, nex
       return res.status(404).send({
         message: "Data not found for the specified batch ID",
       });
+      return;
     }
 
     // Membuat file Excel
@@ -337,6 +340,7 @@ export const handleDownloadBatchReport = async (req: Request, res: Response, nex
     res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
     res.setHeader("Content-Disposition", `attachment; filename=${fileName}`);
     res.status(200).send(excelBuffer);
+    return;
   } catch (e) {
     console.error("Error generating report:", e);
     next(e);
@@ -832,13 +836,25 @@ export const handleGetAllCover = async (req: Request, res: Response, next: NextF
   }
 };
 
+export const checkIsCoverUserbyOther = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { batch_id, cover_id } = req.query;
+    const is_exist = await checkIsCoverUserbyOtherMod(batch_id as string, cover_id as string);
+    res.status(200).send({
+      data: { is_used: is_exist.is_exist > 0 ? true : false, batch_using: is_exist.existed_batch },
+    });
+  } catch (error) {
+    throw error;
+  }
+};
+
 export const handleDeleteCover = async (req: Request, res: Response, next: NextFunction) => {
   try {
     console.log("masuk");
     const dir = path.join(__dirname, `../../uploads/cover/`);
-    const { file_name } = await getCoverDetailData(req.params.id);
+    const { file_name, uid } = await getCoverDetailData(req.params.id);
     console.log("filename", file_name);
-    fs.readdir(dir, (err, files) => {
+    fs.readdir(dir, async (err, files) => {
       if (err) {
         console.error(err);
         return;
@@ -856,11 +872,12 @@ export const handleDeleteCover = async (req: Request, res: Response, next: NextF
         });
       }
     });
-
+    await deleteCoverData(uid);
     res.status(200).send({
       message: "Success!",
     });
   } catch (e) {
+    console.error(e);
     next(e);
   }
 };

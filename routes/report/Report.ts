@@ -1,5 +1,6 @@
 import { Router } from "express";
 import {
+  checkIsCoverUserbyOther,
   handleCreateReportForBatch,
   handleDeleteCover,
   handleDownloadBatchReport,
@@ -38,9 +39,10 @@ Report.put("/guide/:id", handleUpdateReportGuide);
 Report.patch("/design/:reportId", handleUpdateReportDesign);
 Report.get("/template/:batchId", handleGetBatchInformationForReport);
 Report.post("/uploadcover", handleUploadCover, errorMiddleware);
+Report.get("/cover/isexist", checkIsCoverUserbyOther, errorMiddleware);
 Report.get("/cover/:id", handleGetCover, errorMiddleware);
-Report.delete("/cover/:id", handleDeleteCover);
+Report.delete("/cover/:id", handleDeleteCover, errorMiddleware);
 Report.get("/allcover", handleGetAllCover, errorMiddleware);
 Report.get("/pdfgen", PDFController.RenderReport);
-Report.get("/download/:batchId", handleDownloadBatchReport);
+Report.get("/download/:batchId", handleDownloadBatchReport, errorMiddleware);
 export default Report;
