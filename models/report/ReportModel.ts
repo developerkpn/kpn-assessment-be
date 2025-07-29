@@ -442,7 +442,7 @@ export const getIntroData = async (batchId: string) => {
 
 export const getPersonalReportData = async (
   batchId: string,
-  assesseeEmail: any,
+  assessee_id: any,
   type: string,
   testId: string,
   subtestId?: string
@@ -455,9 +455,9 @@ export const getPersonalReportData = async (
         `
         SELECT *
         FROM test_result_by_subtest
-        WHERE assessee_email = $1 AND batch_id = $2 AND test_id = $3
+        WHERE assessee_id = $1 AND batch_id = $2 AND test_id = $3
         `,
-        [assesseeEmail, batchId, testId]
+        [assessee_id, batchId, testId]
       );
     } else if (type === "category") {
       console.log("masuk model category");
@@ -465,9 +465,9 @@ export const getPersonalReportData = async (
         `
         SELECT *
         FROM test_result_by_category
-        WHERE assessee_email = $1 AND batch_id = $2 AND test_id = $3
+        WHERE assessee_id = $1 AND batch_id = $2 AND test_id = $3
         `,
-        [assesseeEmail, batchId, testId]
+        [assessee_id, batchId, testId]
       );
     }
 
@@ -1013,7 +1013,7 @@ export const proceedSubtestCriteria = async (criteriaId: string, subtestPoint: n
   }
 };
 
-export const proceedDetail = async (batchId: string, assesseeEmail: string): Promise<ReportDetailSection[]> => {
+export const proceedDetail = async (batchId: string, assessee_id: string): Promise<ReportDetailSection[]> => {
   try {
     const reportDetailData: any = await getReportDetail(batchId);
     let detail = [];
@@ -1044,7 +1044,7 @@ export const proceedDetail = async (batchId: string, assesseeEmail: string): Pro
         console.log("keluar norm");
         if (test.summary_type === "subtest") {
           // if detail summary is subtest
-          const resultBySubtest: any = await getPersonalReportData(batchId, assesseeEmail, "subtest", test.test_id);
+          const resultBySubtest: any = await getPersonalReportData(batchId, assessee_id, "subtest", test.test_id);
           let sumSubtestPoint = 0;
           let countSubtest = 0;
 
@@ -1103,7 +1103,7 @@ export const proceedDetail = async (batchId: string, assesseeEmail: string): Pro
           testMapping[testId].result = testResult;
         } else if (test.summary_type === "category") {
           // if summary type is category, category will be spread
-          const resultByCategory: any = await getPersonalReportData(batchId, assesseeEmail, "category", test.test_id);
+          const resultByCategory: any = await getPersonalReportData(batchId, assessee_id, "category", test.test_id);
           let maxPoint: number = -Infinity;
           let bestCategory;
           let bestCriteria;
@@ -1189,10 +1189,10 @@ export const proceedDetail = async (batchId: string, assesseeEmail: string): Pro
   }
 };
 
-export const proceeedProfile = async (type: string, assesseeId: string, assesseeEmail: string) => {
+export const proceeedProfile = async (type: string, assesseeId: string) => {
   try {
     const assesseeData: any =
-      type === "internal" ? await getDarwinUser(String(assesseeId)) : await getAssesseeExternalProfile(assesseeEmail);
+      type === "internal" ? await getDarwinUser(String(assesseeId)) : await getAssesseeExternalProfile(assesseeId);
     console.log(assesseeData);
     const profile = {
       assessee_id: type === "internal" ? assesseeData.employee_id : assesseeData.id,
@@ -1245,14 +1245,14 @@ const proceedProctoring = async (batchId: string, user_id: string) => {
   }
 };
 
-export const generateReportIndividual = async (batchId: string, assesseeId: string, assesseeEmail: string) => {
+export const generateReportIndividual = async (batchId: string, assesseeId: string) => {
   try {
     // Get Report Guide
 
     const batchInformation = await getSpecificBatchInformationForReport(batchId, assesseeId);
-    const profile = await proceeedProfile(batchInformation.type, assesseeId, assesseeEmail);
+    const profile = await proceeedProfile(batchInformation.type, assesseeId);
     console.log("keluar profile");
-    const reportDetail = await proceedDetail(batchId, assesseeEmail);
+    const reportDetail = await proceedDetail(batchId, assesseeId);
     console.log("keluar report detail");
     // Get Report Intro
     const reportIntro = await proceedIntro(batchId, reportDetail);

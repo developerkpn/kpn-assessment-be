@@ -7,8 +7,8 @@ const PDFModel = {
   renderPdf: async () => {
     return TryRenderPDF();
   },
-  renderReport: async (batchId: string, assesseeId: string, assesseeEmail: string) => {
-    return await StreamReportPDF(batchId, assesseeId, assesseeEmail);
+  renderReport: async (batchId: string, assesseeId: string) => {
+    return await StreamReportPDF(batchId, assesseeId);
   },
 };
 

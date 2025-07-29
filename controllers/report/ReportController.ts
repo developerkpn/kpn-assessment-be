@@ -323,7 +323,7 @@ export const handleDownloadBatchReport = async (req: Request, res: Response, nex
     const result = await generateReportForWholeBatch(batchId);
 
     if (!result || result.length === 0) {
-      return res.status(404).send({
+      res.status(404).send({
         message: "Data not found for the specified batch ID",
       });
       return;
@@ -697,33 +697,30 @@ function formatDate(date: Date): string {
 
 export const handleReportPersonal = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    console.log("Processing personal report request");
     const batchId = req.body.batch_id;
     const assesseeId = req.body.assessee_id;
-    const assesseeEmail = req.body.assessee_email;
 
     const generatingStatus = await getGenerateStatus(batchId, assesseeId);
     console.log(generatingStatus);
-    if (generatingStatus.is_generate === false) {
-      // console.log("report proctoring", reportProctoting);
-      const generateDataReport = await generateReportIndividual(batchId, assesseeId, assesseeEmail);
-      console.log("HALOOO");
-      res.status(200).send({
-        message: "Success!",
-        data: generateDataReport,
-      });
-    } else if (generatingStatus.is_generate === true) {
-      // Kirim file PDF langsung jika sudah digenerate
-      const filePath = path.join(process.cwd(), "uploads", "report", batchId, `${assesseeId}.pdf`);
+    // if (generatingStatus.is_generate === false) {
+    // console.log("report proctoring", reportProctoting);
+    const generateDataReport = await generateReportIndividual(batchId, assesseeId);
+    res.status(200).send({
+      message: "Success!",
+      data: generateDataReport,
+    });
+    // } else if (generatingStatus.is_generate === true) {
+    //   // Kirim file PDF langsung jika sudah digenerate
+    //   const filePath = path.join(process.cwd(), "uploads", "report", batchId, `${assesseeId}.pdf`);
 
-      if (fs.existsSync(filePath)) {
-        res.setHeader("Content-Type", "application/pdf");
-        res.setHeader("Content-Disposition", `inline; filename="${assesseeId}.pdf"`); // atau gunakan 'attachment' jika ingin diunduh
-        fs.createReadStream(filePath).pipe(res);
-      } else {
-        res.status(404).json({ message: "Generated report not found." });
-      }
-    }
+    //   if (fs.existsSync(filePath)) {
+    //     res.setHeader("Content-Type", "application/pdf");
+    //     res.setHeader("Content-Disposition", `inline; filename="${assesseeId}.pdf"`); // atau gunakan 'attachment' jika ingin diunduh
+    //     fs.createReadStream(filePath).pipe(res);
+    //   } else {
+    //     res.status(404).json({ message: "Generated report not found." });
+    //   }
+    // }
   } catch (e) {
     next(e);
   }

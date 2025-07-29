@@ -32,8 +32,8 @@ const stripHtmlTags = (html: string): string => {
     .trim(); // Remove leading/trailing whitespace
 };
 
-export const ReportPDFTemplate = async (batchId: string, assesseeId: string, assesseeEmail: string) => {
-  const rawDataReportIndividual = await generateReportIndividual(batchId, assesseeId, assesseeEmail);
+export const ReportPDFTemplate = async (batchId: string, assesseeId: string) => {
+  const rawDataReportIndividual = await generateReportIndividual(batchId, assesseeId);
   const dataReportIndividual = rawDataReportIndividual;
   const data = dataReportIndividual;
 
@@ -615,8 +615,8 @@ export const ReportPDFTemplate = async (batchId: string, assesseeId: string, ass
   );
 };
 
-export const StreamReportPDF = async (batchId: string, assesseeId: string, assesseeEmail: string) => {
+export const StreamReportPDF = async (batchId: string, assesseeId: string) => {
   const { renderToStream } = await import("@react-pdf/renderer");
-  const Document = await ReportPDFTemplate(batchId, assesseeId, assesseeEmail);
+  const Document = await ReportPDFTemplate(batchId, assesseeId);
   return await renderToStream(Document);
 };

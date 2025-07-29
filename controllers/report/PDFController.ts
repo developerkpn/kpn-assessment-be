@@ -22,11 +22,11 @@ export const PDFController = {
 
   RenderReport: async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { batch_id, assessee_id, assessee_email } = req.query;
+      const { batch_id, assessee_id } = req.query;
 
-      if (!batch_id || !assessee_id || !assessee_email) {
+      if (!batch_id || !assessee_id) {
         res.status(400).json({
-          message: "Missing 'batch_id', 'assessee_id', or 'assessee_email' query",
+          message: "Missing 'batch_id', 'assessee_id' query",
         });
       }
 
@@ -47,11 +47,7 @@ export const PDFController = {
       }
 
       // 🔄 Render ulang PDF
-      const streampdf = await PDFModel.renderReport(
-        batch_id as string,
-        assessee_id as string,
-        assessee_email as string
-      );
+      const streampdf = await PDFModel.renderReport(batch_id as string, assessee_id as string);
 
       if (!fs.existsSync(uploadDir)) {
         fs.mkdirSync(uploadDir, { recursive: true });
