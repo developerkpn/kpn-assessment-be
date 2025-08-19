@@ -1022,6 +1022,7 @@ export const proceedDetail = async (batchId: string, assessee_id: string): Promi
       const testMapping: Record<string, any> = {};
       const testId = test.test_id;
       const subtestMapping: Record<string, any> = {};
+      // get test in batch data
       if (!testMapping[testId]) {
         testMapping[testId] = {
           category_id: test.category_id,
@@ -1346,6 +1347,222 @@ export const deleteCoverData = async (id_cover: string) => {
       return;
     } catch (error) {
       await client.query(TRANS.ROLLBACK);
+      throw error;
+    }
+  });
+};
+
+export const GetAssessmentResultByUser = async (user_id: string, batch_id: string) => {
+  return await ClientAction(async (client) => {
+    try {
+      let whereval = [];
+      let whereque = [];
+      let where = "";
+      let index = 1;
+      if (user_id) {
+        whereque.push(`assessee_id = $${index}`);
+        whereval.push(user_id);
+        index++;
+      }
+      if (batch_id) {
+        whereque.push(`batch_id = $${index}`);
+        whereval.push(batch_id);
+        index++;
+      }
+      if (whereval.length > 0) {
+        where = "where " + whereque.join(" and ");
+      }
+      let query = `
+      WITH
+      -- 1. Filter the smallest set early
+      filtered_tpbh AS (
+          SELECT *
+          FROM t_progress_batch_head ${where}
+      ),
+
+      -- 2. Precompute avg_score once for trbc
+      trbc_avg AS (
+          SELECT
+              trbc.*,
+              CASE 
+                  WHEN category_point / question_count % 1 > 0.5 THEN ceil(category_point / question_count)
+                  WHEN category_point / question_count % 1 < 0.5 THEN floor(category_point / question_count)
+                  ELSE category_point / question_count
+              END AS avg_score
+          FROM test_result_by_category trbc
+      )
+          
+      -- 3. Main query
+        select
+          tpbh.batch_id,
+          tbh.batch_code,
+          tbh.batch_name,
+          tba.assessee_name,
+          tbh.bu_id,
+          tpbh.assessee_id,
+          tbh.start_period,
+          tbh.end_period,
+          tpbd.test_id,
+          mth.test_name,
+          mth.test_code,
+          tpbd.subtest_id,
+          msh.subtest_name,
+          msh.subtest_code,
+          trbc.category_code,
+          tpbd.sum_point,
+          mss.standardized_score,
+          mc_subtest.criteria_name as subtest_criteria_name,
+          mc_subtest.description as subtest_criteria_desc,
+          mc_subtest.minimum_score as subtest_minimum_score,
+          mc_subtest.maximum_score as subtest_maximum_score,
+          trbc.avg_score,
+          mc_category.criteria_name as category_criteria_name,
+          mc_category.description as category_criteria_desc,
+          mc_category.minimum_score as category_min_score,
+          mc_category.maximum_score as category_max_score,
+          trbc.category_point,
+          trbc.question_count,
+          rtd.summary_formula,
+          rtd.summary_type
+        from
+          filtered_tpbh tpbh
+        left join t_batch_head tbh
+            on
+          tpbh.batch_id = tbh.id
+        left join t_batch_assessee tba
+            on
+          tba.assessee_nik = tpbh.assessee_id
+          and tba.batch_id = tpbh.batch_id
+        left join t_progress_batch_det tpbd
+            on
+          tpbh.id = tpbd.head_id
+        left join report_head rh
+            on
+          rh.batch_id = tpbh.batch_id
+        left join report_test_detail rtd
+            on
+          rh.id = rtd.report_id
+          and rtd.test_id = tpbd.test_id
+        left join mst_subtest_head msh
+            on
+          msh.id = tpbd.subtest_id
+        left join mst_test_head mth
+            on
+          mth.id = tpbd.test_id
+        left join trbc_avg trbc
+            on
+          trbc.batch_id = tpbh.batch_id
+          and trbc.subtest_id = tpbd.subtest_id
+          and trbc.assessee_id = tpbh.assessee_id
+        left join mst_standardized_score mss
+            on
+          msh.criteria_id = mss.value_id
+          and tpbd.sum_point = case
+            when summary_formula = 'sum' then mss.raw_score
+            when summary_formula = 'avg' then trbc.avg_score
+            else mss.raw_score
+          end
+        left join mst_criteria mc_subtest
+            on
+          mc_subtest.category_fk = msh.criteria_id
+          and ((mss.standardized_score >= mc_subtest.minimum_score
+            and mss.standardized_score <= mc_subtest.maximum_score
+            and mss.standardized_score is not null)
+          or (tpbd.sum_point >= mc_subtest.minimum_score
+            and tpbd.sum_point <= mc_subtest.maximum_score
+            and mss.standardized_score is null))
+        left join mst_criteria mc_category
+            on
+          mc_category.category_fk = trbc.category_criteria_id
+          and mc_category.minimum_score <= trbc.avg_score
+          and mc_category.maximum_score >= trbc.avg_score
+        order by
+          tpbh.batch_id desc;
+
+      `;
+      const { rows: raw_data } = await client.query(query, whereval);
+      let user_identity = {
+        assessee_name: raw_data[0].assessee_name,
+        assessee_id: raw_data[0].assessee_id,
+      };
+      const batch_data = new Map();
+      for (const row of raw_data) {
+        let main_data;
+        if (row.summary_type == "subtest") {
+          main_data = {
+            category: row.subtest_code,
+            points: parseFloat(
+              row.standardized_score ?? (row.summary_formula == "avg" ? row.avg_score : row.sum_point)
+            ),
+            criteria: row.subtest_criteria_name,
+            desc: row.subtest_criteria_desc,
+          };
+        } else {
+          main_data = {
+            category: row.category_code,
+            points: parseFloat(
+              row.standardized_score ?? (row.summary_formula == "avg" ? row.avg_score : row.sum_point)
+            ),
+            criteria: row.category_criteria_name,
+            desc: row.category_criteria_desc,
+          };
+        }
+        if (!batch_data.has(row.batch_id)) {
+          let result = new Map();
+          let subtest_result = new Map();
+          subtest_result.set(row.subtest_code, {
+            test_code: row.test_code,
+            test_name: row.test_name,
+            subtest_name: row.subtest_name,
+            subtest_code: row.subtest_code,
+            result: [main_data],
+          });
+          result.set(row.test_code, subtest_result);
+
+          batch_data.set(row.batch_id, {
+            batch_id: row.batch_id,
+            batch_code: row.batch_code,
+            batch_name: row.batch_name,
+            result_batch: result,
+          });
+        } else {
+          const test_batch = batch_data.get(row.batch_id).result_batch;
+          let subtest_result = new Map();
+          subtest_result.set(row.subtest_code, {
+            test_code: row.test_code,
+            test_name: row.test_name,
+            subtest_name: row.subtest_name,
+            subtest_code: row.subtest_code,
+            result: [main_data],
+          });
+          if (!test_batch.has(row.test_code)) {
+            test_batch.set(row.test_code, subtest_result);
+          } else {
+            if (!test_batch.get(row.test_code).has(row.subtest_code)) {
+              test_batch.get(row.test_code).set(row.subtest_code, {
+                test_code: row.test_code,
+                test_name: row.test_name,
+                subtest_name: row.subtest_name,
+                subtest_code: row.subtest_code,
+                result: [main_data],
+              });
+            } else {
+              test_batch.get(row.test_code).get(row.subtest_code).result.push(main_data);
+            }
+          }
+        }
+      }
+      let main: any[] = Object.values(Object.fromEntries(batch_data)).map((value) => value);
+      main.map((value, index_main) => {
+        main[index_main].result_batch = Object.fromEntries(value.result_batch);
+        Object.keys(main[index_main].result_batch).forEach((value, index) => {
+          console.log(main[index_main]);
+          main[index_main].result_batch[value] = Object.fromEntries(main[index_main].result_batch[value]);
+        });
+      });
+
+      return { user_identity, result: main };
+    } catch (error) {
       throw error;
     }
   });

@@ -6,6 +6,7 @@ import {
   handleDownloadBatchReport,
   handleGetAllCover,
   handleGetAssesseeListForReport,
+  handleGetAssessmentResult,
   handleGetBatchForReport,
   handleGetBatchInformationForReport,
   handleGetCover,
@@ -30,6 +31,7 @@ Report.post("/guide", handleStoreReportGuide);
 Report.get("/guide", handleGetReportGuide);
 Report.post("/pdf", uploadSingleFile, handleUploadReportPDF);
 Report.post("/result", handleReportPersonal);
+Report.get("/peruser", handleGetAssessmentResult);
 Report.post("/design", handleCreateReportForBatch);
 Report.get("/proctoring", ProctoringController.GetFile);
 Report.get("/", handleGetBatchForReport);

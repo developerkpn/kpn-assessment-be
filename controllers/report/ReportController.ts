@@ -7,6 +7,7 @@ import {
   generateReportIndividual,
   getAllDataCover,
   getAssesseeListForReport,
+  GetAssessmentResultByUser,
   getBatchForReport,
   getBatchInformationForReport,
   getCategoryCriteriaModel,
@@ -34,6 +35,7 @@ import path from "path";
 import fs from "fs";
 import { IncomingForm } from "formidable";
 import { fileURLToPath } from "url";
+import { error } from "console";
 const __filename = fileURLToPath(import.meta.url); // get the resolved path to the file
 const __dirname = path.dirname(__filename); // get the name of the directory
 /**
@@ -876,5 +878,21 @@ export const handleDeleteCover = async (req: Request, res: Response, next: NextF
   } catch (e) {
     console.error(e);
     next(e);
+  }
+};
+
+export const handleGetAssessmentResult = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { user_id, batch_id } = req.query;
+    if (!user_id) {
+      throw new Error("No user_id found");
+    }
+    const result = await GetAssessmentResultByUser(user_id as string, batch_id as string);
+    res.status(200).send({
+      data: result,
+    });
+  } catch (error) {
+    console.error(error);
+    throw error;
   }
 };
