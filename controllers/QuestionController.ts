@@ -1,16 +1,19 @@
-import { AnswerResponse, QuestionFields, QuestionRequest, QuestionResult } from "@/types/MasterDataTypes.js";
-import { Request, Response } from "express";
-import { v4 as uuidv4 } from "uuid";
-import path from "path";
-import fs from "fs";
-import * as formidable from "formidable";
 import {
   createQuestion,
+  createQuestionTranslation,
   deleteQuestion,
   getQuestion,
   getQuestionById,
+  getQuestionTranslation,
   updateQuestion,
+  updateQuestionTranslation,
 } from "@/models/QuestionModel.js";
+import { AnswerResponse, QuestionResult } from "@/types/MasterDataTypes.js";
+import { Request, Response } from "express";
+import * as formidable from "formidable";
+import fs from "fs";
+import path from "path";
+import { v4 as uuidv4 } from "uuid";
 // import { fileURLToPath } from "url";
 import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url); // get the resolved path to the file
@@ -34,7 +37,7 @@ const parseQuestionForm = async (
   });
 
   if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir);
+    fs.mkdirSync(dir, { recursive: true });
   }
 
   const [fields, files] = await form.parse(req);
@@ -103,6 +106,7 @@ const parseQuestionForm = async (
     q_input_image_url: files.q_input_image ? q_input_image_url : undefined,
     category_id: fields.category_id ? fields.category_id[0] : undefined,
     answer_type: fields.answer_type ? fields.answer_type[0] : undefined,
+    language_id: fields.language_id ? fields.language_id[0] : undefined,
   };
   return { fields, files, answers, QAFields };
 };
@@ -131,6 +135,8 @@ const removeImageFile = (dir: string, baseFileName: string) => {
 export const handleCreateQuestion = async (req: Request, res: Response): Promise<any> => {
   const id = uuidv4();
   const dir = path.join(__dirname, `../uploads/question/${id}`);
+
+  console.log("ini dir: ", dir);
   const today = new Date();
 
   try {
@@ -179,11 +185,26 @@ export const handleUpdateQuestion = async (req: Request, res: Response): Promise
     const { fields, answers, QAFields } = await parseQuestionForm(req, dir, id);
     if (!QAFields.q_input_image_url) removeImageFile(dir, `question`);
 
-    const answersPayload: any = {};
-    // Dapatkan daftar answer letters yang ada di request
-    const existingAnswerLetters = answers.map((_, index) => String.fromCharCode(97 + index));
+    // Get language_type  from request
+    const languageType = fields.language_type?.[0];
+    if (!languageType || (languageType !== "main" && languageType !== "sub")) {
+      res.status(400).send({
+        message: "Language type must be either 'main' or 'sub'",
+      });
+      return;
+    }
 
-    // Get all possible answer letters (a through g)
+    // Get language_id from request
+    const languageId = fields.language_id ? fields.language_id[0] : undefined;
+    if (!languageId) {
+      res.status(400).send({
+        message: "Language ID is required",
+      });
+      return;
+    }
+
+    const answersPayload: any = {};
+    const existingAnswerLetters = answers.map((_, index) => String.fromCharCode(97 + index));
     const allAnswerLetters = ["a", "b", "c", "d", "e", "f", "g"];
 
     // Set all answer fields to null first (to clear any existing data)
@@ -211,18 +232,66 @@ export const handleUpdateQuestion = async (req: Request, res: Response): Promise
       }
     });
 
-    const payload = {
-      id,
-      ...QAFields,
-      ...answersPayload,
-      updated_by: fields.updated_by ? fields.updated_by[0] : undefined,
-      updated_date: today,
-    };
+    let result;
+    let message;
 
-    const result = await updateQuestion(payload, id);
+    if (languageType === "sub") {
+      // Handle sub language - save to translation table (text only, no image URLs)
+      const translationTextPayload: Record<string, any> = {};
+      const allAnswerLetters = ["a", "b", "c", "d", "e", "f", "g"];
+
+      // Set all answer text fields to null first
+      allAnswerLetters.forEach((letter) => {
+        translationTextPayload[`answer_choice_${letter}_text`] = null;
+      });
+
+      // Then set only the answers that are actually sent
+      answers.forEach((answer, index) => {
+        const letter = String.fromCharCode(97 + index);
+        translationTextPayload[`answer_choice_${letter}_text`] = answer.text || null;
+      });
+
+      const translationPayload = {
+        question_answer_id: id,
+        language_id: languageId,
+        q_input_text: QAFields.q_input_text,
+        ...translationTextPayload,
+        updated_by: fields.updated_by ? fields.updated_by[0] : undefined,
+        updated_date: today,
+        created_by: fields.updated_by ? fields.updated_by[0] : undefined,
+        created_date: today,
+      };
+
+      // Check if translation already exists
+      const existingTranslation = await getQuestionTranslation(id, languageId);
+
+      if (existingTranslation) {
+        // Update existing translation
+        result = await updateQuestionTranslation(translationPayload, existingTranslation.id);
+        message = "Question translation successfully updated";
+      } else {
+        // Create new translation
+        translationPayload.created_by = fields.updated_by ? fields.updated_by[0] : undefined;
+        translationPayload.created_date = today;
+        result = await createQuestionTranslation(translationPayload);
+        message = "Question translation successfully created";
+      }
+    } else if (languageType === "main") {
+      // Handle main language - save to main table
+      const payload = {
+        id,
+        ...QAFields,
+        ...answersPayload,
+        updated_by: fields.updated_by ? fields.updated_by[0] : undefined,
+        updated_date: today,
+      };
+
+      result = await updateQuestion(payload, id);
+      message = "Question successfully edited";
+    }
 
     return res.status(200).send({
-      message: `Question successfully edited`,
+      message,
       id: result,
     });
   } catch (error: any) {
@@ -309,6 +378,7 @@ export const handleGetQuestionById = async (req: Request, res: Response) => {
       id: result.id,
       answer_type: result.answer_type,
       category_id: result.category_id,
+      language_id: result.language_id,
       created_by: result.created_by,
       created_date: result.created_date,
       updated_by: result.updated_by,
@@ -323,6 +393,52 @@ export const handleGetQuestionById = async (req: Request, res: Response) => {
 
     res.status(200).send({
       message: `Success get question: ${id}`,
+      data: formattedResult,
+    });
+  } catch (error: any) {
+    res.status(500).send({
+      message: error.message,
+    });
+  }
+};
+
+export const handleGetQuestionTranslation = async (req: Request, res: Response) => {
+  const { questionId, languageId } = req.params;
+  try {
+    const translation = await getQuestionTranslation(questionId, languageId);
+    
+    if (!translation) {
+      res.status(404).send({
+        message: `Translation not found for question ${questionId} in language ${languageId}`,
+      });
+      return;
+    }
+
+    // Format the translation data similar to main question format
+    const answers: any[] = [];
+    ["a", "b", "c", "d", "e", "f", "g"].forEach((choice) => {
+      const textKey = `answer_choice_${choice}_text`;
+      if (translation[textKey]) {
+        answers.push({
+          text: translation[textKey],
+        });
+      }
+    });
+
+    const formattedResult = {
+      id: translation.id,
+      question_answer_id: translation.question_answer_id,
+      language_id: translation.language_id,
+      q_input_text: translation.q_input_text,
+      answers: answers,
+      created_by: translation.created_by,
+      created_date: translation.created_date,
+      updated_by: translation.updated_by,
+      updated_date: translation.updated_date,
+    };
+
+    res.status(200).send({
+      message: `Success get question translation`,
       data: formattedResult,
     });
   } catch (error: any) {

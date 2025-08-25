@@ -96,6 +96,57 @@ export const getQuestionById = async (id: string) => {
   }
 };
 
+export const createQuestionTranslation = async (payload: any) => {
+  const client = await db.connect();
+  try {
+    await client.query(TRANS.BEGIN);
+    const [q, v] = insertQuery("mst_question_answer_translations", payload, "id");
+    const result = await client.query(q, v);
+    await client.query(TRANS.COMMIT);
+    return result.rows[0].id;
+  } catch (error) {
+    console.error(error);
+    await client.query(TRANS.ROLLBACK);
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+export const updateQuestionTranslation = async (payload: any, translationId: string) => {
+  const client = await db.connect();
+  try {
+    await client.query(TRANS.BEGIN);
+    const [q, v] = updateQuery("mst_question_answer_translations", payload, { id: translationId }, "id");
+    const result = await client.query(q, v);
+    await client.query(TRANS.COMMIT);
+    return result.rows[0].id;
+  } catch (error) {
+    console.error(error);
+    await client.query(TRANS.ROLLBACK);
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+export const getQuestionTranslation = async (questionId: string, languageId: string) => {
+  const client = await db.connect();
+  try {
+    const result = await client.query(
+      `SELECT * FROM mst_question_answer_translations 
+       WHERE question_answer_id = $1 AND language_id = $2`,
+      [questionId, languageId]
+    );
+    return result.rows[0];
+  } catch (error) {
+    console.error(error);
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
 export const deleteQuestion = async (id: string) => {
   const client = await db.connect();
   try {
