@@ -23,6 +23,7 @@ import Question from "./Question.js";
 import Series from "./Series.js";
 import TermsPP, { ShortBrief } from "./TermsPP.js";
 import Proctoring from "./transactions/Proctoring.js";
+// import Guideline from "@/routes/GuideLine.js";
 
 //@using router
 // router.use('/api/<endpoint>', <controller>)
@@ -49,6 +50,8 @@ router.use("/api/report", Report);
 router.use("/api/languages", isAuth, Language);
 router.use("/api/report", isAuth, Report);
 // router.use("/api/guideline", Guideline, errorMiddleware);
+router.use("/api/report", Report);
+router.use("/api/languages", isAuth, Language);
 router.use("/api/check", (req, res) => {
   res.status(200).send({
     message: "Connected",
