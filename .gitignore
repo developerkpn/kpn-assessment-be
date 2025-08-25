@@ -8,3 +8,5 @@ uploads
 /dist
 development.env
 production.env
+
+CLAUDE.md

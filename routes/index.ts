@@ -22,6 +22,7 @@ import Assessment from "@/routes/transactions/Assessment.js";
 import Proctoring from "./transactions/Proctoring.js";
 import Assessee from "@/routes/transactions/Assessee.js";
 import Report from "@/routes/report/Report.js";
+import Language from "@/routes/Language.js";
 
 //@using router
 // router.use('/api/<endpoint>', <controller>)
@@ -45,6 +46,7 @@ router.use("/api/assessment", Assessment);
 router.use("/api/proctoring", Proctoring);
 router.use("/api/assessee", Assessee);
 router.use("/api/report", Report);
+router.use("/api/languages", isAuth, Language);
 router.use("/api/check", (req, res) => {
   res.status(200).send({
     message: "Connected",
