@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { checkPermission } from "@/middleware/auth.js";
+import { checkPermission } from "@/middleware/auth";
 import {
   checkIsCoverUserbyOther,
   handleCreateReportForBatch,
