@@ -6,6 +6,8 @@ import { Batch } from "@/routes/Batch.js";
 import { Category } from "@/routes/Category.js";
 import EmailTemplate from "@/routes/EmailTemplate.js";
 import GroupTest from "@/routes/GroupTest.js";
+// import Guideline from "@/routes/GuideLine.js";
+import Language from "@/routes/Language.js";
 import Report from "@/routes/report/Report.js";
 import SubTest from "@/routes/SubTest.js";
 import Test from "@/routes/Test.js";
@@ -39,7 +41,6 @@ import Proctoring from "./transactions/Proctoring.js";
 // import Guideline from "@/routes/GuideLine.js";
 import Translation from "./Translation.js";
 import { errorMiddleware } from "@/middleware/errorMiddleware.js";
-import Language from "@/routes/Language.js";
 
 //@using router
 // router.use('/api/<endpoint>', <controller>)
@@ -68,6 +69,8 @@ router.use("/api/translation", isAuth, Translation);
 // router.use("/api/guideline", Guideline, errorMiddleware);
 router.use("/api/report", Report);
 router.use("/api/languages", isAuth, Language);
+router.use("/api/report", isAuth, Report);
+// router.use("/api/guideline", Guideline, errorMiddleware);
 router.use("/api/check", (req, res) => {
   res.status(200).send({
     message: "Connected",
