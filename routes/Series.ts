@@ -23,8 +23,8 @@ Series.get("/", checkPermission("fread", 4), handleGetSeries);
 Series.delete("/:id", checkPermission("fdelete", 4), handleDeleteSeries);
 Series.patch("/:id", checkPermission("fupdate", 4), handleUpdateSeries);
 
-Series.get("/:id", checkPermission("fread", 4), handleGetDetailSeries);
-Series.get("/create/:id", checkPermission("fread", 4), handleGetSeriesByID);
+Series.get("/:id", checkPermission("fread", [4, 15]), handleGetDetailSeries);
+Series.get("/create/:id", checkPermission("fread", [4]), handleGetSeriesByID);
 Series.get("/:id/questions-available", checkPermission("fread", 4), handleGetAvailableQuestionForSeries);
 Series.delete("/:id/questions/:questionId", checkPermission("fdelete", 4), handleDeleteQuestionFromSeries);
 

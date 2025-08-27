@@ -40,6 +40,7 @@ app.use(cors(corsOption));
 app.use("/api/static", express.static("uploads"));
 app.use((req, res, next) => {
   if (req.path.startsWith("/api/static")) {
+    console.log(req.path);
     return res.status(404).sendFile(path.join(__dirname, "uploads", "404.html"));
   }
   next();
@@ -52,7 +53,8 @@ app.use(cookieParser());
 app.use(router);
 app.use(errorMiddleware);
 app.use(express.static(path.join(__dirname, "public/build")));
-app.get("/*$", (req, res) => {
+app.get("/*$", (req, res, next) => {
+  if (req.path.startsWith("/api")) return next();
   res.sendFile(path.join(__dirname, "public/build", "index.html"));
 });
 app.use(errorMiddleware);

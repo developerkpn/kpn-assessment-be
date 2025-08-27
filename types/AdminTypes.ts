@@ -4,6 +4,7 @@ export type User = {
   fullname: string;
   user_id: string;
   role_id: string;
+  bu_id: string;
 };
 
 export type TokenPayload = {

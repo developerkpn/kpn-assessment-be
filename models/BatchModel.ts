@@ -34,14 +34,63 @@ export const createBatch = async (headerPayload: any, batchCodePayload: any, ccP
   }
 };
 
-export const getBatch = async ({ published }: { published: boolean }) => {
-  const client = await db.connect();
-  let whereque = "";
-  let whereval: any[] = [];
-  if (published) {
-    whereque = "WHERE h.status = $1";
-    whereval.push("Published");
+export const getBatch = async (
+  { published }: { published: boolean },
+  session: {
+    role_name: string;
+    bu_id: string;
   }
+) => {
+  const client = await db.connect();
+  let where = "";
+  let whereque = [];
+  let whereval: any[] = [];
+  let index = 1;
+  if (published) {
+    whereque.push(`h.status = $${index}`);
+    whereval.push("Published");
+    index++;
+  }
+  if (session.role_name != "Super Admin") {
+    whereque.push(`maw.bu_id = $${index}`);
+    whereval.push(session.bu_id);
+    index++;
+  }
+  if (whereval.length > 0) {
+    where = "WHERE " + whereque.join(" and ");
+  }
+  console.log(`
+            SELECT
+                h.id,
+                h.batch_name,
+                h.batch_code,
+                h.type,
+                h.status,
+                g.grouptest_code,
+                COUNT(d.id) AS total_assessee,
+                h.start_period,
+                h.end_period,
+                b.bu_code,
+                f.fm_code
+            FROM
+                t_batch_head h
+            LEFT JOIN
+                mst_admin_web maw on maw.id = h.created_by
+            LEFT JOIN
+                mst_grouptest_head g ON h.grouptest_id = g.id
+            LEFT JOIN
+                t_batch_assessee d ON h.id = d.batch_id
+            LEFT JOIN
+                mst_business_unit b ON h.bu_id = b.id
+            LEFT JOIN
+                mst_function_menu f ON h.function_id = f.id ${where}
+            GROUP BY 
+                h.id, h.batch_name, h.batch_code, g.grouptest_code, h.type, h.status,
+                h.start_period, h.end_period, b.bu_code, f.fm_code
+            ORDER BY 
+                h.created_at DESC           
+            `);
+  console.log(whereval);
   try {
     const result = await client.query(
       `
@@ -60,13 +109,15 @@ export const getBatch = async ({ published }: { published: boolean }) => {
             FROM
                 t_batch_head h
             LEFT JOIN
+                mst_admin_web maw on maw.id = h.created_by
+            LEFT JOIN
                 mst_grouptest_head g ON h.grouptest_id = g.id
             LEFT JOIN
                 t_batch_assessee d ON h.id = d.batch_id
             LEFT JOIN
                 mst_business_unit b ON h.bu_id = b.id
             LEFT JOIN
-                mst_function_menu f ON h.function_id = f.id ${whereque} 
+                mst_function_menu f ON h.function_id = f.id ${where}
             GROUP BY 
                 h.id, h.batch_name, h.batch_code, g.grouptest_code, h.type, h.status,
                 h.start_period, h.end_period, b.bu_code, f.fm_code

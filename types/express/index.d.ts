@@ -3,6 +3,8 @@ declare namespace Express {
     userDecode?: {
       user_id: string;
       role_id?: string;
+      role_name?: string;
+      bu_id?: string;
       email?: string;
       type?: string;
       permission?: Array<{

@@ -17,10 +17,35 @@ import { ResponseError } from "@/error/response-error.js";
 import { async } from "rxjs";
 import { CriteriasReport, ReportCriteria, ReportDetailSection, ReportIntro } from "@/types/Report.js";
 
-export const getBatchForReport = async () => {
+export const getBatchForReport = async (session: { role_name: string; bu_id: string }) => {
   const client = await db.connect();
   try {
-    const result = await client.query(`
+    let whereque = [];
+    let whereval = [];
+    let index = 1;
+    if (session.role_name != "Super Admin") {
+      whereque.push(`maw.bu_id = $${index}`);
+      whereval.push(session.bu_id);
+      index++;
+    }
+    console.log(`SELECT
+      b.id,
+      b.batch_name,
+      b.batch_code,
+      b.type,
+      b.start_period,
+      b.end_period,
+      (SELECT COUNT(*) 
+      FROM t_batch_assessee
+      WHERE batch_id = b.id) AS total_assessee,
+      r.id AS report_id
+      FROM t_batch_head b
+      LEFT JOIN report_head r ON b.id = r.batch_id
+      LEFT JOIN mst_admin_web maw on maw.id = b.created_by
+      WHERE b.status = 'Published' ${whereque.length > 0 ? "and " + whereque.join(" and ") : ""}
+      ORDER BY end_period DESC`);
+    const result = await client.query(
+      `
     SELECT
       b.id,
       b.batch_name,
@@ -34,9 +59,12 @@ export const getBatchForReport = async () => {
       r.id AS report_id
       FROM t_batch_head b
       LEFT JOIN report_head r ON b.id = r.batch_id
-      WHERE b.status = 'Published'
+      LEFT JOIN mst_admin_web maw on maw.id = b.created_by
+      WHERE b.status = 'Published' ${whereque.length > 0 ? "and " + whereque.join(" and ") : ""}
       ORDER BY end_period DESC
-    `);
+    `,
+      whereval
+    );
 
     const mappingResult = result.rows.map((prev: any) => ({
       ...prev,

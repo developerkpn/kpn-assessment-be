@@ -11,6 +11,7 @@ export class AdminWebValidation {
     username: z.string().trim().min(6, { message: "Username must be at least 6 characters long." }),
     email: z.string().trim().email({ message: "Invalid email format. Please enter a valid email address." }),
     role_id: z.string().uuid({ message: "Invalid role ID. Please provide a valid UUID." }),
+    bu_id: z.string(),
     is_active: z.boolean({ message: "Should be active or inactive" }),
   });
 

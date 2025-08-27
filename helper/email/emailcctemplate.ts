@@ -463,7 +463,7 @@ export const emailCCTemplate = `
                                 <img
                                         width="40%"
                                         style="max-width: 200px; height: auto; display: block;"
-                                        src="https://safetyfirstindonesia.co.id/assets/uploads/images/9f09b-kpn-corp.png"
+                                        src="${process.env.APP_URL}/api/static/kpn-logo-2.png"
                                         alt="KPN Corp Logo"
                                 />
                             </td>
