@@ -402,52 +402,6 @@ export const handleGetQuestionById = async (req: Request, res: Response) => {
   }
 };
 
-export const handleGetQuestionTranslation = async (req: Request, res: Response) => {
-  const { questionId, languageId } = req.params;
-  try {
-    const translation = await getQuestionTranslation(questionId, languageId);
-    
-    if (!translation) {
-      res.status(404).send({
-        message: `Translation not found for question ${questionId} in language ${languageId}`,
-      });
-      return;
-    }
-
-    // Format the translation data similar to main question format
-    const answers: any[] = [];
-    ["a", "b", "c", "d", "e", "f", "g"].forEach((choice) => {
-      const textKey = `answer_choice_${choice}_text`;
-      if (translation[textKey]) {
-        answers.push({
-          text: translation[textKey],
-        });
-      }
-    });
-
-    const formattedResult = {
-      id: translation.id,
-      question_answer_id: translation.question_answer_id,
-      language_id: translation.language_id,
-      q_input_text: translation.q_input_text,
-      answers: answers,
-      created_by: translation.created_by,
-      created_date: translation.created_date,
-      updated_by: translation.updated_by,
-      updated_date: translation.updated_date,
-    };
-
-    res.status(200).send({
-      message: `Success get question translation`,
-      data: formattedResult,
-    });
-  } catch (error: any) {
-    res.status(500).send({
-      message: error.message,
-    });
-  }
-};
-
 export const handleDeleteQuestion = async (req: Request, res: Response) => {
   const id = req.params.id;
   try {
