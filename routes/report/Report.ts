@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { checkPermission } from "@/middleware/auth";
 import {
   checkIsCoverUserbyOther,
   handleCreateReportForBatch,
@@ -27,24 +28,24 @@ import { errorMiddleware } from "@/middleware/errorMiddleware.js";
 
 const Report = Router();
 
-Report.post("/guide", handleStoreReportGuide);
-Report.get("/guide", handleGetReportGuide);
-Report.post("/pdf", uploadSingleFile, handleUploadReportPDF);
-Report.post("/result", handleReportPersonal);
-Report.get("/peruser", handleGetAssessmentResult);
-Report.post("/design", handleCreateReportForBatch);
+Report.post("/guide", checkPermission("fcreate", 17), handleStoreReportGuide);
+Report.get("/guide", checkPermission("fread", 17), handleGetReportGuide);
+Report.post("/pdf", checkPermission("fcreate", 17), uploadSingleFile, handleUploadReportPDF);
+Report.post("/result", checkPermission("fread", 17), handleReportPersonal);
+Report.get("/peruser", checkPermission("fread", 17), handleGetAssessmentResult);
+Report.post("/design", checkPermission("fcreate", 17), handleCreateReportForBatch);
 Report.get("/proctoring", ProctoringController.GetFile);
-Report.get("/", handleGetBatchForReport);
-Report.get("/personal/:id", handleGetAssesseeListForReport);
-Report.put("/guide/:id", handleUpdateReportGuide);
+Report.get("/", checkPermission("fread", 17), handleGetBatchForReport);
+Report.get("/personal/:id", checkPermission("fread", 17), handleGetAssesseeListForReport);
+Report.put("/guide/:id", checkPermission("fupdate", 17), handleUpdateReportGuide);
 // Report.get("/design/:batchId", handleGetReportDesignDetail);
-Report.patch("/design/:reportId", handleUpdateReportDesign);
-Report.get("/template/:batchId", handleGetBatchInformationForReport);
-Report.post("/uploadcover", handleUploadCover, errorMiddleware);
-Report.get("/cover/isexist", checkIsCoverUserbyOther, errorMiddleware);
-Report.get("/cover/:id", handleGetCover, errorMiddleware);
-Report.delete("/cover/:id", handleDeleteCover, errorMiddleware);
-Report.get("/allcover", handleGetAllCover, errorMiddleware);
-Report.get("/pdfgen", PDFController.RenderReport);
-Report.get("/download/:batchId", handleDownloadBatchReport, errorMiddleware);
+Report.patch("/design/:reportId", checkPermission("fupdate", 17), handleUpdateReportDesign);
+Report.get("/template/:batchId", checkPermission("fread", 17), handleGetBatchInformationForReport);
+Report.post("/uploadcover", checkPermission("fcreate", 17), handleUploadCover, errorMiddleware);
+Report.get("/cover/isexist", checkPermission("fread", 17), checkIsCoverUserbyOther, errorMiddleware);
+Report.get("/cover/:id", checkPermission("fread", 17), handleGetCover, errorMiddleware);
+Report.delete("/cover/:id", checkPermission("fdelete", 17), handleDeleteCover, errorMiddleware);
+Report.get("/allcover", checkPermission("fread", 17), handleGetAllCover, errorMiddleware);
+Report.get("/pdfgen", checkPermission("fread", 17), PDFController.RenderReport);
+Report.get("/download/:batchId", checkPermission("fread", 17), handleDownloadBatchReport, errorMiddleware);
 export default Report;

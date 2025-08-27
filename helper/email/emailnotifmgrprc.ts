@@ -1,3 +1,10 @@
+import dotenv from "dotenv";
+import path from "path";
+import { fileURLToPath } from "url";
+const __filename = fileURLToPath(import.meta.url); // get the resolved path to the file
+const __dirname = path.dirname(__filename);
+dotenv.config({ path: path.resolve(__dirname, `./${process.env.NODE_ENV}.env`) });
+
 export const emailTemplateHTML = `
 <!doctype html>
 <html lang="en">
@@ -453,7 +460,7 @@ export const emailTemplateHTML = `
                                     <td class="logo" style="text-align: left">
                                         <img
                                             width="40%"
-                                            src="https://safetyfirstindonesia.co.id/assets/uploads/images/9f09b-kpn-corp.png"
+                                            src="${process.env.APP_URL}/api/static/kpn-logo-2.png"
                                             style="max-width: 200px; height: auto;"
                                         />
                                     </td>

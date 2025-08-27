@@ -29,7 +29,7 @@ AdminWeb.patch("/reset-pass/reset", handleResetPassword);
 AdminWeb.get("/permission", handleGetPermission);
 
 AdminWeb.post("/", isAuth, checkPermission("fcreate", 8), handleCreateAdmin);
-AdminWeb.get("/role", isAuth, checkPermission("fread", 8), handleGetRole);
+AdminWeb.get("/role", isAuth, checkPermission("fread", [8, 15]), handleGetRole);
 AdminWeb.get("/", isAuth, checkPermission("fread", 8), handleGetAllAdmin);
 AdminWeb.get("/:id", isAuth, checkPermission("fread", 8), handleGetAdminById);
 AdminWeb.patch("/:id", isAuth, checkPermission("fupdate", 8), handleUpdateAdmin);

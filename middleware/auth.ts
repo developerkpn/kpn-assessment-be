@@ -21,6 +21,7 @@ export const isAuth = (req: Request, res: Response, next: NextFunction): any => 
     req.userDecode = userDecode as TokenPayload;
     return next();
   } catch (error: any) {
+    console.error(error);
     if (error.name === "TokenExpiredError") {
       return res.status(401).send({
         message: error.message,
@@ -106,24 +107,38 @@ export const isAuthDarwin = async (req: Request, res: Response, next: NextFuncti
 };
 
 export const checkPermission =
-  (action: "fcreate" | "fread" | "fupdate" | "fdelete", menuId: number) =>
+  (action: "fcreate" | "fread" | "fupdate" | "fdelete", menuId: number | number[]) =>
   async (req: Request, res: Response, next: NextFunction): Promise<any> => {
     try {
+      if (!req.userDecode) {
+        throw new Error("Unauthorized");
+      }
       const getPermission = await verifyPermission(req.userDecode?.role_id, menuId);
 
-      const verifiedPermission: Permission = {
-        menu_id: getPermission.menu_id,
-        fcreate: getPermission.fcreate,
-        fread: getPermission.fread,
-        fupdate: getPermission.fupdate,
-        fdelete: getPermission.fdelete,
+      let verifiedPermission: Permission = {
+        menu_id: 0,
+        fcreate: false,
+        fread: false,
+        fupdate: false,
+        fdelete: false,
       };
+
+      for (const perm of getPermission) {
+        verifiedPermission = {
+          menu_id: perm.menu_id,
+          fcreate: verifiedPermission.fcreate || perm.fcreate,
+          fread: verifiedPermission.fread || perm.fread,
+          fupdate: verifiedPermission.fupdate || perm.fupdate,
+          fdelete: verifiedPermission.fdelete || perm.fdelete,
+        };
+      }
 
       if (!verifiedPermission) {
         throw new Error("Permission not provided or mismatched");
       }
 
       if (verifiedPermission[action]) {
+        req.userDecode.role_name = getPermission[0].role_name;
         return next();
       }
 

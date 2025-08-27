@@ -38,6 +38,7 @@ export const loginAdmin = async (emailOrUname: string, password: string) => {
       {
         user_id: data.id,
         role_id: data.role_id,
+        bu_id: data.bu_id,
         permission: permission.rows,
       },
       process.env.SECRETJWT as Secret,
@@ -48,6 +49,7 @@ export const loginAdmin = async (emailOrUname: string, password: string) => {
       {
         user_id: data.id,
         role_id: data.role_id,
+        bu_id: data.bu_id,
         permission: permission.rows,
       },
       process.env.SECRETJWT as Secret,
@@ -78,22 +80,26 @@ export const loginAdmin = async (emailOrUname: string, password: string) => {
   }
 };
 
-export const verifyPermission = async (roleId: any, menuId: any) => {
+export const verifyPermission = async (roleId: any, menuId: number | number[]) => {
   const client = await db.connect();
 
   try {
     await client.query(TRANS.BEGIN);
-
+    let menu = menuId.toString();
+    if (Array.isArray(menuId)) {
+      menu = `${menuId.join(",")}`;
+    }
     const checkPermission = await client.query(
       `
-        SELECT menu_id, fcreate, fread, fupdate, fdelete
-        FROM mst_menu_access
-        WHERE role_id = $1 AND menu_id = $2
+        SELECT menu_id, fcreate, fread, fupdate, fdelete, mr.role_name
+        FROM mst_menu_access mma
+        left join mst_role mr on mr.id = mma.role_id
+        WHERE mma.role_id = $1 AND menu_id in (${menu})
       `,
-      [roleId, menuId]
+      [roleId]
     );
 
-    const permission = checkPermission.rows[0];
+    const permission = checkPermission.rows;
     await client.query(TRANS.COMMIT);
     return permission;
   } catch (error) {

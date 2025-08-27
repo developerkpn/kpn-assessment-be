@@ -28,9 +28,7 @@ import { ResponseError } from "@/error/response-error.js";
 
 export const handleLoginAdmin = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
-    console.log("bodynya", req.body);
     const validatedRequest = Validation.validate(AdminWebValidation.LOGIN, req.body);
-    console.log("masuk login");
     const { data, accessToken } = await loginAdmin(validatedRequest.username, validatedRequest.password);
 
     res.status(200).send({
@@ -41,6 +39,7 @@ export const handleLoginAdmin = async (req: Request, res: Response, next: NextFu
         email: data.email,
         user_id: data.id,
         role_id: data.role_id,
+        bu_id: data.bu_id,
         permission: data.permission,
         access_token: accessToken,
       },
@@ -64,6 +63,7 @@ export const refreshAccessToken = async (req: Request, res: Response, next: Next
     email: req.body.email,
     user_id: req.body.user_id,
     role_id: req.body.role_id,
+    bu_id: req.body.bu_id,
   };
 
   try {
@@ -151,6 +151,7 @@ export const handleCreateAdmin = async (req: Request, res: Response, next: NextF
       email: validatedRequest.email,
       password: hashed,
       role_id: validatedRequest.role_id,
+      bu_id: validatedRequest.bu_id,
       is_active: validatedRequest.is_active,
       created_by: req.userDecode?.user_id,
       created_date: today,
@@ -358,6 +359,7 @@ export const handleUpdateAdmin = async (req: Request, res: Response, next: NextF
     const payload = {
       fullname: req.body.fullname,
       role_id: req.body.role_id,
+      bu_id: req.body.bu_id,
     };
     await updateAdmin(adminId, payload);
     res.status(200).send({
