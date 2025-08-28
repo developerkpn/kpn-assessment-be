@@ -1,4 +1,4 @@
-import { ReportDetailSubtest } from "@/types/Report";
+import { ReportDetailSubtest } from "@/types/Report.js";
 import { ChartJSNodeCanvas } from "chartjs-node-canvas";
 
 const chartWidth = 550;

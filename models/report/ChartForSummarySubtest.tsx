@@ -2,7 +2,7 @@ import React from "react";
 import { View, Text } from "@react-pdf/renderer";
 // src/components/report/styles/chartStyles.ts
 import { StyleSheet } from "@react-pdf/renderer";
-import { ReportDetailSubtest } from "@/types/Report";
+import { ReportDetailSubtest } from "@/types/Report.js";
 
 export const chartStyles = StyleSheet.create({
   container: {
