@@ -190,7 +190,7 @@ export const getAdminById = async (id: string) => {
 
     const { rows } = await client.query(
       `
-      SELECT a.id, a.username, a.fullname, a.email, a.is_active, a.role_id, r.role_name, a.created_date, a.bu_id
+      SELECT a.id, a.username, a.fullname, a.email, a.is_active, a.role_id, r.role_name, a.created_date, a.bu_id, a.from_darwin, a.nik
       FROM mst_admin_web a
       LEFT JOIN mst_role r ON a.role_id = r.id
       WHERE a.id = $1

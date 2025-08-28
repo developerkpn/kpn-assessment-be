@@ -22,7 +22,7 @@ import Assessment from "@/routes/transactions/Assessment.js";
 import Proctoring from "./transactions/Proctoring.js";
 import Assessee from "@/routes/transactions/Assessee.js";
 import Report from "@/routes/report/Report.js";
-// import Guideline from "@/routes/GuideLine.js";
+import Guideline from "@/routes/GuideLine.js";
 import { errorMiddleware } from "@/middleware/errorMiddleware.js";
 
 //@using router
@@ -47,7 +47,7 @@ router.use("/api/assessment", Assessment);
 router.use("/api/proctoring", Proctoring);
 router.use("/api/assessee", Assessee);
 router.use("/api/report", isAuth, Report);
-// router.use("/api/guideline", Guideline, errorMiddleware);
+router.use("/api/guideline", Guideline, errorMiddleware);
 router.use("/api/check", (req, res) => {
   res.status(200).send({
     message: "Connected",

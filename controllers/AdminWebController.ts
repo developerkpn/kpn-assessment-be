@@ -147,12 +147,14 @@ export const handleCreateAdmin = async (req: Request, res: Response, next: NextF
 
     const requestPayload = {
       id: uuidv4(),
+      nik: validatedRequest.nik,
       fullname: validatedRequest.fullname,
       username: validatedRequest.username,
       email: validatedRequest.email,
       password: hashed,
       role_id: validatedRequest.role_id,
       bu_id: validatedRequest.bu_id,
+      from_darwin: validatedRequest.from_darwin,
       is_active: validatedRequest.is_active,
       created_by: req.userDecode?.user_id,
       created_date: today,
