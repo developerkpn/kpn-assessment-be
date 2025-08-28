@@ -4,6 +4,7 @@ import {
   handleDeleteAdmin,
   handleGetAdminById,
   handleGetAllAdmin,
+  handleGetDataAdminFromDarwin,
   handleGetPermission,
   handleGetRole,
   handleGetRoleById,
@@ -38,5 +39,7 @@ AdminWeb.delete("/:id", isAuth, checkPermission("fdelete", 8), handleDeleteAdmin
 AdminWeb.post("/role", isAuth, checkPermission("fcreate", 10), handleCreateRole);
 AdminWeb.get("/role/:id", isAuth, checkPermission("fread", 8), handleGetRoleById);
 AdminWeb.patch("/role/:id", isAuth, checkPermission("fupdate", 8), handleUpdateRole);
+
+AdminWeb.get("/darwin/:id", isAuth, checkPermission("fread", 8), handleGetDataAdminFromDarwin);
 
 export default AdminWeb;

@@ -16,6 +16,7 @@ import {
   updateAdmin,
   updateRole,
 } from "@/models/AdminWebModel.js";
+import { getDarwinUser } from "@/models/BatchModel.js";
 import { Emailer } from "@/services/mail/Emailer.js";
 import { User } from "@/types/AdminTypes.js";
 import { NextFunction, Request, Response } from "express";
@@ -381,5 +382,23 @@ export const handleDeleteAdmin = async (req: Request, res: Response, next: NextF
     });
   } catch (e) {
     next(e);
+  }
+};
+
+export const handleGetDataAdminFromDarwin = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const id = req.params.id;
+    const result = await getDarwinUser(id);
+    const response = {
+      fullname: result?.full_name,
+      email: result?.company_email_id,
+      bu_id: result?.group_company,
+      username: result?.company_email_id.split("@")[0],
+    };
+    res.status(200).send({
+      data: response,
+    });
+  } catch (error) {
+    next(error);
   }
 };
