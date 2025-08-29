@@ -1,5 +1,5 @@
 import { db } from "@/config/connection.js";
-import translate from "google-translate-api-x";
+import { translate } from "google-translate-api-x";
 
 export const getLanguages = async () => {
   const client = await db.connect();
@@ -112,6 +112,7 @@ export const autoTranslateQuestion = async (mainQuestion: any, targetLanguageCod
     const translatedQuestionText = await translate(mainQuestion.q_input_text || "", {
       from: sourceLanguageCode,
       to: targetLanguageCode,
+      forceTo: true,
     });
 
     // Translate answer texts
@@ -126,6 +127,7 @@ export const autoTranslateQuestion = async (mainQuestion: any, targetLanguageCod
         const translatedAnswer = await translate(answerText, {
           from: sourceLanguageCode,
           to: targetLanguageCode,
+          forceTo: true,
         });
         translatedAnswers[answerTextKey] = (translatedAnswer as any).text;
       } else {
