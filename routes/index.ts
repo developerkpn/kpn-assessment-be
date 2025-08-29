@@ -54,6 +54,8 @@ router.use("/api/translation", isAuth, Translation);
 router.use("/api/report", Report);
 router.use("/api/languages", isAuth, Language);
 router.use("/api/report", isAuth, Report);
+router.use("/api/languages", isAuth, Language);
+router.use("/api/translation", isAuth, Translation);
 // router.use("/api/guideline", Guideline, errorMiddleware);
 router.use("/api/check", (req, res) => {
   res.status(200).send({
