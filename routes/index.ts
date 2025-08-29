@@ -25,6 +25,7 @@ import Assessee from "@/routes/transactions/Assessee.js";
 import Assessment from "@/routes/transactions/Assessment.js";
 import Proctoring from "./transactions/Proctoring.js";
 // import Guideline from "@/routes/GuideLine.js";
+import Translation from "./Translation.js";
 import { errorMiddleware } from "@/middleware/errorMiddleware.js";
 
 //@using router
@@ -49,6 +50,8 @@ router.use("/api/assessment", Assessment);
 router.use("/api/proctoring", Proctoring);
 router.use("/api/assessee", Assessee);
 router.use("/api/report", isAuth, Report);
+router.use("/api/languages", isAuth, Language);
+router.use("/api/translation", isAuth, Translation);
 // router.use("/api/guideline", Guideline, errorMiddleware);
 router.use("/api/check", (req, res) => {
   res.status(200).send({
