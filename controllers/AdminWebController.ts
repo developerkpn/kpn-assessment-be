@@ -140,11 +140,10 @@ export const handleCreateAdmin = async (req: Request, res: Response, next: NextF
   try {
     const today = new Date();
     const data = req.body;
-    const password = (process.env.DEFAULT_PASS as string) + Math.floor(1000 + Math.random() * 9000).toString();
-    const hashed = await hashPassword(password);
 
     const validatedRequest = Validation.validate(AdminWebValidation.CREATEADMIN, req.body);
 
+    const hashed = await hashPassword(validatedRequest.password);
     const requestPayload = {
       id: uuidv4(),
       nik: validatedRequest.nik,
@@ -165,7 +164,7 @@ export const handleCreateAdmin = async (req: Request, res: Response, next: NextF
     const emailData = {
       fullname: data.fullname,
       username: data.username,
-      password: password,
+      password: validatedRequest.password,
       role: result.role,
     };
 
@@ -359,11 +358,15 @@ export const handleUpdateRole = async (req: Request, res: Response, next: NextFu
 export const handleUpdateAdmin = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const adminId = req.params.id;
-    const payload = {
+    const payload: any = {
       fullname: req.body.fullname,
       role_id: req.body.role_id,
       bu_id: req.body.bu_id,
     };
+    if (req.body.password) {
+      const hashed = await hashPassword(req.body.password);
+      payload.password = hashed;
+    }
     await updateAdmin(adminId, payload);
     res.status(200).send({
       message: "Success!",

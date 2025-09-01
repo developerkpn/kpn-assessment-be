@@ -70,7 +70,6 @@ export class Emailer {
       <p>Don't forget to change your password to secure your account.</p>
 
       ${generateButton(`${process.env.APP_URL}/admin-login`, "Login", "primary")}
-      ${generateButton(`${process.env.APP_URL}/reset-pass`, "Reset Password")}
       `
     );
 
