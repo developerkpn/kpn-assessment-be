@@ -1,4 +1,4 @@
-import { handleGetLanguages, handleGetLanguagesWithTranslationStatus } from "@/controllers/TranslationController.js";
+import { handleGetLanguages, handleGetLanguagesWithTranslationStatus } from "@/controllers/LanguageController.js";
 import { checkPermission } from "@/middleware/auth.js";
 import { Router } from "express";
 

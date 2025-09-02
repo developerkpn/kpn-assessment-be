@@ -58,29 +58,6 @@ export const getLanguagesWithTranslationStatus = async (questionId: string) => {
   }
 };
 
-export const getLanguageById = async (languageId: string) => {
-  const client = await db.connect();
-  try {
-    const result = await client.query(
-      `SELECT
-        id,
-        language_code,
-        language_name,
-        language_name_native,
-        is_active
-      FROM mst_language
-      WHERE id = $1 AND is_active = true`,
-      [languageId]
-    );
-    return result.rows[0];
-  } catch (error) {
-    console.error(error);
-    throw error;
-  } finally {
-    client.release();
-  }
-};
-
 export const getLanguageByCode = async (languageCode: string) => {
   const client = await db.connect();
   try {
@@ -104,46 +81,36 @@ export const getLanguageByCode = async (languageCode: string) => {
   }
 };
 
-export const autoTranslateQuestion = async (mainQuestion: any, targetLanguageCode: string) => {
+export const translateFieldsBatch = async (
+  fieldsToTranslate: Record<string, string>,
+  sourceLanguageCode: string,
+  targetLanguageCode: string
+): Promise<Record<string, string>> => {
   try {
-    const sourceLanguageCode = mainQuestion.language_id;
+    const translatedFields: Record<string, string> = {};
 
-    // Auto-translate the question text
-    const translatedQuestionText = await translate(mainQuestion.q_input_text || "", {
-      from: sourceLanguageCode,
-      to: targetLanguageCode,
-      forceTo: true,
-    });
-
-    // Translate answer texts
-    const translatedAnswers: any = {};
-    const answerLetters = ["a", "b", "c", "d", "e", "f", "g"];
-
-    for (const letter of answerLetters) {
-      const answerTextKey = `answer_choice_${letter}_text`;
-      const answerText = mainQuestion[answerTextKey];
-
-      if (answerText) {
-        const translatedAnswer = await translate(answerText, {
+    const translationPromises = Object.entries(fieldsToTranslate).map(async ([fieldName, fieldValue]) => {
+      if (fieldValue && fieldValue.trim() !== "") {
+        const translatedText = await translate(fieldValue, {
           from: sourceLanguageCode,
           to: targetLanguageCode,
           forceTo: true,
         });
-        translatedAnswers[answerTextKey] = (translatedAnswer as any).text;
+        return { fieldName, translatedValue: (translatedText as any).text };
       } else {
-        translatedAnswers[answerTextKey] = null;
+        return { fieldName, translatedValue: fieldValue };
       }
-    }
+    });
 
-    return {
-      q_input_text: (translatedQuestionText as any).text,
-      ...translatedAnswers,
-      auto_translated: true,
-      translation_source: "google_translate",
-      is_preview: true,
-    };
+    const translationResults = await Promise.all(translationPromises);
+
+    translationResults.forEach(({ fieldName, translatedValue }) => {
+      translatedFields[fieldName] = translatedValue;
+    });
+
+    return translatedFields;
   } catch (error: any) {
-    console.error("Auto-translation failed:", error);
+    console.error("Batch translation failed:", error);
     throw new Error(`Translation failed: ${error.message}`);
   }
 };
