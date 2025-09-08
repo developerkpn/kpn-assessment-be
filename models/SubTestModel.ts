@@ -151,6 +151,7 @@ export const getSubTestDetail = async (id: string) => {
         h.is_active,
         h.is_criteria,
         h.is_mandatory,
+        h.language_id,
         a.fullname AS created_by,
         h.created_at,
         au.fullname AS updated_by,
@@ -271,6 +272,7 @@ export const getSubTestDetail = async (id: string) => {
       subtest_desc: result.rows[0].subtest_desc,
       series_example_id: result.rows[0].series_example_id,
       is_example_answer_shown: result.rows[0].is_example_answer_shown,
+      language_id: result.rows[0].language_id,
       created_by: result.rows[0].created_by,
       created_at: result.rows[0].created_at,
       updated_by: result.rows[0].updated_by,
@@ -374,6 +376,91 @@ export const deleteSeriesFromSubTest = async (subtestId: string, detailId: strin
   } catch (error) {
     console.error(error);
     await client.query(TRANS.ROLLBACK);
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+export const createSubTestTranslation = async (payload: any) => {
+  const client = await db.connect();
+  try {
+    await client.query(TRANS.BEGIN);
+    const [q, v] = insertQuery("mst_subtest_head_translations", payload, "id");
+    const result = await client.query(q, v);
+    await client.query(TRANS.COMMIT);
+    return result.rows[0].id;
+  } catch (error) {
+    console.error(error);
+    await client.query(TRANS.ROLLBACK);
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+export const updateSubTestTranslation = async (payload: any, translationId: string) => {
+  const client = await db.connect();
+  try {
+    await client.query(TRANS.BEGIN);
+    const [q, v] = updateQuery("mst_subtest_head_translations", payload, { id: translationId }, "id");
+    const result = await client.query(q, v);
+    await client.query(TRANS.COMMIT);
+    return result.rows[0].id;
+  } catch (error) {
+    console.error(error);
+    await client.query(TRANS.ROLLBACK);
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+export const getSubTestTranslation = async (subtestId: string, languageId: string) => {
+  const client = await db.connect();
+  try {
+    const result = await client.query(
+      `SELECT * FROM mst_subtest_head_translations 
+       WHERE subtest_id = $1 AND language_id = $2`,
+      [subtestId, languageId]
+    );
+    return result.rows[0];
+  } catch (error) {
+    console.error(error);
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+export const getLanguagesWithSubTestTranslationStatus = async (subtestId: string) => {
+  const client = await db.connect();
+  try {
+    // Get all active languages and check which ones have translations for this subtest
+    const result = await client.query(
+      `SELECT
+        ml.id,
+        ml.language_code,
+        ml.language_name,
+        ml.language_name_native,
+        ml.is_active,
+        sth.language_id as main_language_code,
+        CASE
+          WHEN sth.language_id = ml.language_code THEN 'main'
+          WHEN stht.language_id IS NOT NULL THEN 'translation_exists'
+          ELSE 'translation_available'
+        END as translation_status
+      FROM mst_language ml
+      LEFT JOIN mst_subtest_head sth ON sth.id = $1
+      LEFT JOIN mst_subtest_head_translations stht ON stht.subtest_id = $1
+        AND stht.language_id = ml.language_code
+      WHERE ml.is_active = true
+      ORDER BY ml.language_name`,
+      [subtestId]
+    );
+    return result.rows;
+  } catch (error) {
+    console.error(error);
     throw error;
   } finally {
     client.release();
