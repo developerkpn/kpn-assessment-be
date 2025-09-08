@@ -6,7 +6,9 @@ import { hashPassword, validatePassword } from "@/helper/auth/password.js";
 import { deleteQuery, insertQuery, updateQuery } from "@/helper/queryBuilder.js";
 import { Emailer } from "@/services/mail/Emailer.js";
 import { User } from "@/types/AdminTypes.js";
+import { v4 } from "uuid";
 import jwt, { Secret } from "jsonwebtoken";
+import { emailTemplate, generateTable } from "@/services/mail/emailTemplate.js";
 const { sign, verify } = jwt;
 
 export const loginAdmin = async (emailOrUname: string, password: string) => {
@@ -14,9 +16,13 @@ export const loginAdmin = async (emailOrUname: string, password: string) => {
 
   try {
     await client.query(TRANS.BEGIN);
-    const checkUserData = await client.query("SELECT * FROM mst_admin_web WHERE username = $1 OR email = $1", [
-      emailOrUname,
-    ]);
+    const checkUserData = await client.query(
+      `
+      SELECT maw.*, mr.role_name FROM mst_admin_web maw 
+      left join mst_role mr on mr.id = maw.role_id
+      WHERE username = $1 OR email = $1`,
+      [emailOrUname]
+    );
     if (checkUserData.rows.length === 0) {
       throw new Error("User Not Found");
     }
@@ -38,6 +44,7 @@ export const loginAdmin = async (emailOrUname: string, password: string) => {
       {
         user_id: data.id,
         role_id: data.role_id,
+        role_name: data.role_name,
         bu_id: data.bu_id,
         permission: permission.rows,
       },
@@ -49,6 +56,7 @@ export const loginAdmin = async (emailOrUname: string, password: string) => {
       {
         user_id: data.id,
         role_id: data.role_id,
+        role_name: data.role_name,
         bu_id: data.bu_id,
         permission: permission.rows,
       },
@@ -140,6 +148,8 @@ export const getNewToken = async (data: User) => {
       {
         user_id: data.user_id,
         role_id: data.role_id,
+        bu_id: data.bu_id,
+        role_name: data.role_name,
         permission: permission.rows,
       },
       process.env.SECRETJWT as Secret,
@@ -190,9 +200,11 @@ export const getAdminById = async (id: string) => {
 
     const { rows } = await client.query(
       `
-      SELECT a.id, a.username, a.fullname, a.email, a.is_active, a.role_id, r.role_name, a.created_date, a.bu_id, a.from_darwin, a.nik
+      SELECT a.id, a.username, a.fullname, a.email, a.is_active, a.role_id, r.role_name, 
+      a.created_date, a.bu_id, mbu.bu_name, a.from_darwin, a.nik
       FROM mst_admin_web a
       LEFT JOIN mst_role r ON a.role_id = r.id
+      LEFT JOIN mst_business_unit mbu on mbu.id = a.bu_id
       WHERE a.id = $1
       `,
       [id]
@@ -221,6 +233,28 @@ export const createAdmin = async (payload: any) => {
     ]);
     if (checkUserExist.rows.length > 0) {
       throw new Error("User already exist");
+    }
+    // //check bu_id name exist in mst_businessunit
+    if (payload.from_darwin) {
+      const { rows: bu_id } = await client.query("select id from mst_business_unit where bu_name = $1", [
+        payload.bu_id,
+      ]);
+      if (bu_id.length == 0) {
+        // create new bu_id
+        const bu_id_payload = {
+          bu_code: payload.bu_id.replace(" ", "").toUpperCase(),
+          bu_name: payload.bu_id,
+          id: v4(),
+          created_by: payload.created_by,
+          created_date: payload.created_date,
+          is_active: true,
+        };
+        const [que_buid, val_buid] = insertQuery("mst_business_unit", bu_id_payload, "id");
+        await client.query(que_buid, val_buid);
+        payload.bu_id = bu_id_payload.id;
+      } else {
+        payload.bu_id = bu_id[0].id;
+      }
     }
 
     const [q, v] = insertQuery("mst_admin_web", payload, "id, role_id");
@@ -446,14 +480,39 @@ export const updateRole = async (id: string, payload: any, permPayload: any) => 
   }
 };
 
-export const updateAdmin = async (id: string, payload: any) => {
+export const updateAdmin = async (id: string, payload: any, password: string | undefined | null) => {
   const client = await db.connect();
   try {
     await client.query(TRANS.BEGIN);
-    const [queryAdminUpdate, valueAdminUpdate] = updateQuery("mst_admin_web", payload, { id: id });
-    await client.query(queryAdminUpdate, valueAdminUpdate);
+    const [queryAdminUpdate, valueAdminUpdate] = updateQuery("mst_admin_web", payload, { id: id }, "username, email");
+    const { rows: result_up } = await client.query(queryAdminUpdate, valueAdminUpdate);
+    // email to user if there's payload password
+    if (password) {
+      const { rows: data_contact } = await client.query(
+        "select email_dt from mst_email_contact where is_active = true"
+      );
+      const email_contact = data_contact[0].email_dt ?? "Assessmentcenter@kpn-corp.com";
+      const Email = new Emailer();
+      const Subject = Email.generateSubject("Reset Password User Admin");
+      const html_email = emailTemplate(
+        "Reset Password User",
+        `
+        <p>Hello, ${payload.fullname}</p>
+        <p>Your account password to access KPN Online Assessment Platform as an Admin have reset</p>
+        <p>Here's your credential:</p>
+        ${generateTable([
+          { label: "Username", value: result_up[0].username },
+          { label: "Password", value: password },
+        ])}
+        <p>Please contact the Talent Management Corp Team if you have any questions</p>
+        `,
+        email_contact
+      );
+      await Email.sendEmail(result_up[0].email, Subject, html_email);
+    }
     await client.query(TRANS.COMMIT);
   } catch (e) {
+    await client.query(TRANS.ROLLBACK);
     throw e;
   } finally {
     client.release();

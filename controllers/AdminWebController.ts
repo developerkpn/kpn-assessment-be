@@ -40,6 +40,7 @@ export const handleLoginAdmin = async (req: Request, res: Response, next: NextFu
         email: data.email,
         user_id: data.id,
         role_id: data.role_id,
+        role_name: data.role_name,
         bu_id: data.bu_id,
         permission: data.permission,
         access_token: accessToken,
@@ -64,6 +65,7 @@ export const refreshAccessToken = async (req: Request, res: Response, next: Next
     email: req.body.email,
     user_id: req.body.user_id,
     role_id: req.body.role_id,
+    role_name: req.body.role_name,
     bu_id: req.body.bu_id,
   };
 
@@ -144,6 +146,7 @@ export const handleCreateAdmin = async (req: Request, res: Response, next: NextF
     const validatedRequest = Validation.validate(AdminWebValidation.CREATEADMIN, req.body);
 
     const hashed = await hashPassword(validatedRequest.password);
+
     const requestPayload = {
       id: uuidv4(),
       nik: validatedRequest.nik,
@@ -361,13 +364,15 @@ export const handleUpdateAdmin = async (req: Request, res: Response, next: NextF
     const payload: any = {
       fullname: req.body.fullname,
       role_id: req.body.role_id,
-      bu_id: req.body.bu_id,
     };
     if (req.body.password) {
       const hashed = await hashPassword(req.body.password);
       payload.password = hashed;
     }
-    await updateAdmin(adminId, payload);
+    if (req.body.bu_id) {
+      payload.bu_id = req.body.bu_id;
+    }
+    await updateAdmin(adminId, payload, req.body.password);
     res.status(200).send({
       message: "Success!",
     });
