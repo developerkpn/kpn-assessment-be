@@ -107,6 +107,7 @@ export type QuestionRequest = {
   q_input_text: string;
   q_input_image_url: string;
   answer_type: string;
+  language_id?: string; // 2-character language code (e.g., "en", "id")
   answer_choice_a_text?: string;
   answer_choice_a_image_url?: string;
   answer_choice_b_text?: string;
@@ -146,6 +147,7 @@ export type QuestionFields = {
 export type QuestionResult = {
   id: string;
   answer_type: string;
+  language_id?: string;
   created_by: string;
   created_date: Date;
   updated_by: string;
