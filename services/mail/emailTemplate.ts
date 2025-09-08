@@ -1,13 +1,14 @@
 // SEND BODY TO THIS FUNCTION PARAMETER
+import moment from "moment";
 
-export function emailTemplate(title: string, body: string) {
+export function emailTemplate(title: string, body: string, email_contact: string) {
   return `
   <!DOCTYPE html>
   <html lang="en">
     <head>
       <meta charset="UTF-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-      <title>KPN Assessment - ${title}</title>
+      <title>KPN Online Assessment Platform - ${title}</title>
       <style>
         body {
           margin: 0;
@@ -90,8 +91,8 @@ export function emailTemplate(title: string, body: string) {
           ${body}
         </div>
         <div class="footer">
-          <p>&copy; 2024 KPN Corp. All Rights Reserved.</p>
-          <a href="https://kpn-corp.com/contact-us" style="color: #343a40">Contact Us</a>
+          <p>&copy; ${moment().format("YYYY")} KPN Corp. All Rights Reserved.</p>
+          <a href="mailto:${email_contact}" style="color: #343a40">Contact Us</a>
         </div>
       </div>
     </body>

@@ -45,7 +45,6 @@ import { TRANSACTION } from "@/config/transaction.js";
 export const handleCreateBatch = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const validatedRequest = Validation.validate(BatchValidation.CREATE, req.body);
-    console.log(validatedRequest);
     // Batch Head
     const batchId = uuid();
     const date = new Date();

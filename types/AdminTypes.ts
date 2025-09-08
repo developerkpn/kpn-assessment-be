@@ -4,6 +4,7 @@ export type User = {
   fullname: string;
   user_id: string;
   role_id: string;
+  role_name: string;
   bu_id: string;
 };
 
