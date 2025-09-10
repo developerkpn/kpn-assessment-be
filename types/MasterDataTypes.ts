@@ -55,10 +55,26 @@ type FunctionMenuRequest = {
   created_date: Date;
 };
 
+// TermsPP Types
+export type TermsType = "terms" | "pp";
+export type LanguageType = "main" | "sub";
+export type LanguageId = string; // Dynamic based on mst_language table
+
 export type TermsPPRequest = {
   name: string;
   updated_by: string;
   updated_date: Date;
+  language_id?: LanguageId;
+  language_type?: LanguageType;
+};
+
+export type TermsPPTranslationRequest = {
+  name: string;
+  type_dt: TermsType;
+  language_type: LanguageType;
+  language_id: LanguageId;
+  created_by: string;
+  created_date: Date;
 };
 
 export type BriefRequest = {
