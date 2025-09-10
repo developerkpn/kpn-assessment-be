@@ -7,11 +7,12 @@ import {
   getQuestionTranslation,
   updateQuestion,
   updateQuestionTranslation,
+  getLanguagesWithQuestionTranslationStatus,
 } from "@/models/QuestionModel.js";
 import {
   translateFieldsBatch,
   getLanguageByCode,
-  getLanguagesWithTranslationStatus,
+  getLanguages,
 } from "@/models/TranslationModel.js";
 import { AnswerResponse, QuestionResult } from "@/types/MasterDataTypes.js";
 import { Request, Response } from "express";
@@ -558,7 +559,7 @@ export const handleQuestionLanguageTypeSwitch = async (
       return;
     }
 
-    const languages = await getLanguagesWithTranslationStatus(questionId);
+    const languages = await getLanguagesWithQuestionTranslationStatus(questionId);
 
     if (!languages.length) {
       res.status(404).send({
@@ -679,6 +680,33 @@ export const handleGetQuestionTranslationForLanguage = async (req: Request, res:
     res.status(200).send({
       message: "Success get question translation",
       data: formattedResult,
+    });
+  } catch (error: any) {
+    res.status(500).send({
+      message: error.message,
+    });
+  }
+};
+
+export const handleGetLanguagesWithQuestionTranslationStatus = async (
+  req: Request<{ id: string }>,
+  res: Response
+): Promise<any> => {
+  try {
+    const { id: questionId } = req.params;
+
+    if (!questionId) {
+      res.status(400).send({
+        message: "Question ID is required",
+      });
+      return;
+    }
+
+    const languages = await getLanguagesWithQuestionTranslationStatus(questionId);
+
+    res.status(200).send({
+      message: "Languages with translation status retrieved successfully",
+      data: languages,
     });
   } catch (error: any) {
     res.status(500).send({

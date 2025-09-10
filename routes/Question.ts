@@ -7,6 +7,7 @@ import {
   handleGenerateQuestionTranslation,
   handleQuestionLanguageTypeSwitch,
   handleGetQuestionTranslationForLanguage,
+  handleGetLanguagesWithQuestionTranslationStatus,
 } from "@/controllers/QuestionController.js";
 import { checkPermission } from "@/middleware/auth.js";
 import { Router } from "express";
@@ -22,5 +23,6 @@ Question.delete("/:id", checkPermission("fdelete", 7), handleDeleteQuestion);
 Question.get("/:id/language/:languageId", checkPermission("fread", 7), handleGetQuestionTranslationForLanguage);
 Question.post("/:id/language/:languageId/generate", checkPermission("fread", 7), handleGenerateQuestionTranslation);
 Question.get("/:questionId/language-selection", checkPermission("fread", 7), handleQuestionLanguageTypeSwitch);
+Question.get("/:id/languages", checkPermission("fread", 7), handleGetLanguagesWithQuestionTranslationStatus);
 
 export default Question;
