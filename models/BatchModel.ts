@@ -10,6 +10,7 @@ import axios from "axios";
 import { axiosDarwin } from "@/config/axiosDarwin.js";
 import { AxiosResponse } from "axios";
 import { DataEmpDarwin } from "@/types/MasterDataTypes.js";
+import { BatchTranslationRequest, BatchTranslationUpdateRequest } from "@/types/BatchTypes.js";
 import moment from "moment";
 
 export const createBatch = async (headerPayload: any, batchCodePayload: any, ccPayload: any, assesseePayload: any) => {
@@ -273,6 +274,7 @@ export const getBatchDetail = async (id: string) => {
                 h.description,
                 h.status,
                 h.type,
+                h.language_id,
                 COUNT(d.id) AS assessee_count
                 FROM 
                     t_batch_head h 
@@ -770,6 +772,90 @@ export const getFMandBUCode = async (fmId: string, buId: string) => {
   } catch (e) {
     console.log(e);
     throw e;
+  } finally {
+    client.release();
+  }
+};
+
+export const createBatchTranslation = async (payload: BatchTranslationRequest) => {
+  const client = await db.connect();
+  try {
+    await client.query(TRANS.BEGIN);
+    const [q, v] = insertQuery("t_batch_head_translations", payload, "id");
+    const result = await client.query(q, v);
+    await client.query(TRANS.COMMIT);
+    return result.rows[0].id;
+  } catch (error) {
+    console.error(error);
+    await client.query(TRANS.ROLLBACK);
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+export const updateBatchTranslation = async (payload: BatchTranslationUpdateRequest, translationId: string) => {
+  const client = await db.connect();
+  try {
+    await client.query(TRANS.BEGIN);
+    const [q, v] = updateQuery("t_batch_head_translations", payload, { id: translationId }, "id");
+    const result = await client.query(q, v);
+    await client.query(TRANS.COMMIT);
+    return result.rows[0].id;
+  } catch (error) {
+    console.error(error);
+    await client.query(TRANS.ROLLBACK);
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+export const getBatchTranslation = async (batchId: string, languageId: string) => {
+  const client = await db.connect();
+  try {
+    const result = await client.query(
+      `SELECT * FROM t_batch_head_translations 
+       WHERE batch_id = $1 AND language_id = $2`,
+      [batchId, languageId]
+    );
+    return result.rows[0];
+  } catch (error) {
+    console.error(error);
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+export const getLanguagesWithBatchTranslationStatus = async (batchId: string) => {
+  const client = await db.connect();
+  try {
+    const result = await client.query(
+      `SELECT
+        ml.id,
+        ml.language_code,
+        ml.language_name,
+        ml.language_name_native,
+        ml.is_active,
+        bh.language_id as main_language_code,
+        CASE
+          WHEN bh.language_id = ml.language_code THEN 'main'
+          WHEN bht.language_id IS NOT NULL THEN 'translation_exists'
+          ELSE 'translation_available'
+        END as translation_status
+      FROM mst_language ml
+      LEFT JOIN t_batch_head bh ON bh.id = $1
+      LEFT JOIN t_batch_head_translations bht ON bht.batch_id = $1
+        AND bht.language_id = ml.language_code
+      WHERE ml.is_active = true
+      ORDER BY ml.language_name`,
+      [batchId]
+    );
+    return result.rows;
+  } catch (error) {
+    console.error(error);
+    throw error;
   } finally {
     client.release();
   }
