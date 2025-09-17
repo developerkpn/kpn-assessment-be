@@ -1,4 +1,5 @@
 import { ReportDetailSubtest } from "@/types/Report.js";
+import { ChartConfiguration } from "chart.js";
 import { ChartJSNodeCanvas } from "chartjs-node-canvas";
 
 const chartWidth = 550;
@@ -27,7 +28,7 @@ export const BarChartSummaryCategory = async (subtest: ReportDetailSubtest) => {
 
   chart.registerFont("./assets/fonts/ARIAL.TTF", { family: "Arial" });
 
-  const config = {
+  const config: ChartConfiguration = {
     type: "bar" as const,
     data: {
       labels: ChartLabels,
@@ -44,6 +45,11 @@ export const BarChartSummaryCategory = async (subtest: ReportDetailSubtest) => {
     options: {
       responsive: false,
       maintainAspectRatio: false,
+      layout: {
+        padding: {
+          top: 20,
+        },
+      },
       scales: {
         y: {
           beginAtZero: true,
@@ -77,6 +83,7 @@ export const BarChartSummaryCategory = async (subtest: ReportDetailSubtest) => {
       plugins: {
         legend: {
           display: true,
+          position: "bottom",
           labels: {
             font: {
               family: "Arial",
@@ -118,8 +125,8 @@ export const BarChartSummaryCategory = async (subtest: ReportDetailSubtest) => {
           },
         },
       },
+      animation: false, // Penting untuk PDF generation
     },
-    animation: false, // Penting untuk PDF generation
 
     // Plugin untuk menampilkan nilai di atas bar
     plugins: [

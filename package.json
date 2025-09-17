@@ -11,7 +11,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "tsx watch index.ts",
     "server_dev": "cross-env NODE_ENV=development tsx watch index.ts",
-    "server_prod": "set NODE_ENV=production&& nodemon index.ts",
+    "server_prod": "cross-env NODE_ENV=production tsx watch index.ts",
     "server": "set NODE_ENV=development&& node index.ts",
     "stage_dev": "set NODE_ENV=development&& node dist/index.js"
   },
