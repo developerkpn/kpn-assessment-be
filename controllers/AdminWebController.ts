@@ -402,7 +402,6 @@ export const handleGetDataAdminFromDarwin = async (req: Request, res: Response, 
     const response = {
       fullname: result?.full_name,
       email: result?.company_email_id,
-      bu_id: result?.group_company,
       username: result?.company_email_id.split("@")[0],
     };
     res.status(200).send({
