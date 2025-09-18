@@ -595,7 +595,7 @@ export const getSpecificBatchInformationForReport = async (batchId: string, asse
           b.batch_name,
           b.batch_code,
           b.type,
-          d.taken_at,
+          d.taken_at at TIME zone 'Asia/Jakarta' as taken_at,
           r.content,
           r.cover_id
          FROM t_batch_head b
@@ -1233,6 +1233,8 @@ export const proceeedProfile = async (type: string, assesseeId: string) => {
         moment(type === "internal" ? assesseeData.date_of_birth : assesseeData.date_of_birth, "YYYY-MM-DD"),
         "years"
       ),
+      type: type,
+      education: type === "internal" ? "" : assesseeData.education,
     };
     console.log("sebelum return");
     return profile;
@@ -1310,7 +1312,7 @@ export const generateReportIndividual = async (batchId: string, assesseeId: stri
       proctoring: reportProctoring,
     };
 
-    console.log("resultnya", result.detail);
+    console.log("resultnya", result);
     return result;
   } catch (error) {
     throw error;

@@ -40,7 +40,7 @@ export const ReportPDFTemplate = async (batchId: string, assesseeId: string) => 
   const S3Client = new S3ClientUpload();
   // const logo = fs.readFileSync(path.join(__dirname, "../../assets/KPN_CORP_NEW_LOGO.png"));
   const placeholderImg = fs.readFileSync(path.join(__dirname, "../../assets/place-holder.jpg"));
-  const testDate = moment(data.batch.taken_at).tz("Asia/Jakarta").locale("id").format("LLLL");
+  const testDate = moment(data.batch.taken_at).utcOffset("+14:00").locale("id").format("LLLL");
 
   const cover = await ClientAction(async (client) => {
     try {
@@ -173,11 +173,20 @@ export const ReportPDFTemplate = async (batchId: string, assesseeId: string) => 
               <Text style={styles.profileColon}>:</Text>
               <Text>{testDate}</Text>
             </View>
-            <View style={styles.profileRow}>
-              <Text style={styles.profileLabel}>Work Location</Text>
-              <Text style={styles.profileColon}>:</Text>
-              <Text>{data.profile.work_place}</Text>
-            </View>
+            {data.profile.type == "internal" && (
+              <View style={styles.profileRow}>
+                <Text style={styles.profileLabel}>Work Location</Text>
+                <Text style={styles.profileColon}>:</Text>
+                <Text>{data.profile.work_place}</Text>
+              </View>
+            )}
+            {data.profile.type != "internal" && (
+              <View style={styles.profileRow}>
+                <Text style={styles.profileLabel}>Last Education</Text>
+                <Text style={styles.profileColon}>:</Text>
+                <Text>{data.profile.education}</Text>
+              </View>
+            )}
           </View>
           <View style={styles.profileImageContainer}>
             <Image src={placeholderImg} />
