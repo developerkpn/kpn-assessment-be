@@ -43,7 +43,7 @@ router.use("/api/test", isAuth, Test);
 router.use("/api/grouptest", isAuth, GroupTest);
 router.use("/api/batch", isAuth, Batch);
 router.use("/api/email-template", isAuth, EmailTemplate);
-router.use("/api/assessment", Assessment);
+router.use("/api/assessment", Assessment, errorMiddleware);
 router.use("/api/proctoring", Proctoring);
 router.use("/api/assessee", Assessee);
 router.use("/api/report", isAuth, Report);
