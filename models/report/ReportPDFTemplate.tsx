@@ -40,7 +40,7 @@ export const ReportPDFTemplate = async (batchId: string, assesseeId: string) => 
   const S3Client = new S3ClientUpload();
   // const logo = fs.readFileSync(path.join(__dirname, "../../assets/KPN_CORP_NEW_LOGO.png"));
   const placeholderImg = fs.readFileSync(path.join(__dirname, "../../assets/place-holder.jpg"));
-  const testDate = moment(data.batch.taken_at).utcOffset("+14:00").locale("id").format("LLLL");
+  const testDate = moment(data.batch.taken_at).utcOffset("+7:00").locale("id").format("LLLL");
 
   const cover = await ClientAction(async (client) => {
     try {
