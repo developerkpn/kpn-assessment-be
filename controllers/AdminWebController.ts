@@ -26,6 +26,7 @@ import { v4 as uuidv4 } from "uuid";
 import { Validation } from "@/validation/Validation.js";
 import { AdminWebValidation } from "@/validation/AdminWebValidation.js";
 import { ResponseError } from "@/error/response-error.js";
+import moment from "moment";
 
 export const handleLoginAdmin = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
@@ -147,22 +148,27 @@ export const handleCreateAdmin = async (req: Request, res: Response, next: NextF
 
     const hashed = await hashPassword(validatedRequest.password);
 
-    const requestPayload = {
-      id: uuidv4(),
+    let uid = uuidv4();
+
+    const account_main = {
+      id: uid,
       nik: validatedRequest.nik,
       fullname: validatedRequest.fullname,
       username: validatedRequest.username,
       email: validatedRequest.email,
       password: hashed,
       role_id: validatedRequest.role_id,
-      bu_id: validatedRequest.bu_id,
       from_darwin: validatedRequest.from_darwin,
       is_active: validatedRequest.is_active,
       created_by: req.userDecode?.user_id,
       created_date: today,
     };
 
-    let result = await createAdmin(requestPayload);
+    let bu_id_account = validatedRequest.bu_id;
+
+    let scope_account = validatedRequest.scope;
+
+    let result = await createAdmin({ account_main, bu_id_account, scope_account });
 
     const emailData = {
       fullname: data.fullname,
@@ -361,17 +367,29 @@ export const handleUpdateRole = async (req: Request, res: Response, next: NextFu
 export const handleUpdateAdmin = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const adminId = req.params.id;
-    const payload: any = {
+    const user_account: any = {
       fullname: req.body.fullname,
       role_id: req.body.role_id,
+      update_by: req.userDecode?.user_id,
+      update_at: moment().tz("Asia/Jakarta").toISOString(),
     };
+    let bu_id_account;
+    let scope_account;
     if (req.body.password) {
       const hashed = await hashPassword(req.body.password);
-      payload.password = hashed;
+      user_account.password = hashed;
     }
     if (req.body.bu_id) {
-      payload.bu_id = req.body.bu_id;
+      bu_id_account = req.body.bu_id;
     }
+    if (req.body.scope) {
+      scope_account = req.body.scope;
+    }
+    let payload = {
+      user_account,
+      bu_id_account,
+      scope_account,
+    };
     await updateAdmin(adminId, payload, req.body.password);
     res.status(200).send({
       message: "Success!",

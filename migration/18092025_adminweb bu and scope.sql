@@ -42,3 +42,8 @@ CREATE TABLE public.mst_admin_web_scope (
 	CONSTRAINT mst_admin_web_scope_mst_admin_web_fk FOREIGN KEY (user_id) REFERENCES public.mst_admin_web(id),
 	CONSTRAINT mst_admin_web_scope_mst_scope_fk FOREIGN KEY (scope_id) REFERENCES public.mst_scope(scope_id)
 );
+
+
+--update adminweb with new column
+ALTER TABLE public.mst_admin_web ADD update_at timestamp NULL;
+ALTER TABLE public.mst_admin_web ADD update_by uuid NULL;
