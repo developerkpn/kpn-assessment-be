@@ -13,7 +13,8 @@ export class AdminWebValidation {
     password: z.string().trim().min(7, { message: "Password is required, at least 7 characters long" }),
     email: z.string().trim().email({ message: "Invalid email format. Please enter a valid email address." }),
     role_id: z.string().uuid({ message: "Invalid role ID. Please provide a valid UUID." }),
-    bu_id: z.string(),
+    bu_id: z.array(z.string()),
+    scope: z.array(z.string()),
     is_active: z.boolean({ message: "Should be active or inactive" }),
     from_darwin: z.boolean(),
   });
