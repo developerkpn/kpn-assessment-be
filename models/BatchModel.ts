@@ -46,8 +46,9 @@ export const getBatch = async (
   let whereque = [];
   let whereval: any[] = [];
   let index = 1;
+  let query = "";
   if (published) {
-    whereque.push(`h.status = $${index}`);
+    whereque.push(`tbh.status = $${index}`);
     whereval.push("Published");
     index++;
   }
@@ -59,66 +60,98 @@ export const getBatch = async (
   if (whereval.length > 0) {
     where = "WHERE " + whereque.join(" and ");
   }
+  if (session.role_name != "Super Admin") {
+    query = `
+      with batches as (
+                select
+                  distinct on
+                  (tbh.id)
+                  tbh.id,
+                  tbh.batch_name,
+                  tbh.batch_code,
+                  tbh."type",
+                  tbh.status,
+                  mgh.grouptest_code ,
+                  tba.total_assessee ,
+                  tbh.start_period ,
+                  tbh.end_period ,
+                  mbu.bu_code ,
+                  maws.scope_id,
+                  mfm.fm_code,
+                  tbh.created_by,
+                  tbh.created_at,
+                  creator.fullname,
+                  creator.id,
+                  maw.fullname,
+                  maw.id as user_id
+                from
+                  mst_admin_web maw
+                left join mst_admin_web_bu mawb on
+                  mawb.user_id = maw.id
+                left join mst_admin_web_scope maws on
+                  maws.user_id = maw.id
+                left join mst_business_unit mbu on
+                  mbu.bu_code = mawb.bu_code
+                inner join t_batch_head tbh on
+                  tbh.bu_id = mbu.id
+                  and tbh."type" = maws.scope_id
+                left join mst_grouptest_head mgh on
+                  mgh.id = tbh.grouptest_id
+                left join (
+                  select
+                    count(tba.id) as total_assessee,
+                    tba.batch_id
+                  from
+                    t_batch_assessee tba
+                  group by
+                    tba.batch_id) tba on
+                  tba.batch_id = tbh.id
+                left join mst_function_menu mfm on
+                  mfm.id = tbh.function_id
+                left join mst_admin_web creator on
+                  creator.id = tbh.created_by ${where})
+                select
+                  *
+                from
+                  batches 
+                order by
+                  created_at desc
+    `;
+  } else {
+    query = `
+    SELECT
+                tbh.id,
+                tbh.batch_name,
+                tbh.batch_code,
+                tbh.type,
+                tbh.status,
+                g.grouptest_code,
+                COUNT(d.id) AS total_assessee,
+                tbh.start_period,
+                tbh.end_period,
+                b.bu_code,
+                f.fm_code
+            FROM
+                t_batch_head tbh
+            LEFT JOIN
+                mst_admin_web maw on maw.id = tbh.created_by
+            LEFT JOIN
+                mst_grouptest_head g ON tbh.grouptest_id = g.id
+            LEFT JOIN
+                t_batch_assessee d ON tbh.id = d.batch_id
+            LEFT JOIN
+                mst_business_unit b ON tbh.bu_id = b.id
+            LEFT JOIN
+                mst_function_menu f ON tbh.function_id = f.id
+            GROUP BY 
+                tbh.id, tbh.batch_name, tbh.batch_code, g.grouptest_code, tbh.type, tbh.status,
+                tbh.start_period, tbh.end_period, b.bu_code, f.fm_code ${where}
+            ORDER BY 
+                tbh.created_at DESC   
+    `;
+  }
   try {
-    const result = await client.query(
-      `with batches as (
-          select
-            distinct on
-            (tbh.id)
-            tbh.id,
-            tbh.batch_name,
-            tbh.batch_code,
-            tbh."type",
-            tbh.status,
-            mgh.grouptest_code ,
-            tba.total_assessee ,
-            tbh.start_period ,
-            tbh.end_period ,
-            mbu.bu_code ,
-            maws.scope_id,
-            mfm.fm_code,
-            tbh.created_by,
-            tbh.created_at,
-            creator.fullname,
-            creator.id,
-            maw.fullname,
-            maw.id as user_id
-          from
-            mst_admin_web maw
-          left join mst_admin_web_bu mawb on
-            mawb.user_id = maw.id
-          left join mst_admin_web_scope maws on
-            maws.user_id = maw.id
-          left join mst_business_unit mbu on
-            mbu.bu_code = mawb.bu_code
-          inner join t_batch_head tbh on
-            tbh.bu_id = mbu.id
-            and tbh."type" = maws.scope_id
-          left join mst_grouptest_head mgh on
-            mgh.id = tbh.grouptest_id
-          left join (
-            select
-              count(tba.id) as total_assessee,
-              tba.batch_id
-            from
-              t_batch_assessee tba
-            group by
-              tba.batch_id) tba on
-            tba.batch_id = tbh.id
-          left join mst_function_menu mfm on
-            mfm.id = tbh.function_id
-          left join mst_admin_web creator on
-            creator.id = tbh.created_by ${where})
-          select
-            *
-          from
-            batches 
-          order by
-            created_at desc
-
-            `,
-      whereval
-    );
+    const result = await client.query(query, whereval);
 
     return result.rows;
   } catch (error) {
