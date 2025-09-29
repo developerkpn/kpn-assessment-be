@@ -17,52 +17,81 @@ import { ResponseError } from "@/error/response-error.js";
 import { async } from "rxjs";
 import { CriteriasReport, ReportCriteria, ReportDetailSection, ReportIntro } from "@/types/Report.js";
 
-export const getBatchForReport = async (session: { role_name: string; bu_id: string }) => {
+export const getBatchForReport = async (session: { role_name: string; user_id: string }) => {
   const client = await db.connect();
   try {
     let whereque = [];
     let whereval = [];
+    let where = "";
     let index = 1;
     if (session.role_name != "Super Admin") {
-      whereque.push(`maw.bu_id = $${index}`);
-      whereval.push(session.bu_id);
+      whereque.push(`maw.id = $${index}`);
+      whereval.push(session.user_id);
       index++;
     }
-    console.log(`SELECT
-      b.id,
-      b.batch_name,
-      b.batch_code,
-      b.type,
-      b.start_period,
-      b.end_period,
-      (SELECT COUNT(*) 
-      FROM t_batch_assessee
-      WHERE batch_id = b.id) AS total_assessee,
-      r.id AS report_id
-      FROM t_batch_head b
-      LEFT JOIN report_head r ON b.id = r.batch_id
-      LEFT JOIN mst_admin_web maw on maw.id = b.created_by
-      WHERE b.status = 'Published' ${whereque.length > 0 ? "and " + whereque.join(" and ") : ""}
-      ORDER BY end_period DESC`);
+    if (whereval.length > 0) {
+      where = "and " + whereque.join(" and ");
+    }
     const result = await client.query(
-      `
-    SELECT
-      b.id,
-      b.batch_name,
-      b.batch_code,
-      b.type,
-      b.start_period,
-      b.end_period,
-      (SELECT COUNT(*) 
-      FROM t_batch_assessee
-      WHERE batch_id = b.id) AS total_assessee,
-      r.id AS report_id
-      FROM t_batch_head b
-      LEFT JOIN report_head r ON b.id = r.batch_id
-      LEFT JOIN mst_admin_web maw on maw.id = b.created_by
-      WHERE b.status = 'Published' ${whereque.length > 0 ? "and " + whereque.join(" and ") : ""}
-      ORDER BY end_period DESC
-    `,
+      `with batches as (
+          select
+            distinct on
+            (tbh.id)
+            tbh.id,
+            tbh.batch_name,
+            tbh.batch_code,
+            tbh."type",
+            tbh.status,
+            mgh.grouptest_code ,
+            tba.total_assessee ,
+            tbh.start_period ,
+            tbh.end_period ,
+            mbu.bu_code ,
+            maws.scope_id,
+            mfm.fm_code,
+            tbh.created_by,
+            tbh.created_at,
+            creator.fullname,
+            creator.id,
+            maw.fullname,
+            maw.id as user_id,
+            r.id as report_id
+          from
+            mst_admin_web maw
+          left join mst_admin_web_bu mawb on
+            mawb.user_id = maw.id
+          left join mst_admin_web_scope maws on
+            maws.user_id = maw.id
+          left join mst_business_unit mbu on
+            mbu.bu_code = mawb.bu_code
+          inner join t_batch_head tbh on
+            tbh.bu_id = mbu.id
+            and tbh."type" = maws.scope_id
+          left join mst_grouptest_head mgh on
+            mgh.id = tbh.grouptest_id
+          left join (
+            select
+              count(tba.id) as total_assessee,
+              tba.batch_id
+            from
+              t_batch_assessee tba
+            group by
+              tba.batch_id) tba on
+            tba.batch_id = tbh.id
+          left join mst_function_menu mfm on
+            mfm.id = tbh.function_id
+          left join report_head r on 
+            r.batch_id = tbh.id
+          left join mst_admin_web creator on
+            creator.id = tbh.created_by where tbh.status = 'Published' ${where})
+          select
+            *
+          from
+            batches 
+          order by
+            created_at desc
+
+            `,
       whereval
     );
 
