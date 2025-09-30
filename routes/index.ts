@@ -49,7 +49,7 @@ router.use("/api/proctoring", Proctoring);
 router.use("/api/assessee", Assessee);
 router.use("/api/report", isAuth, Report);
 router.use("/api/guideline", Guideline, errorMiddleware);
-router.use("/api/scope", Scope);
+router.use("/api/scope", isAuth, Scope);
 router.use("/api/check", (req, res) => {
   res.status(200).send({
     message: "Connected",
