@@ -52,7 +52,6 @@ export const getBatchForReport = async (session: { role_name: string; user_id: s
             tbh.created_by,
             tbh.created_at,
             creator.fullname,
-            creator.id,
             maw.fullname,
             maw.id as user_id,
             r.id as report_id
