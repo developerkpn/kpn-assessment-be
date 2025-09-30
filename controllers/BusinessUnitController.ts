@@ -2,6 +2,7 @@ import {
   createBusinessUnit,
   deleteBusinessUnit,
   getBusinessUnit,
+  getBusinessUnitByUserId,
   updateBusinessUnit,
 } from "@/models/BusinessUnitModel.js";
 import { NextFunction, Request, Response } from "express";
@@ -42,6 +43,20 @@ export const handleGetBusinessUnit = async (req: Request, res: Response, next: N
     });
   } catch (e) {
     next(e);
+  }
+};
+
+export const handleGetBUbyUserId = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const id = req.userDecode?.user_id;
+    const role_name = req.userDecode?.role_name;
+    const result = await getBusinessUnitByUserId(id as string, role_name as string);
+    res.status(200).send({
+      data: result,
+    });
+    return;
+  } catch (error) {
+    next(error);
   }
 };
 
