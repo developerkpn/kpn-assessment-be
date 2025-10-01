@@ -42,6 +42,16 @@ export const ReportPDFTemplate = async (batchId: string, assesseeId: string) => 
   const placeholderImg = fs.readFileSync(path.join(__dirname, "../../assets/place-holder.jpg"));
   const testDate = moment(data.batch.taken_at).utcOffset("+7:00").locale("id").format("LLLL");
 
+  //get user profile
+  let userProfPic = null;
+  try {
+    userProfPic = await fs.promises.readFile(
+      path.resolve(path.join(__dirname, "../../uploads/profile_photos", `${data.profile.assessee_id}.jpg`))
+    );
+  } catch (error) {
+    console.error(error);
+  }
+
   const cover = await ClientAction(async (client) => {
     try {
       const { rows, rowCount: is_exist } = await client.query(`select file_name from mst_image_cover where uid = $1`, [
@@ -189,7 +199,7 @@ export const ReportPDFTemplate = async (batchId: string, assesseeId: string) => 
             )}
           </View>
           <View style={styles.profileImageContainer}>
-            <Image src={placeholderImg} />
+            <Image style={{ objectFit: "contain" }} src={userProfPic ? userProfPic : placeholderImg} />
           </View>
         </View>
 

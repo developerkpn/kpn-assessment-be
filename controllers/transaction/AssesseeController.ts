@@ -17,6 +17,9 @@ import { ResponseError } from "@/error/response-error.js";
 import jwt, { Secret, JwtPayload } from "jsonwebtoken";
 const { verify, sign, decode } = jwt;
 import { accessExpiry } from "@/constant.js";
+import path from "path";
+import fs from "fs";
+import { fileURLToPath } from "url";
 
 export const handleAssesseeEntry = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -212,6 +215,95 @@ export const handleResetToken = async (req: Request, res: Response, next: NextFu
 
 export const handleExternalAssesseeLogout = async (req: Request, res: Response, next: NextFunction) => {
   try {
+  } catch (e) {
+    next(e);
+  }
+};
+
+export const handleUploadProfilePhoto = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const file = req.file;
+    const userId = req.body.user_id;
+
+    if (!file) {
+      throw new ResponseError(400, "No profile photo uploaded");
+    }
+
+    if (!userId) {
+      throw new ResponseError(400, "User ID is required");
+    }
+
+  
+    const ext = path.extname(file.originalname);
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
+    const profilePhotosDir = path.join(__dirname, "../../uploads", "profile_photos");
+
+    const oldPath = file.path;
+    const newFilename = `${userId}${ext}`;
+    const newPath = path.join(profilePhotosDir, newFilename);
+
+    fs.renameSync(oldPath, newPath);
+
+    res.status(200).send({
+      message: "Profile photo uploaded successfully",
+      data: {
+        filename: newFilename,
+        path: newPath,
+        size: file.size,
+      },
+    });
+  } catch (e) {
+    // Clean up temporary file if something goes wrong
+    if (req.file && fs.existsSync(req.file.path)) {
+      try {
+        fs.unlinkSync(req.file.path);
+      } catch (cleanupError) {
+        console.error("Failed to cleanup temporary file:", cleanupError);
+      }
+    }
+    next(e);
+  }
+};
+
+export const handleGetProfilePhoto = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { userId } = req.params;
+
+    if (!userId) {
+      throw new ResponseError(400, "User ID is required");
+    }
+
+    // Get current directory and go up to project root, then to uploads
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
+    const profilePhotosDir = path.join(__dirname, "../../uploads", "profile_photos");
+
+    // Check for JPG extensions only (camera always produces JPG)
+    const extensions = ['.jpg', '.jpeg'];
+    let photoPath: string | null = null;
+
+    for (const ext of extensions) {
+      const possiblePath = path.join(profilePhotosDir, `${userId}${ext}`);
+      if (fs.existsSync(possiblePath)) {
+        photoPath = possiblePath;
+        break;
+      }
+    }
+
+    if (!photoPath || !fs.existsSync(photoPath)) {
+      throw new ResponseError(404, "Profile photo not found");
+    }
+    const stat = fs.statSync(photoPath);
+
+    res.set({
+      'Content-Type': 'image/jpeg',
+      'Content-Length': stat.size.toString(),
+    });
+
+    const readStream = fs.createReadStream(photoPath);
+    readStream.pipe(res);
+
   } catch (e) {
     next(e);
   }
