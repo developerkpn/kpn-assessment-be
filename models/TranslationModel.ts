@@ -10,10 +10,11 @@ export const getLanguages = async () => {
         language_code,
         language_name,
         language_name_native,
-        is_active
+        is_active,
+        "order"
       FROM mst_language
       WHERE is_active = true
-      ORDER BY language_name`
+      ORDER BY "order" ASC`
     );
     return result.rows;
   } catch (error) {
@@ -23,7 +24,6 @@ export const getLanguages = async () => {
     client.release();
   }
 };
-
 
 export const getLanguageByCode = async (languageCode: string) => {
   const client = await db.connect();

@@ -245,21 +245,17 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
       const questionIds = takenQuestion.map((q: any) => q.question_id);
       console.log(questionIds);
 
-      // Ambil detail pertanyaan dari daftar question_id
-      const questions = await getQuestionAssessment(questionIds);
-      console.log(questions);
+      // Ambil detail pertanyaan dari daftar question_id (organized by language)
+      const questionsByLanguage = await getQuestionAssessment(questionIds);
+      console.log(questionsByLanguage);
 
       console.log(subtest);
 
-      // Format response
-      response = {
-        det_id: progressDetailId,
-        duration: remainingDurationFormatted,
-        is_duration: true,
-        is_mandatory: subtestName.is_mandatory,
-        subtest_name: subtestName.subtest_name,
-        questions: questions.map((q: any) => {
-          // Cari taken question yang sesuai berdasarkan question_id
+      // Build data organized by language with choosen_answer
+      const dataByLanguage: Record<string, any> = {};
+
+      Object.keys(questionsByLanguage).forEach((languageCode) => {
+        dataByLanguage[languageCode] = questionsByLanguage[languageCode].map((q: any) => {
           const taken = takenQuestion.find((t: any) => t.question_id === q.id);
 
           return {
@@ -289,7 +285,17 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
               g: taken.answer_g,
             },
           };
-        }),
+        });
+      });
+
+      // Format response
+      response = {
+        det_id: progressDetailId,
+        duration: remainingDurationFormatted,
+        is_duration: true,
+        is_mandatory: subtestName.is_mandatory,
+        subtest_name: subtestName.subtest_name,
+        data: dataByLanguage,
       };
     } else if (checkQuestionIsAlreadyTaken && isDuration.is_duration === false) {
       // Ambil data pertanyaan yang sudah diambil
@@ -301,19 +307,16 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
       const questionIds = takenQuestion.map((q: any) => q.question_id);
       console.log(questionIds);
 
-      // Ambil detail pertanyaan dari daftar question_id
-      const questions = await getQuestionAssessment(questionIds);
-      console.log(questions);
+      // Ambil detail pertanyaan dari daftar question_id (organized by language)
+      const questionsByLanguage = await getQuestionAssessment(questionIds);
 
       console.log(subtest);
-      response = {
-        det_id: progressDetailId,
-        duration: null,
-        is_duration: false,
-        is_mandatory: subtestName.is_mandatory,
-        subtest_name: subtestName.subtest_name,
-        questions: questions.map((q: any) => {
-          // Cari taken question yang sesuai berdasarkan question_id
+
+      // Build data organized by language with choosen_answer
+      const dataByLanguage: Record<string, any> = {};
+
+      Object.keys(questionsByLanguage).forEach((languageCode) => {
+        dataByLanguage[languageCode] = questionsByLanguage[languageCode].map((q: any) => {
           const taken = takenQuestion.find((t: any) => t.question_id === q.id);
 
           return {
@@ -343,7 +346,16 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
               g: taken.answer_g,
             },
           };
-        }),
+        });
+      });
+
+      response = {
+        det_id: progressDetailId,
+        duration: null,
+        is_duration: false,
+        is_mandatory: subtestName.is_mandatory,
+        subtest_name: subtestName.subtest_name,
+        data: dataByLanguage,
       };
     } else if (!checkQuestionIsAlreadyTaken && isDuration.is_duration === false) {
       // Get and randomize series
@@ -357,8 +369,8 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
       const questionList = await getQuestionsBySeriesId(choosenSeriesId);
       const shuffledQuestions = questionList.sort(() => Math.random() - 0.5);
 
-      // Get detailed question information
-      const questions = await getQuestionAssessment(shuffledQuestions.map((q) => q.question_id));
+      // Get detailed question information (organized by language)
+      const questionsByLanguage = await getQuestionAssessment(shuffledQuestions.map((q) => q.question_id));
 
       const storeQuestion = questionList.map((question: any) => ({
         ...question,
@@ -368,14 +380,11 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
 
       await storeTakenQuestions(storeQuestion);
 
-      // Format response
-      response = {
-        det_id: progressDetailId,
-        duration: null, // Default 1 hour if not specified
-        is_duration: false,
-        is_mandatory: subtestName.is_mandatory,
-        subtest_name: subtestName.subtest_name,
-        questions: questions.map((q: any) => ({
+      // Build data organized by language
+      const dataByLanguage: Record<string, any> = {};
+
+      Object.keys(questionsByLanguage).forEach((languageCode) => {
+        dataByLanguage[languageCode] = questionsByLanguage[languageCode].map((q: any) => ({
           question_id: q.id,
           input: {
             text: q.q_input_text,
@@ -400,7 +409,17 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
             f: false,
             g: false,
           },
-        })),
+        }));
+      });
+
+      // Format response
+      response = {
+        det_id: progressDetailId,
+        duration: null, // Default 1 hour if not specified
+        is_duration: false,
+        is_mandatory: subtestName.is_mandatory,
+        subtest_name: subtestName.subtest_name,
+        data: dataByLanguage,
       };
 
       // Menggunakan moment.js untuk menangani tanggal dan waktu
@@ -432,8 +451,7 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
       console.log(shuffledQuestions);
 
       // Get detailed question information
-      const questions = await getQuestionAssessment(shuffledQuestions.map((q) => q.question_id));
-      console.log(questions);
+      const questionsByLanguage = await getQuestionAssessment(shuffledQuestions.map((q) => q.question_id));
 
       const storeQuestion = questionList.map((question: any) => ({
         ...question,
@@ -445,14 +463,11 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
       console.log(storeQuestion);
       await storeTakenQuestions(storeQuestion);
 
-      // Format response
-      response = {
-        det_id: progressDetailId,
-        duration: subtestDurations.subtest_duration, // Default 1 hour if not specified
-        is_duration: true,
-        is_mandatory: subtestName.is_mandatory,
-        subtest_name: subtestName.subtest_name,
-        questions: questions.map((q: any) => ({
+      // Build data organized by language
+      const dataByLanguage: Record<string, any> = {};
+
+      Object.keys(questionsByLanguage).forEach((languageCode) => {
+        dataByLanguage[languageCode] = questionsByLanguage[languageCode].map((q: any) => ({
           question_id: q.id,
           input: {
             text: q.q_input_text,
@@ -477,7 +492,17 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
             f: false,
             g: false,
           },
-        })),
+        }));
+      });
+
+      // Format response
+      response = {
+        det_id: progressDetailId,
+        duration: subtestDurations.subtest_duration, // Default 1 hour if not specified
+        is_duration: true,
+        is_mandatory: subtestName.is_mandatory,
+        subtest_name: subtestName.subtest_name,
+        data: dataByLanguage,
       };
 
       // Menggunakan moment.js untuk menangani tanggal dan waktu

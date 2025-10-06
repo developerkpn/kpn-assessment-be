@@ -644,41 +644,78 @@ export const handleGetQuestionTranslationForLanguage = async (req: Request, res:
   const { id: questionId, languageId } = req.params;
 
   try {
-    // Get existing translation only
-    const translation = await getQuestionTranslation(questionId, languageId);
+    // Get existing translation(s)
+    const translations = await getQuestionTranslation(questionId, languageId);
 
-    if (!translation) {
+    if (!translations || (Array.isArray(translations) && translations.length === 0)) {
       res.status(404).send({
-        message: "Translation not found for this language",
+        message: languageId
+          ? "Translation not found for this language"
+          : "No translations found for this question",
       });
       return;
     }
 
-    // Format the translation data similar to main question format
-    const answers: any[] = [];
-    ["a", "b", "c", "d", "e", "f", "g"].forEach((choice) => {
-      const textKey = `answer_choice_${choice}_text`;
-      if (translation[textKey]) {
-        answers.push({
-          text: translation[textKey],
-        });
-      }
-    });
+    // Format the translation data
+    let formattedResult: any;
 
-    const formattedResult = {
-      id: translation.id,
-      question_answer_id: translation.question_answer_id,
-      language_id: translation.language_id,
-      q_input_text: translation.q_input_text,
-      answers: answers,
-      created_by: translation.created_by,
-      created_date: translation.created_date,
-      updated_by: translation.updated_by,
-      updated_date: translation.updated_date,
-    };
+    if (languageId) {
+      // Single translation - return as object
+      const answers: any[] = [];
+      ["a", "b", "c", "d", "e", "f", "g"].forEach((choice) => {
+        const textKey = `answer_choice_${choice}_text`;
+        if (translations[textKey]) {
+          answers.push({
+            text: translations[textKey],
+          });
+        }
+      });
+
+      formattedResult = {
+        id: translations.id,
+        question_answer_id: translations.question_answer_id,
+        language_id: translations.language_id,
+        q_input_text: translations.q_input_text,
+        answers: answers,
+        created_by: translations.created_by,
+        created_date: translations.created_date,
+        updated_by: translations.updated_by,
+        updated_date: translations.updated_date,
+      };
+    } else {
+      // Multiple translations - return as key-value pair object where key is language_id
+      formattedResult = {};
+      translations.forEach((translation: any) => {
+        const answers: any[] = [];
+        ["a", "b", "c", "d", "e", "f", "g"].forEach((choice) => {
+          const textKey = `answer_choice_${choice}_text`;
+          if (translation[textKey]) {
+            answers.push({
+              text: translation[textKey],
+            });
+          }
+        });
+
+        formattedResult[translation.language_id] = {
+          id: translation.id,
+          question_answer_id: translation.question_answer_id,
+          language_id: translation.language_id,
+          q_input_text: translation.q_input_text,
+          answers: answers,
+          created_by: translation.created_by,
+          created_date: translation.created_date,
+          updated_by: translation.updated_by,
+          updated_date: translation.updated_date,
+          is_fallback: translation.is_fallback || false,
+          fallback_source: translation.fallback_source || null,
+        };
+      });
+    }
 
     res.status(200).send({
-      message: "Success get question translation",
+      message: languageId
+        ? "Success get question translation"
+        : "Success get all question translations",
       data: formattedResult,
     });
   } catch (error: any) {

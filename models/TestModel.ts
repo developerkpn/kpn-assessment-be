@@ -134,6 +134,7 @@ export const getTestDetail = async (id: string) => {
                 h.is_active,
                 h.description,
                 h.intro_desc,
+                h.language_id,
                 a.fullname AS created_by,
                 h.created_at,
                 a.fullname AS updated_by,
@@ -181,6 +182,7 @@ export const getTestDetail = async (id: string) => {
       category_code: result.rows[0].category_code,
       description: result.rows[0].description,
       intro_desc: result.rows[0].intro_desc,
+      language_id: result.rows[0].language_id,
       is_active: result.rows[0].is_active,
       created_by: result.rows[0].created_by,
       created_at: result.rows[0].created_at,
@@ -296,6 +298,173 @@ export const getSubTestIdByTestId = async (testId: string) => {
   } catch (e) {
     console.error(e);
     throw e;
+  } finally {
+    client.release();
+  }
+};
+
+export const createTestTranslation = async (payload: any) => {
+  const client = await db.connect();
+  try {
+    await client.query(TRANS.BEGIN);
+    const [q, v] = insertQuery("mst_test_head_translations", payload, "id");
+    const result = await client.query(q, v);
+    await client.query(TRANS.COMMIT);
+    return result.rows[0].id;
+  } catch (error) {
+    console.error(error);
+    await client.query(TRANS.ROLLBACK);
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+export const updateTestTranslation = async (payload: any, translationId: string) => {
+  const client = await db.connect();
+  try {
+    await client.query(TRANS.BEGIN);
+    const [q, v] = updateQuery("mst_test_head_translations", payload, { id: translationId }, "id");
+    const result = await client.query(q, v);
+    await client.query(TRANS.COMMIT);
+    return result.rows[0].id;
+  } catch (error) {
+    console.error(error);
+    await client.query(TRANS.ROLLBACK);
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+export const getTestTranslation = async (testId: string, languageId?: string) => {
+  const client = await db.connect();
+  try {
+    let result;
+    if (languageId) {
+      // Get specific translation for a language
+      result = await client.query(
+        `SELECT * FROM mst_test_head_translations
+         WHERE test_id = $1 AND language_id = $2`,
+        [testId, languageId]
+      );
+      return result.rows[0];
+    } else {
+      // Get all translations for the test
+      result = await client.query(
+        `SELECT * FROM mst_test_head_translations
+         WHERE test_id = $1`,
+        [testId]
+      );
+
+      // Get all active languages
+      const allLanguagesResult = await client.query(`SELECT language_code FROM mst_language WHERE is_active = true`);
+
+      // Get test main data for fallback
+      const testMainData = await client.query(`SELECT language_id, intro_desc FROM mst_test_head WHERE id = $1`, [
+        testId,
+      ]);
+
+      // Get English fallback if exists
+      const enFallback = await client.query(
+        `SELECT * FROM mst_test_head_translations
+         WHERE test_id = $1 AND language_id = 'en'`,
+        [testId]
+      );
+
+      // Create a map of existing translations
+      const translationMap = new Map();
+      result.rows.forEach((translation: any) => {
+        translationMap.set(translation.language_id, translation);
+      });
+
+      // Fill in missing languages with fallback data
+      const allLanguages = allLanguagesResult.rows;
+      const mainLanguageId = testMainData.rows[0]?.language_id;
+
+      allLanguages.forEach((lang: any) => {
+        const languageCode = lang.language_code;
+
+        // If this language is the main language, add the main test data
+        if (languageCode === mainLanguageId && testMainData.rows.length > 0) {
+          if (!translationMap.has(languageCode)) {
+            translationMap.set(languageCode, {
+              test_id: testId,
+              language_id: languageCode,
+              intro_desc: testMainData.rows[0].intro_desc,
+              id: null,
+              created_by: null,
+              created_date: null,
+              updated_by: null,
+              updated_date: null,
+            });
+          }
+        } else if (!translationMap.has(languageCode)) {
+          // Try English fallback first
+          if (enFallback.rows.length > 0) {
+            translationMap.set(languageCode, {
+              ...enFallback.rows[0],
+              language_id: languageCode,
+              id: null,
+              is_fallback: true,
+              fallback_source: "en",
+            });
+          } else {
+            translationMap.set(languageCode, {
+              test_id: testId,
+              language_id: languageCode,
+              intro_desc: testMainData.rows[0].intro_desc,
+              id: null,
+              created_by: null,
+              created_date: null,
+              updated_by: null,
+              updated_date: null,
+              is_fallback: true,
+              fallback_source: testMainData.rows[0].language_id || "main",
+            });
+          }
+        }
+      });
+
+      return Array.from(translationMap.values());
+    }
+  } catch (error) {
+    console.error(error);
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+export const getLanguagesWithTestTranslationStatus = async (testId: string) => {
+  const client = await db.connect();
+  try {
+    // Get all active languages and check which ones have translations for this test
+    const result = await client.query(
+      `SELECT
+        ml.id,
+        ml.language_code,
+        ml.language_name,
+        ml.language_name_native,
+        ml.is_active,
+        th.language_id as main_language_code,
+        CASE
+          WHEN th.language_id = ml.language_code THEN 'main'
+          WHEN tht.language_id IS NOT NULL THEN 'translation_exists'
+          ELSE 'translation_available'
+        END as translation_status
+      FROM mst_language ml
+      LEFT JOIN mst_test_head th ON th.id = $1
+      LEFT JOIN mst_test_head_translations tht ON tht.test_id = $1
+        AND tht.language_id = ml.language_code
+      WHERE ml.is_active = true
+      ORDER BY ml.language_name`,
+      [testId]
+    );
+    return result.rows;
+  } catch (error) {
+    console.error(error);
+    throw error;
   } finally {
     client.release();
   }

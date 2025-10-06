@@ -416,31 +416,57 @@ export const handleSubTestLanguageTypeSwitch = async (req: Request, res: Respons
 export const handleGetSubTestTranslationForLanguage = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id: subtestId, languageId } = req.params;
-    
-    // Get existing translation only
-    const translation = await getSubTestTranslation(subtestId, languageId);
-    if (!translation) {
+
+    // Get existing translation(s)
+    const translations = await getSubTestTranslation(subtestId, languageId);
+
+    if (!translations || (Array.isArray(translations) && translations.length === 0)) {
       res.status(404).send({
-        message: "Translation not found for this language",
+        message: languageId
+          ? "Translation not found for this language"
+          : "No translations found for this subtest",
       });
       return;
     }
 
     // Format the translation data
-    const formattedResult = {
-      id: translation.id,
-      subtest_id: translation.subtest_id,
-      language_id: translation.language_id,
-      intro_desc: translation.intro_desc,
-      subtest_desc: translation.subtest_desc,
-      created_by: translation.created_by,
-      created_date: translation.created_date,
-      updated_by: translation.updated_by,
-      updated_date: translation.updated_date,
-    };
+    let formattedResult: any;
+
+    if (languageId) {
+      // Single translation - return as object
+      formattedResult = {
+        id: translations.id,
+        subtest_id: translations.subtest_id,
+        language_id: translations.language_id,
+        intro_desc: translations.intro_desc,
+        subtest_desc: translations.subtest_desc,
+        created_by: translations.created_by,
+        created_date: translations.created_date,
+        updated_by: translations.updated_by,
+        updated_date: translations.updated_date,
+      };
+    } else {
+      // Multiple translations - return as key-value pair object where key is language_id
+      formattedResult = {};
+      translations.forEach((translation: any) => {
+        formattedResult[translation.language_id] = {
+          id: translation.id,
+          subtest_id: translation.subtest_id,
+          language_id: translation.language_id,
+          intro_desc: translation.intro_desc,
+          subtest_desc: translation.subtest_desc,
+          created_by: translation.created_by,
+          created_date: translation.created_date,
+          updated_by: translation.updated_by,
+          updated_date: translation.updated_date,
+        };
+      });
+    }
 
     res.status(200).send({
-      message: "Success get subtest translation",
+      message: languageId
+        ? "Success get subtest translation"
+        : "Success get all subtest translations",
       data: formattedResult,
     });
   } catch (error: any) {

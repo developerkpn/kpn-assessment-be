@@ -46,6 +46,6 @@ Batch.post("/:id/published", checkPermission("fupdate", 15), handlePublishBatch)
 
 // Batch translation endpoints
 Batch.get("/:batchId/translation-status", checkPermission("fread", 15), handleGetLanguagesWithBatchTranslationStatus);
-Batch.get("/:id/language/:languageId", checkPermission("fread", 15), handleGetBatchTranslationForLanguage);
+Batch.get("/:id/language/:languageId?", checkPermission("fread", 15), handleGetBatchTranslationForLanguage);
 Batch.post("/:id/language/:languageId/generate", checkPermission("fread", 15), handleGenerateBatchTranslation);
 Batch.get("/:batchId/language-selection", checkPermission("fread", 15), handleBatchLanguageTypeSwitch);

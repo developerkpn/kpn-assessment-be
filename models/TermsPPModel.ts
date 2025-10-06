@@ -109,12 +109,119 @@ export const getLanguagesWithTermsPPTranslationStatus = async (typeDoc: "terms" 
 export const getTermsPPTranslation = async (typeDoc: "terms" | "pp", languageId?: string) => {
   const client = await db.connect();
   try {
-    const result = await client.query(
-      `SELECT * FROM mst_term_pp
-       WHERE type_dt = $1 ${languageId ? "AND language_id = $2" : ""}`,
-      [typeDoc, languageId]
-    );
-    return result.rows[0];
+    let result;
+    if (languageId) {
+      // Get specific translation for a language
+      result = await client.query(
+        `SELECT * FROM mst_term_pp
+         WHERE type_dt = $1 AND language_id = $2`,
+        [typeDoc, languageId]
+      );
+      return result.rows[0];
+    } else {
+      // Get all translations for the type (only sub language translations)
+      result = await client.query(
+        `SELECT * FROM mst_term_pp
+         WHERE type_dt = $1 AND language_type = 'sub'`,
+        [typeDoc]
+      );
+
+      // Get all active languages
+      const allLanguagesResult = await client.query(
+        `SELECT language_code FROM mst_language WHERE is_active = true`
+      );
+
+      // Get main data for fallback
+      const mainData = await client.query(
+        `SELECT language_id, name FROM mst_term_pp
+         WHERE type_dt = $1 AND language_type = 'main'`,
+        [typeDoc]
+      );
+
+      // Get English fallback if exists
+      const enFallback = await client.query(
+        `SELECT * FROM mst_term_pp
+         WHERE type_dt = $1 AND language_type = 'sub' AND language_id = 'en'`,
+        [typeDoc]
+      );
+
+      // Get Indonesian fallback if exists
+      const idFallback = await client.query(
+        `SELECT * FROM mst_term_pp
+         WHERE type_dt = $1 AND language_type = 'sub' AND language_id = 'id'`,
+        [typeDoc]
+      );
+
+      // Create a map of existing translations
+      const translationMap = new Map();
+      result.rows.forEach((translation: any) => {
+        translationMap.set(translation.language_id, translation);
+      });
+
+      // Fill in missing languages with fallback data
+      const allLanguages = allLanguagesResult.rows;
+      const mainLanguageId = mainData.rows[0]?.language_id;
+
+      allLanguages.forEach((lang: any) => {
+        const languageCode = lang.language_code;
+
+        // If this language is the main language, add the main data
+        if (languageCode === mainLanguageId && mainData.rows.length > 0) {
+          if (!translationMap.has(languageCode)) {
+            translationMap.set(languageCode, {
+              type_dt: typeDoc,
+              language_type: 'main',
+              language_id: languageCode,
+              name: mainData.rows[0].name,
+              id: null,
+              created_by: null,
+              created_date: null,
+              updated_by: null,
+              updated_date: null,
+            });
+          }
+        } else if (!translationMap.has(languageCode)) {
+          // Try English fallback first
+          if (enFallback.rows.length > 0) {
+            translationMap.set(languageCode, {
+              ...enFallback.rows[0],
+              language_id: languageCode,
+              id: null, // Mark as fallback
+              is_fallback: true,
+              fallback_source: 'en'
+            });
+          }
+          // If no English, try Indonesian fallback
+          else if (idFallback.rows.length > 0) {
+            translationMap.set(languageCode, {
+              ...idFallback.rows[0],
+              language_id: languageCode,
+              id: null, // Mark as fallback
+              is_fallback: true,
+              fallback_source: 'id'
+            });
+          }
+          // If no translations exist at all, use main data
+          else if (mainData.rows.length > 0) {
+            translationMap.set(languageCode, {
+              type_dt: typeDoc,
+              language_type: 'sub',
+              language_id: languageCode,
+              name: mainData.rows[0].name,
+              id: null,
+              created_by: null,
+              created_date: null,
+              updated_by: null,
+              updated_date: null,
+              is_fallback: true,
+              fallback_source: mainData.rows[0].language_id || 'main'
+            });
+          }
+        }
+      });
+
+      return Array.from(translationMap.values());
+    }
   } catch (error) {
     console.error(error);
     throw error;

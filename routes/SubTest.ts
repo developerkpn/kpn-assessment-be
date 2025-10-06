@@ -24,7 +24,7 @@ SubTest.get("/:id/series-available", checkPermission("fread", 12), handleGetAvai
 SubTest.delete("/:id/series/:detailId", checkPermission("fdelete", 12), handleDeleteSeriesFromSubTest);
 
 // SubTest translation endpoints
-SubTest.get("/:id/language/:languageId", checkPermission("fread", 12), handleGetSubTestTranslationForLanguage);
+SubTest.get("/:id/language/:languageId?", checkPermission("fread", 12), handleGetSubTestTranslationForLanguage);
 SubTest.post("/:id/language/:languageId/generate", checkPermission("fread", 12), handleGenerateSubTestTranslation);
 SubTest.get("/:subtestId/language-selection", checkPermission("fread", 12), handleSubTestLanguageTypeSwitch);
 SubTest.get("/:id/languages", checkPermission("fread", 12), handleGetLanguagesWithSubTestTranslationStatus);

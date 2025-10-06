@@ -215,26 +215,51 @@ export const handleGetLanguagesWithTermsPPTranslationStatus = async (
 };
 
 export const handleGetTermsPPTranslationForLanguage = async (
-  req: Request<{ type: string; languageId: string }>,
+  req: Request<{ type: string; languageId?: string }>,
   res: Response
 ): Promise<any> => {
   try {
-    // Validate parameters using schema
-    const { type, languageId } = Validation.validate(TermsPPValidation.TRANSLATION_PARAMS, req.params);
+    const { type } = req.params;
+    const { languageId } = req.params;
 
-    // Get existing translation only
-    const translation = await getTermsPPTranslation(type as TermsType, languageId);
+    // Validate type
+    const validatedType = TermsTypeEnum.parse(type);
 
-    if (!translation) {
+    // Get existing translation(s)
+    const translations = await getTermsPPTranslation(validatedType, languageId);
+
+    if (!translations || (Array.isArray(translations) && translations.length === 0)) {
       res.status(404).send({
-        message: "Translation not found for this language",
+        message: languageId
+          ? "Translation not found for this language"
+          : "No translations found for this type",
       });
       return;
     }
 
+    // Format the translation data
+    let formattedResult: any;
+
+    if (languageId) {
+      // Single translation - return as object
+      formattedResult = translations;
+    } else {
+      // Multiple translations - return as key-value pair object where key is language_id
+      formattedResult = {};
+      translations.forEach((translation: any) => {
+        formattedResult[translation.language_id] = {
+          ...translation,
+          is_fallback: translation.is_fallback || false,
+          fallback_source: translation.fallback_source || null,
+        };
+      });
+    }
+
     res.status(200).send({
-      message: "Success get termsPP translation",
-      data: translation,
+      message: languageId
+        ? "Success get termsPP translation"
+        : "Success get all termsPP translations",
+      data: formattedResult,
     });
   } catch (error: any) {
     res.status(500).send({

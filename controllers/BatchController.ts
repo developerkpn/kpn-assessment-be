@@ -27,9 +27,7 @@ import {
   updateBatchTranslation,
   getDarwinUser,
 } from "@/models/BatchModel.js";
-import {
-  translateFieldsBatch,
-} from "@/models/TranslationModel.js";
+import { translateFieldsBatch } from "@/models/TranslationModel.js";
 import fs from "fs";
 import { AdminWebValidation } from "@/validation/AdminWebValidation.js";
 import { BatchAssessee, BatchHeader, BatchHeadUpdate } from "@/types/BatchTypes.js";
@@ -104,22 +102,22 @@ export const handleCreateBatch = async (req: Request, res: Response, next: NextF
       description: string;
       language_type: "main" | "sub";
     }>;
-    
+
     // Find main language entry
     const mainEntry = descriptionArray.find((entry: any) => entry.language_type === "main");
     if (mainEntry) {
       mainDescription = mainEntry.description;
       mainLanguageId = mainEntry.language_id;
     }
-    
+
     // Find sub-language entries
     subLanguageDescriptions = descriptionArray
       .filter((entry: any) => entry.language_type === "sub")
       .map((entry: any) => ({
         language_id: entry.language_id,
-        description: entry.description
+        description: entry.description,
       }));
-    
+
     console.log("Main language description:", mainDescription);
     console.log("Main language ID:", mainLanguageId);
     console.log("Sub-language descriptions:", JSON.stringify(subLanguageDescriptions, null, 2));
@@ -257,11 +255,11 @@ export const handleCreateBatch = async (req: Request, res: Response, next: NextF
     if (subLanguageDescriptions.length > 0) {
       console.log("=== DEBUG: Creating translation records ===");
       console.log("Number of translations to create:", subLanguageDescriptions.length);
-      
+
       for (const subLang of subLanguageDescriptions) {
         console.log(`Creating translation for language_id: ${subLang.language_id}`);
         console.log(`Translation content: ${subLang.description?.substring(0, 100)}...`);
-        
+
         const translationPayload = {
           batch_id: batchId,
           language_id: subLang.language_id,
@@ -271,7 +269,7 @@ export const handleCreateBatch = async (req: Request, res: Response, next: NextF
           updated_by: req.userDecode?.user_id,
           updated_at: new Date(),
         };
-        
+
         await createBatchTranslation(translationPayload);
       }
     } else {
@@ -361,7 +359,7 @@ export const handleUpdateBatch = async (req: Request, res: Response, next: NextF
       });
       return;
     }
-    
+
     // Original existing logic for all cases (including main language updates and legacy)
     const batchHeadUpdate: any = {
       batch_name: validatedRequest.batch_name,
@@ -379,7 +377,7 @@ export const handleUpdateBatch = async (req: Request, res: Response, next: NextF
       updated_by: req.userDecode?.user_id,
       updated_at: new Date(),
     };
-    
+
     // Add language_id only if we're in main language mode
     if (languageType === "main") {
       batchHeadUpdate.language_id = languageId;
@@ -501,7 +499,7 @@ export const handleUpdateBatch = async (req: Request, res: Response, next: NextF
       selectedNewAssessee
     );
 
-      message = message || "Batch with code is updated successfully!";
+    message = message || "Batch with code is updated successfully!";
 
     res.status(201).send({
       message: message,
@@ -1045,7 +1043,7 @@ export const handleGetLanguagesWithBatchTranslationStatus = async (
     const validatedBatchId = Validation.validate(BatchValidation.ID, batchId);
 
     const languages = await getLanguagesWithBatchTranslationStatus(validatedBatchId);
-    
+
     res.status(200).send({
       message: "Languages with translation status retrieved successfully!",
       data: languages,
@@ -1055,11 +1053,15 @@ export const handleGetLanguagesWithBatchTranslationStatus = async (
   }
 };
 
-export const handleGenerateBatchTranslation = async (req: Request<{ id: string; languageId: string }>, res: Response, next: NextFunction) => {
+export const handleGenerateBatchTranslation = async (
+  req: Request<{ id: string; languageId: string }>,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const { id: batchId, languageId } = req.params;
     const { fields } = req.body; // Array of field names to translate
-    
+
     // Get the main batch data for auto-translation
     const batchDetailResult = await getBatchDetail(batchId);
     if (!batchDetailResult || !batchDetailResult.batch) {
@@ -1072,24 +1074,20 @@ export const handleGenerateBatchTranslation = async (req: Request<{ id: string; 
     const mainBatch = batchDetailResult.batch;
 
     // Prepare fields for batch translation using generic service
-    const sourceLanguageCode = mainBatch.language_id || 'en'; // fallback to English if not set
-    
+    const sourceLanguageCode = mainBatch.language_id || "en"; // fallback to English if not set
+
     // Build fieldsToTranslate based on requested fields, or all fields if none specified
-    const requestedFields = fields && fields.length > 0 ? fields : ['description'];
+    const requestedFields = fields && fields.length > 0 ? fields : ["description"];
     const fieldsToTranslate: Record<string, string> = {};
-    
+
     requestedFields.forEach((field: string) => {
-      if (field === 'description') {
+      if (field === "description") {
         fieldsToTranslate.description = mainBatch.description || "";
       }
     });
 
     // Use generic batch translation service
-    const translatedFields = await translateFieldsBatch(
-      fieldsToTranslate,
-      sourceLanguageCode,
-      languageId
-    );
+    const translatedFields = await translateFieldsBatch(fieldsToTranslate, sourceLanguageCode, languageId);
 
     // Create a preview translation object with auto-translated content (only requested fields)
     const translation: any = {
@@ -1113,7 +1111,7 @@ export const handleGenerateBatchTranslation = async (req: Request<{ id: string; 
     });
 
     res.status(200).send({
-      message: `Batch translation generated successfully for: ${requestedFields.join(', ')}`,
+      message: `Batch translation generated successfully for: ${requestedFields.join(", ")}`,
       data: translation,
     });
   } catch (e) {
@@ -1121,12 +1119,16 @@ export const handleGenerateBatchTranslation = async (req: Request<{ id: string; 
   }
 };
 
-export const handleBatchLanguageTypeSwitch = async (req: Request<{ batchId: string }, {}, {}, { languageType: string }>, res: Response, next: NextFunction) => {
+export const handleBatchLanguageTypeSwitch = async (
+  req: Request<{ batchId: string }, {}, {}, { languageType: string }>,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const { batchId } = req.params;
     const { languageType } = req.query;
 
-    if (!languageType || (languageType !== 'main' && languageType !== 'sub')) {
+    if (!languageType || (languageType !== "main" && languageType !== "sub")) {
       res.status(400).send({
         message: "Invalid languageType. Must be 'main' or 'sub'",
       });
@@ -1161,7 +1163,7 @@ export const handleBatchLanguageTypeSwitch = async (req: Request<{ batchId: stri
     // For sub-language mode, also fetch translation data if it exists
     let translationData = null;
     let hasTranslation = false;
-    if (languageType === 'sub') {
+    if (languageType === "sub") {
       try {
         const translation = await getBatchTranslation(batchId, recommendedLanguage.language_code);
         if (translation) {
@@ -1198,36 +1200,62 @@ export const handleBatchLanguageTypeSwitch = async (req: Request<{ batchId: stri
   }
 };
 
-export const handleGetBatchTranslationForLanguage = async (req: Request<{ id: string; languageId: string }>, res: Response, next: NextFunction) => {
+export const handleGetBatchTranslationForLanguage = async (
+  req: Request<{ id: string; languageId?: string }>,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const { id: batchId, languageId } = req.params;
-    
-    // Get existing translation only
-    const translation = await getBatchTranslation(batchId, languageId);
-    if (!translation) {
+
+    // Get existing translation(s)
+    const translations = await getBatchTranslation(batchId, languageId);
+
+    if (!translations || (Array.isArray(translations) && translations.length === 0)) {
       res.status(404).send({
-        message: "Translation not found for this language",
+        message: languageId ? "Translation not found for this language" : "No translations found for this batch",
       });
       return;
     }
 
     // Format the translation data
-    const formattedResult = {
-      id: translation.id,
-      batch_id: translation.batch_id,
-      language_id: translation.language_id,
-      description: translation.description,
-      created_by: translation.created_by,
-      created_date: translation.created_date,
-      updated_by: translation.updated_by,
-      updated_date: translation.updated_date,
-    };
+    let formattedResult: any;
+
+    if (languageId) {
+      // Single translation - return as object
+      formattedResult = {
+        id: translations.id,
+        batch_id: translations.batch_id,
+        language_id: translations.language_id,
+        description: translations.description,
+        created_by: translations.created_by,
+        created_date: translations.created_date,
+        updated_by: translations.updated_by,
+        updated_date: translations.updated_date,
+      };
+    } else {
+      // Multiple translations - return as key-value pair object where key is language_id
+      formattedResult = {};
+      translations.forEach((translation: any) => {
+        formattedResult[translation.language_id] = {
+          id: translation.id,
+          batch_id: translation.batch_id,
+          language_id: translation.language_id,
+          description: translation.description,
+          created_by: translation.created_by,
+          created_date: translation.created_date,
+          updated_by: translation.updated_by,
+          updated_date: translation.updated_date,
+        };
+      });
+    }
 
     res.status(200).send({
-      message: "Success get batch translation",
+      message: languageId ? "Success get batch translation" : "Success get all batch translations",
       data: formattedResult,
     });
   } catch (e) {
+    console.log(e, "error");
     next(e);
   }
 };
