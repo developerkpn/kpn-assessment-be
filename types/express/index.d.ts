@@ -16,6 +16,11 @@ declare namespace Express {
       }>;
     };
     user_type?: string;
+    decodeResetToken?: {
+      user_id?: string;
+      email?: string;
+      name?: string;
+    };
   }
 }
 
