@@ -24,6 +24,7 @@ import Assessee from "@/routes/transactions/Assessee.js";
 import Report from "@/routes/report/Report.js";
 import Scope from "@/routes/Scope.js";
 import Guideline from "@/routes/GuideLine.js";
+import AssesseeExtern from "@/routes/AssesseeExtern.js";
 import { errorMiddleware } from "@/middleware/errorMiddleware.js";
 
 //@using router
@@ -50,6 +51,7 @@ router.use("/api/assessee", Assessee);
 router.use("/api/report", isAuth, Report);
 router.use("/api/guideline", Guideline, errorMiddleware);
 router.use("/api/scope", isAuth, Scope);
+router.use("/api/extern", AssesseeExtern);
 router.use("/api/check", (req, res) => {
   res.status(200).send({
     message: "Connected",
