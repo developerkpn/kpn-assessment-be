@@ -445,9 +445,15 @@ export const getBatchDetail = async (id: string) => {
   }
 };
 
-export const getBatchAssesses = async (id: string) => {
+export const getBatchAssesses = async (id: string, assessee_id?: string) => {
   const client = await db.connect();
   try {
+    let where_asseeid = "";
+    let whereval = [id];
+    if (assessee_id) {
+      whereval.push(assessee_id);
+      where_asseeid = "and assessee_nik = $2";
+    }
     const result = await client.query(
       `
             SELECT 
@@ -459,11 +465,10 @@ export const getBatchAssesses = async (id: string) => {
             FROM
                 t_batch_assessee
             WHERE
-                batch_id = $1
+                batch_id = $1 ${where_asseeid}
             `,
-      [id]
+      whereval
     );
-    console.log(result.rows);
     return result.rows;
   } catch (error) {
     console.log(error);

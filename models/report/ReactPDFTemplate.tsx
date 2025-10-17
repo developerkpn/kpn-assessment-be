@@ -7,22 +7,7 @@ import React from "react";
 Chart.register([CategoryScale, LineController, LineElement, LinearScale, PointElement]);
 
 const canvas = new Canvas(400, 300);
-const chart = new Chart(
-  canvas as any, // TypeScript needs "as any" here
-  {
-    type: "line",
-    data: {
-      labels: ["Red", "Blue", "Yellow", "Green", "Purple", "Orange"],
-      datasets: [
-        {
-          label: "# of Votes",
-          data: [12, 19, 3, 5, 2, 3],
-          borderColor: "red",
-        },
-      ],
-    },
-  }
-);
+const ctx = canvas.getContext("2d");
 const pngBuffer = await canvas.toBuffer("png", { matte: "white" });
 
 // Create Document Component

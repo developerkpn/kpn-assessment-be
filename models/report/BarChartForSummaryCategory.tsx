@@ -7,14 +7,9 @@ const chartHeight = 200;
 
 export const BarChartSummaryCategory = async (subtest: ReportDetailSubtest) => {
   const categories = subtest.result.categories;
-  console.log(categories);
 
   const ChartLabels = categories.map((cat) => cat.category_code);
   const ChartValues = categories.map((cat) => cat.category_point ?? 0);
-
-  // Debug logging
-  console.log("ChartLabels:", ChartLabels);
-  console.log("ChartValues:", ChartValues);
 
   const chart = new ChartJSNodeCanvas({
     width: chartWidth,

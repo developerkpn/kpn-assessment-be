@@ -1,8 +1,8 @@
 import { db } from "@/config/connection.js";
 import { TRANSACTION as TRANS } from "@/config/transaction.js";
 import { ClientAction, deleteQuery, insertQuery, updateQuery } from "@/helper/queryBuilder.js";
-import path from "path";
-import fs from "fs";
+import path, { resolve } from "path";
+import fs, { ReadStream } from "fs";
 import { v7 as uuid } from "uuid";
 import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url); // get the resolved path to the file
@@ -13,9 +13,21 @@ import { transformResponseFormat } from "@/helper/transformers.js";
 import { getAssesseeExternalProfile } from "@/models/transactions/AssesseeModel.js";
 import moment from "moment";
 import S3ClientUpload from "@/helper/S3UploadClass.js";
+import { Worker } from "worker_threads";
 import { ResponseError } from "@/error/response-error.js";
 import { async } from "rxjs";
-import { CriteriasReport, ReportCriteria, ReportDetailSection, ReportIntro } from "@/types/Report.js";
+import {
+  BulkReportDataAssessment,
+  CriteriasReport,
+  ReportCriteria,
+  ReportDetailSection,
+  ReportIntro,
+  ReportItem,
+} from "@/types/Report.js";
+import os from "os";
+import Utils from "@/helper/utils.js";
+import { Archiver } from "archiver";
+import BulkReportPDFRenderer from "./BulkReportPDFRenderer.js";
 
 export const getBatchForReport = async (session: { role_name: string; user_id: string }) => {
   const client = await db.connect();
@@ -183,7 +195,6 @@ export const getBatchInformationForReport = async (batchId: string) => {
         `,
       [batchId]
     );
-    console.log(batchInformation.rows);
     return batchInformation.rows;
   } catch (e) {
     console.error(e);
@@ -213,8 +224,6 @@ export const assignReportDesign = async (
       const [detailQ, detailV] = insertQuery("report_test_detail", reportDetail);
       await client.query(detailQ, detailV);
     } else {
-      console.log("masuk update model");
-      console.log(report_id);
       await client.query(
         `
         DELETE
@@ -231,17 +240,13 @@ export const assignReportDesign = async (
         `,
         [report_id]
       );
-      console.log("end delete 3");
-      console.log(reportHead);
+
       const [headerQ, headerV] = updateQuery("report_head", reportHead, { id: report_id });
       await client.query(headerQ, headerV);
-      console.log("update");
       const [introQ, introV] = insertQuery("report_test_intro", reportIntro);
       await client.query(introQ, introV);
-      console.log("insert 1");
       const [detailQ, detailV] = insertQuery("report_test_detail", reportDetail);
       await client.query(detailQ, detailV);
-      console.log("insert 2");
       const [updateStatusQ, updateStatusV] = updateQuery("t_batch_assessee", generateStatus, { batch_id: batchId });
       await client.query(updateStatusQ, updateStatusV);
     }
@@ -429,7 +434,6 @@ export const getAssesseeProfile = async (assesseeId: string) => {
 export const getReportDetail = async (batchId: string) => {
   const client = await db.connect();
   try {
-    console.log(batchId);
     const result = await client.query(
       `
       SELECT 
@@ -466,7 +470,6 @@ export const getReportDetail = async (batchId: string) => {
 export const getIntroData = async (batchId: string) => {
   const client = await db.connect();
   try {
-    console.log(batchId);
     const result = await client.query(
       `
       SELECT 
@@ -516,7 +519,6 @@ export const getPersonalReportData = async (
         [assessee_id, batchId, testId]
       );
     } else if (type === "category") {
-      console.log("masuk model category");
       result = await client.query(
         `
         SELECT *
@@ -645,6 +647,56 @@ export const getSpecificBatchInformationForReport = async (batchId: string, asse
   }
 };
 
+export const getBatchReportData = async (batchId: string) => {
+  return await ClientAction(async (client) => {
+    try {
+      const { rows } = await client.query(
+        `
+        SELECT
+          b.id, 
+          b.batch_name,
+          b.batch_code,
+          b.type,
+          r.content,
+          r.cover_id,
+          mic.file_name as cover_file
+         FROM t_batch_head b
+         LEFT JOIN report_head r ON b.id = r.batch_id
+          left join mst_image_cover mic on mic.uid = r.cover_id
+         WHERE b.id = $1 
+        `,
+        [batchId]
+      );
+
+      return rows[0];
+    } catch (error) {
+      throw error;
+    }
+  });
+};
+
+export const getTakenAt = async (batch_id: string, assessee_id: string) => {
+  return await ClientAction(async (client) => {
+    try {
+      const { rows } = await client.query(
+        `
+        select 
+          d.taken_at at TIME zone 'Asia/Jakarta' as taken_at 
+        from
+          t_progress_batch_head h 
+        left join t_progress_batch_det d on h.id = d.head_id
+        where h.batch_id = $1 and h.assessee_id = $2
+        order by d.taken_at asc
+        `,
+        [batch_id, assessee_id]
+      );
+      return rows[0];
+    } catch (error) {
+      throw error;
+    }
+  });
+};
+
 export const getReportLog = async (batchId: string, assesseeId: string) => {
   const client = await db.connect();
   try {
@@ -695,9 +747,6 @@ export const getAssesseeListForReport = async (batchId: string) => {
       `,
       [batchId]
     );
-
-    console.log(result.rows);
-
     const formatted = result.rows.map((row: any) => ({
       ...row,
       first_taken_subtest_at: row.first_taken_subtest_at
@@ -830,44 +879,46 @@ export const getAllDataCover = async () => {
 
 const getCriteriaForReport = async (criteriaId: string): Promise<ReportCriteria> => {
   try {
-    console.log("masuk raw data");
     const rawData = await getCriteriaDetail(criteriaId);
+    let criteriasMap = new Map<string, CriteriasReport>();
+    let standardizedMap = new Map<string, any>();
+
+    for (let row of rawData) {
+      if (row.criteria_id && !criteriasMap.has(row.criteria_id)) {
+        criteriasMap.set(row.criteria_id, {
+          criteria_id: row.criteria_id,
+          criteria_name: row.criteria_name,
+          minimum_score: row.minimum_score,
+          maximum_score: row.maximum_score,
+          description: row.description,
+          color_id: row.color_id,
+          color_name: row.color_name,
+          hex_code: row.hex_code,
+        });
+      }
+
+      if (row.standardized_id && !standardizedMap.has(row.standardized_id)) {
+        standardizedMap.set(row.standardized_id, {
+          standardized_id: row.standardized_id,
+          raw_score: row.raw_score,
+          standardized_score: row.standardized_score,
+        });
+      }
+    }
+
+    const criterias = Array.from(criteriasMap.values());
+    const standardized = Array.from(standardizedMap.values());
 
     const groupedData: ReportCriteria = {
       value_name: rawData[0]?.value_name || null,
       value_code: rawData[0]?.value_code || null,
 
       // Hilangkan duplikasi berdasarkan criteria_id
-      criterias: rawData.reduce((acc: CriteriasReport[], row: any) => {
-        if (row.criteria_id && !acc.some((c) => c.criteria_id === row.criteria_id)) {
-          acc.push({
-            criteria_id: row.criteria_id,
-            criteria_name: row.criteria_name,
-            minimum_score: row.minimum_score,
-            maximum_score: row.maximum_score,
-            description: row.description,
-            color_id: row.color_id,
-            color_name: row.color_name,
-            hex_code: row.hex_code,
-          });
-        }
-        return acc;
-      }, []),
+      criterias: criterias,
 
       // Hilangkan duplikasi berdasarkan standardized_id
-      standardized: rawData.reduce((acc: any[], row: any) => {
-        if (row.standardized_id && !acc.some((s) => s.standardized_id === row.standardized_id)) {
-          acc.push({
-            standardized_id: row.standardized_id,
-            raw_score: row.raw_score,
-            standardized_score: row.standardized_score,
-          });
-        }
-        return acc;
-      }, []),
+      standardized: standardized,
     };
-
-    console.log("group datanya", groupedData);
     return groupedData;
   } catch (e) {
     throw e;
@@ -959,8 +1010,6 @@ export const proceedSubtestCriteria = async (criteriaId: string, subtestPoint: n
       criteria = await getCriteriaForReport(criteriaId);
     }
 
-    console.log("criterianya", criteria);
-
     let matchingCriteria: any = null;
     let matchingStandardizedScore: any = null;
 
@@ -970,11 +1019,13 @@ export const proceedSubtestCriteria = async (criteriaId: string, subtestPoint: n
       });
 
       if (!matchingStandardizedScore) {
+        //if no matching, find with closest distance raw score
         matchingStandardizedScore = criteria.standardized.reduce((prev, curr) => {
           return Math.abs(curr.raw_score - subtestPoint) < Math.abs(prev.raw_score - subtestPoint) ? curr : prev;
         });
       }
 
+      //finding cr
       matchingCriteria = criteria.criterias.find((item: any) => {
         return (
           matchingStandardizedScore.standardized_score >= Number(item.minimum_score) &&
@@ -1095,10 +1146,8 @@ export const proceedDetail = async (batchId: string, assessee_id: string): Promi
           norm: [],
           subtests: [],
         };
-        console.log("masuk norm");
         const norm = await getCriteriaForReport(test.criteria_id);
         testMapping[testId].norm.push(...norm.criterias);
-        console.log("keluar norm");
         if (test.summary_type === "subtest") {
           // if detail summary is subtest
           const resultBySubtest: any = await getPersonalReportData(batchId, assessee_id, "subtest", test.test_id);
@@ -1108,7 +1157,6 @@ export const proceedDetail = async (batchId: string, assessee_id: string): Promi
           for (const subtest of resultBySubtest) {
             let result = await proceedSubtestCriteria(subtest.criteria_id, Number(subtest.subtest_point));
             if (!isNaN(Number(subtest.subtest_point))) {
-              console.log("sub subtest pointnya", subtest.subtest_point);
               sumSubtestPoint = sumSubtestPoint + Number(subtest.subtest_point);
               countSubtest++;
             }
@@ -1128,14 +1176,11 @@ export const proceedDetail = async (batchId: string, assessee_id: string): Promi
                 categories: [],
               },
             };
-
-            console.log("proceedSubtest", proceedSubtest);
             testMapping[testId].subtests.push(proceedSubtest);
           }
 
           let testResult;
           let finalTestPoint: number = Number(sumSubtestPoint);
-          console.log("final test poinnya", finalTestPoint);
           if (test.summary_type === "sum") {
             finalTestPoint *= 1;
           } else if (test.summary_type === "average") {
@@ -1154,8 +1199,6 @@ export const proceedDetail = async (batchId: string, assessee_id: string): Promi
               : 0,
             description: testCriteria.matchingCriteria.description ? testCriteria.matchingCriteria.description : null,
           };
-
-          console.log(testResult);
 
           testMapping[testId].result = testResult;
         } else if (test.summary_type === "category") {
@@ -1236,10 +1279,7 @@ export const proceedDetail = async (batchId: string, assessee_id: string): Promi
 
       const values = Object.values(testMapping);
       detail.push(...values);
-      console.log("detailnya nih", detail);
     }
-
-    console.log("detailnya", detail[0].subtests);
     return detail;
   } catch (e) {
     throw e;
@@ -1250,7 +1290,6 @@ export const proceeedProfile = async (type: string, assesseeId: string) => {
   try {
     const assesseeData: any =
       type === "internal" ? await getDarwinUser(String(assesseeId)) : await getAssesseeExternalProfile(assesseeId);
-    console.log(assesseeData);
     const profile = {
       assessee_id: type === "internal" ? assesseeData.employee_id : assesseeData.id,
       assessee_name: type === "internal" ? assesseeData.full_name : assesseeData.name,
@@ -1264,7 +1303,6 @@ export const proceeedProfile = async (type: string, assesseeId: string) => {
       type: type,
       education: type === "internal" ? "" : assesseeData.education,
     };
-    console.log("sebelum return");
     return profile;
   } catch (e) {
     throw e;
@@ -1294,8 +1332,8 @@ const proceedProctoring = async (batchId: string, user_id: string) => {
     };
 
     const result = {
-      web_cam: getRandomItems(filteredWebCam, 8),
-      screen: getRandomItems(filteredScreen, 8),
+      web_cam: getRandomItems<{ key: string; lastModified: string }>(filteredWebCam, 8),
+      screen: getRandomItems<{ key: string; lastModified: string }>(filteredScreen, 8),
     };
 
     return result;
@@ -1310,9 +1348,7 @@ export const generateReportIndividual = async (batchId: string, assesseeId: stri
 
     const batchInformation = await getSpecificBatchInformationForReport(batchId, assesseeId);
     const profile = await proceeedProfile(batchInformation.type, assesseeId);
-    console.log("keluar profile");
     const reportDetail = await proceedDetail(batchId, assesseeId);
-    console.log("keluar report detail");
     // Get Report Intro
     const reportIntro = await proceedIntro(batchId, reportDetail);
 
@@ -1339,10 +1375,139 @@ export const generateReportIndividual = async (batchId: string, assesseeId: stri
       log: reportLog,
       proctoring: reportProctoring,
     };
-
-    console.log("resultnya", result);
     return result;
   } catch (error) {
+    throw error;
+  }
+};
+
+//generate bulk report individuals
+export const getDataBulkReportIndividual = async (
+  batchId: string,
+  assesseeId: string[]
+): Promise<BulkReportDataAssessment> => {
+  try {
+    const batch_data = await getBatchReportData(batchId);
+    let assessee_report_data: BulkReportDataAssessment["reports"] = [];
+    for (const id of assesseeId) {
+      const assess_taken = await getTakenAt(batchId, id);
+      const profile = await proceeedProfile(batch_data.type, id);
+      const reportDetail = await proceedDetail(batchId, id);
+      // Get Report Intro
+      const reportIntro = await proceedIntro(batchId, reportDetail);
+
+      // Get Report Proctoring
+      const reportProctoring = await proceedProctoring(batchId, id);
+
+      // Get Report Log
+      const reportLog = await proceedLog(batchId, id);
+      assessee_report_data.push({
+        taken_at: assess_taken.taken_at,
+        profile,
+        intro: reportIntro,
+        detail: reportDetail,
+        log: reportLog,
+        proctoring: reportProctoring,
+      });
+    }
+    return {
+      generals: {
+        cover: batch_data.cover_file,
+        guide: {
+          content: batch_data.content,
+        },
+        batch: {
+          name: batch_data.batch_name,
+          code: batch_data.batch_code,
+          type: batch_data.type,
+        },
+      },
+      reports: assessee_report_data,
+    };
+  } catch (error) {
+    throw error;
+  }
+};
+
+function chunkJobs(jobs: BulkReportDataAssessment["reports"], workers: number) {
+  const chunkSize = Math.floor(jobs.length / workers);
+  const remainder = jobs.length % workers;
+  const chunks: BulkReportDataAssessment["reports"][] = [];
+  let start = 0;
+
+  for (let i = 0; i < workers; i++) {
+    const end = start + chunkSize + (i === workers - 1 ? remainder : 0);
+    chunks.push(jobs.slice(start, end));
+    start = end;
+  }
+  return chunks;
+}
+
+const runWorker = async (
+  data: ReportItem[],
+  generals: BulkReportDataAssessment["generals"],
+  batch_id: string,
+  index: number | string
+) =>
+  new Promise((resolve, reject) => {
+    let path_worker = "../workers/ReportPDFRenderer_worker.tsx";
+    if (process.env.NODE_ENV == "production") {
+      path_worker = "../workers/ReportPDFRenderer_worker.js";
+    }
+    const worker = new Worker(path.resolve(__dirname, path_worker), {
+      execArgv: process.env.NODE_ENV == "development" ? ["--loader", "ts-node/esm"] : [],
+      workerData: {
+        data,
+        generals,
+        batch_id,
+        index,
+      },
+    });
+    worker.on("message", (message) => {
+      console.log("Message from worker : ", index, " ", message);
+      worker.terminate();
+    });
+    worker.on("error", (error) => {
+      console.error(error);
+      worker.terminate();
+    });
+    worker.on("exit", (code) => {
+      if (code !== 0) {
+        console.error(`Worker exited with error code ${code}`);
+        reject(false);
+      }
+      // Perform cleanup here, e.g., close database connections
+      console.log("Worker thread exited, performing cleanup...");
+      resolve(true);
+    });
+  });
+
+export const generateBulkReportIndividual = async (
+  batchId: string,
+  assesseeId: string[]
+): Promise<{ streamdata: ReadStream; folder_path: string; zip_name: string }> => {
+  try {
+    const data = await getDataBulkReportIndividual(batchId, assesseeId);
+    //split to chunks
+    const uploadDir = path.join(process.cwd(), "uploads", "report", batchId);
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    const files = await BulkReportPDFRenderer({ data: data.reports, generals: data.generals, batch_id: batchId });
+    // zip file
+    const zipfile_name = `${batchId}_${moment().unix()}-individualreport.zip`;
+
+    const outputpath = await Utils.ZipFile(uploadDir, zipfile_name, files);
+    const stream_data = fs.createReadStream(outputpath);
+    return {
+      streamdata: stream_data,
+      folder_path: path.join(process.cwd(), "uploads", zipfile_name),
+      zip_name: zipfile_name,
+    };
+    // return zipfile_name;
+    //iterate data report to build
+  } catch (error) {
+    console.error(error);
     throw error;
   }
 };
@@ -1373,11 +1538,8 @@ export const getCoverDetailData = async (reportId: string) => {
   const client = await db.connect();
   try {
     await client.query(TRANS.BEGIN);
-    console.log("masuk query");
     const { rows } = await client.query(`select * from mst_image_cover where uid = $1`, [reportId]);
     await client.query(TRANS.COMMIT);
-    console.log("keluar cover detail");
-    console.log(rows[0]);
     return rows[0];
   } catch (e) {
     await client.query(TRANS.ROLLBACK);
@@ -1614,7 +1776,6 @@ export const GetAssessmentResultByUser = async (user_id: string, batch_id: strin
       main.map((value, index_main) => {
         main[index_main].result_batch = Object.fromEntries(value.result_batch);
         Object.keys(main[index_main].result_batch).forEach((value, index) => {
-          console.log(main[index_main]);
           main[index_main].result_batch[value] = Object.fromEntries(main[index_main].result_batch[value]);
         });
       });

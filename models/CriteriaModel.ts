@@ -163,27 +163,35 @@ export const getCriteriaDetail = async (id: string) => {
   try {
     const result = await client.query(
       `
-      SELECT 
-        v.id AS value_id, 
-        v.value_name, 
-        v.value_code, 
+      select
+        v.id as value_id,
+        v.value_name,
+        v.value_code,
         cr.id as criteria_id,
-        cr.criteria_name, 
-        cr.minimum_score, 
-        cr.maximum_score, 
-        cr.description, 
-        cr.color_id, 
+        cr.criteria_name,
+        cr.minimum_score,
+        cr.maximum_score,
+        cr.description,
+        cr.color_id,
         cl.name as color_name,
         cl.hex_code,
         st.id as standardized_id,
         st.raw_score,
         st.standardized_score
-      FROM mst_value v
-      LEFT JOIN mst_criteria cr ON v.id = cr.category_fk
-      LEFT JOIN mst_criteria_color cl ON cr.color_id = cl.id
-      LEFT JOIN mst_standardized_score st ON v.id = st.value_id
-      WHERE v.id = $1
-      ORDER BY cr.minimum_score ASC
+      from
+        mst_value v
+      left join mst_criteria cr on
+        v.id = cr.category_fk
+      left join mst_criteria_color cl on
+        cr.color_id = cl.id
+      left join mst_standardized_score st on
+        (v.id = st.value_id
+          and st.standardized_score <= cr.maximum_score
+          and st.standardized_score >= cr.minimum_score )
+      where
+        v.id = $1
+      order by
+        cr.minimum_score asc
       `,
       [id]
     );

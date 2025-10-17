@@ -1,9 +1,9 @@
 {
   "compilerOptions": {
     "target": "ESNext",
+    "esModuleInterop": true,
     "module": "nodenext",
     "moduleResolution": "nodenext",
-    "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "skipLibCheck": true,
     "strict": true,
@@ -14,9 +14,12 @@
     "baseUrl": ".",
     "jsx" : "react",
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
     }
   },
-"include": ["**/*.ts", "**/*.tsx", "./assets"],
+  "ts-node" : {
+    "esm": true
+  },
+  "include": ["**/*.ts", "**/*.tsx", "./assets", "models/workers/example_worker.tsx"],
   "exclude": ["node_modules", "dist"]
 }
