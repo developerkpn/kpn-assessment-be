@@ -152,6 +152,11 @@ export const ReportPDFTemplate = async (batchId: string, assesseeId: string) => 
         <View style={styles.profileContainer}>
           <View style={styles.profileData}>
             <View style={styles.profileRow}>
+              <Text style={styles.profileLabel}>ID/NIK</Text>
+              <Text style={styles.profileColon}>:</Text>
+              <Text>{data.profile.assessee_id}</Text>
+            </View>
+            <View style={styles.profileRow}>
               <Text style={styles.profileLabel}>Name</Text>
               <Text style={styles.profileColon}>:</Text>
               <Text>{data.profile.assessee_name}</Text>
@@ -175,7 +180,7 @@ export const ReportPDFTemplate = async (batchId: string, assesseeId: string) => 
             </View>
             {data.profile.type == "internal" && (
               <View style={styles.profileRow}>
-                <Text style={styles.profileLabel}>Work Location</Text>
+                <Text style={styles.profileLabel}>Business Unit</Text>
                 <Text style={styles.profileColon}>:</Text>
                 <Text>{data.profile.work_place}</Text>
               </View>
