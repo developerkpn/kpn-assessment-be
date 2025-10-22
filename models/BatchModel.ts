@@ -10,6 +10,7 @@ import axios from "axios";
 import { axiosDarwin } from "@/config/axiosDarwin.js";
 import { AxiosResponse } from "axios";
 import { DataEmpDarwin } from "@/types/MasterDataTypes.js";
+import { BatchTranslationRequest, BatchTranslationUpdateRequest } from "@/types/BatchTypes.js";
 import moment from "moment";
 
 export const createBatch = async (headerPayload: any, batchCodePayload: any, ccPayload: any, assesseePayload: any) => {
@@ -273,6 +274,7 @@ export const getBatchDetail = async (id: string) => {
                 h.description,
                 h.status,
                 h.type,
+                h.language_id,
                 COUNT(d.id) AS assessee_count
                 FROM 
                     t_batch_head h 
@@ -770,6 +772,172 @@ export const getFMandBUCode = async (fmId: string, buId: string) => {
   } catch (e) {
     console.log(e);
     throw e;
+  } finally {
+    client.release();
+  }
+};
+
+export const createBatchTranslation = async (payload: BatchTranslationRequest) => {
+  const client = await db.connect();
+  try {
+    await client.query(TRANS.BEGIN);
+    const [q, v] = insertQuery("t_batch_head_translations", payload, "id");
+    const result = await client.query(q, v);
+    await client.query(TRANS.COMMIT);
+    return result.rows[0].id;
+  } catch (error) {
+    console.error(error);
+    await client.query(TRANS.ROLLBACK);
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+export const updateBatchTranslation = async (payload: BatchTranslationUpdateRequest, translationId: string) => {
+  const client = await db.connect();
+  try {
+    await client.query(TRANS.BEGIN);
+    const [q, v] = updateQuery("t_batch_head_translations", payload, { id: translationId }, "id");
+    const result = await client.query(q, v);
+    await client.query(TRANS.COMMIT);
+    return result.rows[0].id;
+  } catch (error) {
+    console.error(error);
+    await client.query(TRANS.ROLLBACK);
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+export const getBatchTranslation = async (batchId: string, languageId?: string) => {
+  const client = await db.connect();
+  try {
+    let result;
+    if (languageId) {
+      // Get specific translation for a language
+      result = await client.query(
+        `SELECT language_id, description FROM t_batch_head_translations
+         WHERE batch_id = $1 AND language_id = $2`,
+        [batchId, languageId]
+      );
+      return result.rows[0];
+    } else {
+      // Get all translations for the batch
+      result = await client.query(
+        `SELECT language_id, description FROM t_batch_head_translations
+         WHERE batch_id = $1`,
+        [batchId]
+      );
+
+      // Get all active languages
+      const allLanguagesResult = await client.query(`SELECT language_code FROM mst_language WHERE is_active = true`);
+
+      // Get batch main data for fallback
+      const batchMainData = await client.query(`SELECT language_id, description FROM t_batch_head WHERE id = $1`, [
+        batchId,
+      ]);
+
+      // Get English fallback if exists
+      const enFallback = await client.query(
+        `SELECT language_id, description FROM t_batch_head_translations
+         WHERE batch_id = $1 AND language_id = 'en'`,
+        [batchId]
+      );
+
+      // Create a map of existing translations
+      const translationMap = new Map();
+      result.rows.forEach((translation: any) => {
+        translationMap.set(translation.language_id, translation);
+      });
+
+      // Fill in missing languages with fallback data
+      const allLanguages = allLanguagesResult.rows;
+      const mainLanguageId = batchMainData.rows[0]?.language_id;
+
+      allLanguages.forEach((lang: any) => {
+        const languageCode = lang.language_code;
+
+        // If this language is the main language, add the main batch data
+        if (languageCode === mainLanguageId && batchMainData.rows.length > 0) {
+          if (!translationMap.has(languageCode)) {
+            translationMap.set(languageCode, {
+              batch_id: batchId,
+              language_id: languageCode,
+              description: batchMainData.rows[0].description,
+              id: null,
+              created_by: null,
+              created_date: null,
+              updated_by: null,
+              updated_date: null,
+            });
+          }
+        } else if (!translationMap.has(languageCode)) {
+          // Try English fallback first
+          if (enFallback.rows.length > 0) {
+            translationMap.set(languageCode, {
+              ...enFallback.rows[0],
+              language_id: languageCode,
+              id: null, // Mark as fallback
+              is_fallback: true,
+              fallback_source: "en",
+            });
+          } else {
+            translationMap.set(languageCode, {
+              batch_id: batchId,
+              language_id: languageCode,
+              description: batchMainData.rows[0].description,
+              id: null,
+              created_by: null,
+              created_date: null,
+              updated_by: null,
+              updated_date: null,
+              is_fallback: true,
+              fallback_source: batchMainData.rows[0].language_id || "main",
+            });
+          }
+        }
+      });
+
+      return Array.from(translationMap.values());
+    }
+  } catch (error) {
+    console.error(error);
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+export const getLanguagesWithBatchTranslationStatus = async (batchId: string) => {
+  const client = await db.connect();
+  try {
+    const result = await client.query(
+      `SELECT
+        ml.id,
+        ml.language_code,
+        ml.language_name,
+        ml.language_name_native,
+        ml.is_active,
+        bh.language_id as main_language_code,
+        CASE
+          WHEN bh.language_id = ml.language_code THEN 'main'
+          WHEN bht.language_id IS NOT NULL THEN 'translation_exists'
+          ELSE 'translation_available'
+        END as translation_status
+      FROM mst_language ml
+      LEFT JOIN t_batch_head bh ON bh.id = $1
+      LEFT JOIN t_batch_head_translations bht ON bht.batch_id = $1
+        AND bht.language_id = ml.language_code
+      WHERE ml.is_active = true
+      ORDER BY ml.language_name`,
+      [batchId]
+    );
+    return result.rows;
+  } catch (error) {
+    console.error(error);
+    throw error;
   } finally {
     client.release();
   }

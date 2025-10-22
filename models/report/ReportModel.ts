@@ -1310,7 +1310,6 @@ export const generateReportIndividual = async (batchId: string, assesseeId: stri
       proctoring: reportProctoring,
     };
 
-    console.log("resultnya", result.detail);
     return result;
   } catch (error) {
     throw error;

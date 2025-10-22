@@ -25,6 +25,7 @@ import Assessment from "@/routes/transactions/Assessment.js";
 import Proctoring from "./transactions/Proctoring.js";
 // import Guideline from "@/routes/GuideLine.js";
 import Translation from "./Translation.js";
+import Public from "./Public.js";
 
 //@using router
 // router.use('/api/<endpoint>', <controller>)
@@ -48,7 +49,8 @@ router.use("/api/assessment", Assessment);
 router.use("/api/proctoring", Proctoring);
 router.use("/api/assessee", Assessee);
 router.use("/api/report", isAuth, Report);
-router.use("/api/languages", isAuth, Language);
+router.use("/api/languages", Language);
+router.use("/api/public", Public); // Public endpoints for client pages (no auth)
 router.use("/api/translation", isAuth, Translation);
 router.use("/api/check", (req, res) => {
   res.status(200).send({
