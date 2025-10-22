@@ -5,6 +5,7 @@ const { decode, verify } = jwt;
 import { verifyPermission } from "@/models/AdminWebModel.js";
 import AuthModel from "@/models/AuthModel.js";
 import { getAssesseeExternalProfile } from "@/models/transactions/AssesseeModel.js";
+import AssesseeExt from "@/models/AssesseeExtModel.js";
 
 export const isAuth = (req: Request, res: Response, next: NextFunction): any => {
   const authHeaders = req.headers.Authorization || req.headers.authorization;
@@ -148,3 +149,41 @@ export const checkPermission =
       return res.status(500).send({ message: "Internal Server Error" });
     }
   };
+
+export const verifyTokenResetPass = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const authHeaders = req.headers.authorization;
+    console.log(authHeaders);
+    if (!authHeaders) {
+      res.status(403).send({
+        message: "Forbidden",
+      });
+      return;
+    }
+    let token = authHeaders.split(" ")[1];
+    if (!token) {
+      res.status(403).send({
+        message: "Forbidden",
+      });
+      return;
+    }
+    const verifToken = await AssesseeExt.VerifyToken(token);
+    if (!verifToken.status) {
+      res.status(403).send({
+        message: "Token Expired ",
+      });
+      return;
+    }
+    req.decodeResetToken = {
+      user_id: verifToken.user_id,
+      email: verifToken.email,
+      name: verifToken.name,
+    };
+    next();
+  } catch (error) {
+    console.error(error);
+    res.status(500).send({
+      message: (error as Error).message,
+    });
+  }
+};

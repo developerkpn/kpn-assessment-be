@@ -94,8 +94,22 @@ export const createAssessmentProgressDetail = async (payload: any) => {
   const client = await db.connect();
   try {
     await client.query(TRANS.BEGIN);
-    const [Q, V] = insertQuery("t_progress_batch_det", payload);
-    await client.query(Q, V);
+    let promises = [];
+    // check first if subtest in head id already exist
+    for (const data of payload) {
+      const { rowCount: check_data } = await client.query(
+        `
+        select id from t_progress_batch_det where head_id = $1 and test_id = $2 and subtest_id = $3
+        `,
+        [data.head_id, data.test_id, data.subtest_id]
+      );
+      if (check_data) {
+        continue;
+      }
+      const [Q, V] = insertQuery("t_progress_batch_det", data);
+      promises.push(client.query(Q, V));
+    }
+    await Promise.all(promises);
     await client.query(TRANS.COMMIT);
   } catch (error) {
     console.error(error);

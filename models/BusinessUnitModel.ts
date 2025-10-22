@@ -1,6 +1,6 @@
 import { db } from "@/config/connection.js";
 import { TRANSACTION as TRANS } from "@/config/transaction.js";
-import { deleteQuery, insertQuery, updateQuery } from "@/helper/queryBuilder.js";
+import { ClientAction, deleteQuery, insertQuery, updateQuery } from "@/helper/queryBuilder.js";
 import { BURequest } from "@/types/MasterDataTypes.js";
 
 export const createBusinessUnit = async (payload: BURequest) => {
@@ -35,6 +35,34 @@ export const getBusinessUnit = async () => {
   } finally {
     client.release();
   }
+};
+
+export const getBusinessUnitByUserId = async (user_id: string, role_name: string) => {
+  return await ClientAction(async (client) => {
+    let where = "";
+    let whereval: any[] = [];
+    if (role_name !== "Super Admin") {
+      (where = `where mawb.user_id = $1`), (whereval = [user_id]);
+    }
+    try {
+      const { rows } = await client.query(
+        `
+        select
+          distinct mbu.id,
+          mbu.bu_name
+        from
+          mst_business_unit mbu
+        left join mst_admin_web_bu mawb on
+          mbu.bu_code = mawb.bu_code ${where}
+        `,
+        whereval
+      );
+
+      return rows;
+    } catch (error) {
+      throw error;
+    }
+  });
 };
 
 export const updateBusinessUnit = async (payload: BURequest, id: string) => {

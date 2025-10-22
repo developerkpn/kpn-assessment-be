@@ -1,9 +1,11 @@
 import PDFModel from "@/models/report/PDFModel.js";
+import { generateBulkReportIndividual, getBatchReportData } from "@/models/report/ReportModel.js";
 import { NextFunction, Request, Response } from "express";
 import { checkGenerate, storeReportPDF } from "@/models/report/ReportModel.js";
 import fs from "fs";
 import path from "path";
 import { pipeline } from "stream/promises";
+import { getBatchAssesses } from "@/models/BatchModel.js";
 
 export const PDFController = {
   RenderPDF: async (req: Request, res: Response, next: NextFunction) => {
@@ -30,7 +32,10 @@ export const PDFController = {
         });
       }
 
-      const filePath = path.join(process.cwd(), "uploads", "report", batch_id as string, `${assessee_id}.pdf`);
+      //get assessee name
+      const assessee_data = await getBatchAssesses(batch_id as string, assessee_id as string);
+      const filename = `${assessee_data[0].assessee_name}_${assessee_id}_PotentialAssessment.pdf`;
+      const filePath = path.join(process.cwd(), "uploads", "report", batch_id as string, filename);
       const uploadDir = path.join(process.cwd(), "uploads", "report", batch_id as string);
 
       const status = await checkGenerate(batch_id as string, assessee_id as string);
@@ -39,7 +44,7 @@ export const PDFController = {
       // 🔁 Jika sudah tersedia dan tidak ingin generate ulang
       if (isGenerated && fs.existsSync(filePath)) {
         res.setHeader("Content-Type", "application/pdf");
-        res.setHeader("Content-Disposition", `attachment; filename="${assessee_id}.pdf"`);
+        res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
 
         await pipeline(fs.createReadStream(filePath), res);
 
@@ -67,7 +72,7 @@ export const PDFController = {
       await storeReportPDF(
         {
           is_generate: true,
-          report_path: `${batch_id}/${assessee_id}.pdf`,
+          report_path: `${batch_id}/${filename}`,
         },
         batch_id as string,
         assessee_id as string
@@ -75,7 +80,7 @@ export const PDFController = {
 
       // 📤 Setelah disimpan, kirim sebagai response
       res.setHeader("Content-Type", "application/pdf");
-      res.setHeader("Content-Disposition", `attachment; filename="${assessee_id}.pdf"`);
+      res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
 
       await pipeline(fs.createReadStream(filePath), res);
     } catch (error) {
@@ -94,6 +99,34 @@ export const PDFController = {
       );
 
       res.status(500).json({ message });
+    }
+  },
+
+  GetDataReportBulk: async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { batch_id, assessee_id } = req.body;
+      const { streamdata, folder_path, zip_name } = await generateBulkReportIndividual(batch_id, assessee_id);
+      // const result = await generateBulkReportIndividual(batch_id, assessee_id);
+      res.setHeader("Content-Type", "application/zip");
+      res.setHeader("Content-disposition", `attachment; filename=${zip_name}`);
+      // res.status(200).send({
+      //   data: folder_path,
+      // });
+
+      streamdata.on("close", () => {
+        console.log("Stream end");
+        fs.unlinkSync(folder_path);
+        return;
+      });
+
+      streamdata.on("error", (error) => {
+        fs.unlinkSync(folder_path);
+        throw error;
+      });
+
+      streamdata.pipe(res);
+    } catch (error) {
+      next(error);
     }
   },
 

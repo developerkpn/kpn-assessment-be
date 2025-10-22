@@ -200,11 +200,45 @@ export const getAdminById = async (id: string) => {
 
     const { rows } = await client.query(
       `
-      SELECT a.id, a.username, a.fullname, a.email, a.is_active, a.role_id, r.role_name, 
-      a.created_date, a.bu_id, mbu.bu_name, a.from_darwin, a.nik
-      FROM mst_admin_web a
-      LEFT JOIN mst_role r ON a.role_id = r.id
-      LEFT JOIN mst_business_unit mbu on mbu.id = a.bu_id
+      select
+        a.id,
+        a.username,
+        a.fullname,
+        a.email,
+        a.is_active,
+        a.role_id,
+        r.role_name,
+        a.created_date,
+        a.from_darwin,
+        a.nik,
+        mbu.bu_id,
+        ms.scope
+      from
+        mst_admin_web a
+      left join mst_role r on
+        a.role_id = r.id
+      left join (select
+        user_id,
+        JSON_AGG(JSON_BUILD_OBJECT('value',
+        awbu.bu_code ,
+        'label',
+        mbu.bu_name)) as bu_id
+      from
+        mst_admin_web_bu awbu
+      left join mst_business_unit mbu on
+        awbu.bu_code = mbu.bu_code
+      group by user_id) mbu on mbu.user_id = a.id 
+      left join (select
+        user_id,
+        JSON_AGG(JSON_BUILD_OBJECT('value',
+        awsc.scope_id ,
+        'label',
+        ms.scope_desc)) as scope
+      from
+        mst_admin_web_scope awsc
+      left join mst_scope ms on
+        awsc.scope_id  = ms.scope_id
+      group by user_id) ms on ms.user_id = a.id
       WHERE a.id = $1
       `,
       [id]
@@ -221,11 +255,20 @@ export const getAdminById = async (id: string) => {
   }
 };
 
-export const createAdmin = async (payload: any) => {
+export const createAdmin = async ({
+  account_main,
+  bu_id_account,
+  scope_account,
+}: {
+  account_main: any;
+  bu_id_account: any;
+  scope_account: any;
+}) => {
   const client = await db.connect();
 
   try {
     await client.query(TRANS.BEGIN);
+    let payload = account_main;
 
     const checkUserExist = await client.query("SELECT * FROM mst_admin_web WHERE username = $1 OR email = $2", [
       payload.username,
@@ -234,31 +277,25 @@ export const createAdmin = async (payload: any) => {
     if (checkUserExist.rows.length > 0) {
       throw new Error("User already exist");
     }
-    // //check bu_id name exist in mst_businessunit
-    if (payload.from_darwin) {
-      const { rows: bu_id } = await client.query("select id from mst_business_unit where bu_name = $1", [
-        payload.bu_id,
-      ]);
-      if (bu_id.length == 0) {
-        // create new bu_id
-        const bu_id_payload = {
-          bu_code: payload.bu_id.replace(" ", "").toUpperCase(),
-          bu_name: payload.bu_id,
-          id: v4(),
-          created_by: payload.created_by,
-          created_date: payload.created_date,
-          is_active: true,
-        };
-        const [que_buid, val_buid] = insertQuery("mst_business_unit", bu_id_payload, "id");
-        await client.query(que_buid, val_buid);
-        payload.bu_id = bu_id_payload.id;
-      } else {
-        payload.bu_id = bu_id[0].id;
-      }
-    }
-
     const [q, v] = insertQuery("mst_admin_web", payload, "id, role_id");
     const { rows } = await client.query(q, v);
+    //bu_id_account insersion
+    let payload_buid = bu_id_account.map((value: any) => ({
+      user_id: account_main.id,
+      bu_code: value,
+      create_by: payload.created_by,
+    }));
+    const [q_buid, v_buid] = insertQuery("mst_admin_web_bu", payload_buid);
+    await client.query(q_buid, v_buid);
+
+    //scope insersion
+    let payload_scope = scope_account.map((value: any) => ({
+      user_id: account_main.id,
+      scope_id: value,
+      create_by: payload.created_by,
+    }));
+    const [q_scope, v_scope] = insertQuery("mst_admin_web_scope", payload_scope);
+    await client.query(q_scope, v_scope);
 
     const { rows: role } = await client.query(
       `
@@ -484,8 +521,37 @@ export const updateAdmin = async (id: string, payload: any, password: string | u
   const client = await db.connect();
   try {
     await client.query(TRANS.BEGIN);
-    const [queryAdminUpdate, valueAdminUpdate] = updateQuery("mst_admin_web", payload, { id: id }, "username, email");
+    const [queryAdminUpdate, valueAdminUpdate] = updateQuery(
+      "mst_admin_web",
+      payload.user_account,
+      { id: id },
+      "username, email"
+    );
     const { rows: result_up } = await client.query(queryAdminUpdate, valueAdminUpdate);
+
+    //clean up bu_id if exist and insert new
+    if (payload.bu_id_account) {
+      await client.query(`delete from mst_admin_web_bu where user_id = $1`, [id]);
+      let payload_bu = payload.bu_id_account.map((value: any) => ({
+        user_id: id,
+        bu_code: value,
+        create_by: payload.user_account.update_by,
+      }));
+      const [q_buid, v_buid] = insertQuery("mst_admin_web_bu", payload_bu);
+      await client.query(q_buid, v_buid);
+    }
+
+    if (payload.scope_account) {
+      await client.query(`delete from mst_admin_web_scope where user_id = $1`, [id]);
+      let payload_scope = payload.scope_account.map((value: any) => ({
+        user_id: id,
+        scope_id: value,
+        create_by: payload.user_account.update_by,
+      }));
+      const [q_scope, v_scope] = insertQuery("mst_admin_web_scope", payload_scope);
+      await client.query(q_scope, v_scope);
+    }
+
     // email to user if there's payload password
     if (password) {
       const { rows: data_contact } = await client.query(

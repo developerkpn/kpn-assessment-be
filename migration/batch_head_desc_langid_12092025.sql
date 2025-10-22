@@ -1,0 +1,2 @@
+ALTER TABLE public.t_batch_head ADD language_id varchar(2) NULL;
+ALTER TABLE public.t_batch_head ADD CONSTRAINT t_batch_head_mst_language_fk FOREIGN KEY (language_id) REFERENCES public.mst_language(language_code);

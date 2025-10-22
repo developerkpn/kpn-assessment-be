@@ -1,18 +1,18 @@
 import React from "react";
-import { generateReportIndividual } from "@/models/report/ReportModel.js";
-// import { AssessmentReportPDFProps } from "@/types/Report";
-import S3ClientUpload from "@/helper/S3UploadClass.js";
-import { SubtestChartSection } from "@/models/report/ChartForSummarySubtest.js";
-import { BarChartSummaryCategory } from "@/models/report/BarChartForSummaryCategory.js";
+import S3ClientUpload from "../../helper/S3UploadClass.js";
+import { SubtestChartSection } from "../../models/report/ChartForSummarySubtest.js";
+import { BarChartSummaryCategory } from "../../models/report/BarChartForSummaryCategory.js";
 import { Document, Image, Page, Text, View } from "@react-pdf/renderer";
-import { styles, stylesheetrtc } from "@/models/report/report_styles.js";
-import { ClientAction } from "@/helper/queryBuilder.js";
+import { styles, stylesheetrtc } from "../../models/report/report_styles.js";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
 import Html from "react-pdf-html";
 import moment from "moment";
 import pLimit from "p-limit";
+import { BulkReportDataAssessment, ReportItem } from "@/types/Report.js";
+import { workerData, parentPort } from "worker_threads";
+import { renderToFile } from "@react-pdf/renderer";
 
 const __filename = fileURLToPath(import.meta.url); // get the resolved path to the file
 const __dirname = path.dirname(__filename);
@@ -32,57 +32,28 @@ const stripHtmlTags = (html: string): string => {
     .trim(); // Remove leading/trailing whitespace
 };
 
-export const ReportPDFTemplate = async (batchId: string, assesseeId: string) => {
-  const rawDataReportIndividual = await generateReportIndividual(batchId, assesseeId);
-  const dataReportIndividual = rawDataReportIndividual;
-  const data = dataReportIndividual;
+export const ReportPDFTemplate = async (data_report: ReportItem, generals: BulkReportDataAssessment["generals"]) => {
+  const data = data_report;
 
   const S3Client = new S3ClientUpload();
   // const logo = fs.readFileSync(path.join(__dirname, "../../assets/KPN_CORP_NEW_LOGO.png"));
   const placeholderImg = fs.readFileSync(path.join(__dirname, "../../assets/place-holder.jpg"));
-  const testDate = moment(data.batch.taken_at).utcOffset("+7:00").locale("id").format("LLLL");
-
-  //get user profile
-  let userProfPic = null;
-  try {
-    userProfPic = await fs.promises.readFile(
-      path.resolve(path.join(__dirname, "../../uploads/profile_photos", `${data.profile.assessee_id}.jpg`))
-    );
-  } catch (error) {
-    console.error(error);
-  }
-
-  const cover = await ClientAction(async (client) => {
-    try {
-      const { rows, rowCount: is_exist } = await client.query(`select file_name from mst_image_cover where uid = $1`, [
-        dataReportIndividual.cover,
-      ]);
-      if (!is_exist) {
-        throw new Error("Cover not found, please add cover");
-      }
-      const file_name = rows[0].file_name;
-
-      //read file
-      const dir_cover = path.join(__dirname, "../../uploads/cover/" + file_name);
-      return fs.readFileSync(dir_cover);
-    } catch (error) {
-      throw error;
-    }
-  });
+  const testDate = moment(data.taken_at).utcOffset("+7:00").locale("id").format("LLLL");
+  const cover = fs.readFileSync(path.join(__dirname, "../../uploads/cover/" + generals.cover));
 
   // get images file
   let resultChart: Record<string, any> = {};
   const limit = pLimit(5); // Batasi ke max 5 request sekaligus
 
-  const webcamurls = dataReportIndividual.proctoring.web_cam || [];
-  const ssurls = dataReportIndividual.proctoring.screen || [];
+  const webcamurls = data.proctoring.web_cam || [];
+  const ssurls = data.proctoring.screen || [];
 
   const promisesWebcam = webcamurls.map((webcam: any) => limit(() => S3Client.GetObjectAsBuffer(webcam.key)));
   const promisesSS = ssurls.map((ss: any) => limit(() => S3Client.GetObjectAsBuffer(ss.key)));
 
   const resultWebcam = await Promise.all(promisesWebcam);
   const resultSS = await Promise.all(promisesSS); //get charts
-  const detailsChart = dataReportIndividual.detail;
+  const detailsChart = data.detail;
   for (const detail of detailsChart) {
     // const sum_view = detail.summary_view
     const sum_view = "bar";
@@ -138,9 +109,9 @@ export const ReportPDFTemplate = async (batchId: string, assesseeId: string) => 
           <Text style={styles.headerTitle}>Introduction</Text>
         </View>
 
-        {data.guide && data.guide.content && (
+        {generals.guide && generals.guide.content && (
           <View style={styles.contentSection}>
-            <Html stylesheet={stylesheetrtc}>{`<div className="container">${data.guide.content}</div>`}</Html>
+            <Html stylesheet={stylesheetrtc}>{`<div className="container">${generals.guide.content}</div>`}</Html>
           </View>
         )}
       </Page>
@@ -161,11 +132,6 @@ export const ReportPDFTemplate = async (batchId: string, assesseeId: string) => 
 
         <View style={styles.profileContainer}>
           <View style={styles.profileData}>
-            <View style={styles.profileRow}>
-              <Text style={styles.profileLabel}>ID/NIK</Text>
-              <Text style={styles.profileColon}>:</Text>
-              <Text>{data.profile.assessee_id}</Text>
-            </View>
             <View style={styles.profileRow}>
               <Text style={styles.profileLabel}>Name</Text>
               <Text style={styles.profileColon}>:</Text>
@@ -190,7 +156,7 @@ export const ReportPDFTemplate = async (batchId: string, assesseeId: string) => 
             </View>
             {data.profile.type == "internal" && (
               <View style={styles.profileRow}>
-                <Text style={styles.profileLabel}>Business Unit</Text>
+                <Text style={styles.profileLabel}>Work Location</Text>
                 <Text style={styles.profileColon}>:</Text>
                 <Text>{data.profile.work_place}</Text>
               </View>
@@ -204,7 +170,7 @@ export const ReportPDFTemplate = async (batchId: string, assesseeId: string) => 
             )}
           </View>
           <View style={styles.profileImageContainer}>
-            <Image style={{ objectFit: "contain" }} src={userProfPic ? userProfPic : placeholderImg} />
+            <Image src={placeholderImg} />
           </View>
         </View>
 
@@ -639,8 +605,37 @@ export const ReportPDFTemplate = async (batchId: string, assesseeId: string) => 
   );
 };
 
-export const StreamReportPDF = async (batchId: string, assesseeId: string) => {
-  const { renderToStream } = await import("@react-pdf/renderer");
-  const Document = await ReportPDFTemplate(batchId, assesseeId);
-  return await renderToStream(Document);
-};
+async function main() {
+  const data: {
+    data: ReportItem[];
+    generals: BulkReportDataAssessment["generals"];
+    batch_id: string;
+    index: number | string;
+  } = workerData;
+  try {
+    for (const data_rp of data.data) {
+      let profile = data_rp.profile;
+      const Document = await ReportPDFTemplate(data_rp, data.generals);
+      await renderToFile(
+        Document,
+        path.join(
+          process.cwd(),
+          `/uploads/report/${data.batch_id}/${profile.assessee_name}_${profile.assessee_id}_PotentialAssessment.pdf`
+        )
+      );
+    }
+    // 🧹 Delay a tiny bit to let pdfkit release file handles
+    parentPort?.postMessage({ status: "done", index: data.index });
+    // setTimeout(() => {
+    //   // parentPort?.close();
+    //   // process.exit(0); // ensure worker fully exits
+    // }, 200);
+  } catch (error) {
+    console.error(`❌ Worker ${data.index} error:`, error);
+    parentPort?.postMessage({ status: "error", error: error });
+    // parentPort?.close();
+    // process.exit(1);
+  }
+}
+
+await main();

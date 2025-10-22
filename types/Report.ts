@@ -94,6 +94,45 @@ export interface AssessmentReportPDFProps {
   cover: string;
 }
 
+export type ReportItem = {
+  taken_at: string;
+  intro: ReportIntro[];
+  detail: ReportDetailSection[];
+  log: Array<{
+    id: string;
+    log: string;
+    created_at: string;
+  }>;
+  proctoring: {
+    web_cam: Array<{ key: string; lastModified: string }>;
+    screen: Array<{ key: string; lastModified: string }>;
+  };
+  profile: {
+    assessee_id: string;
+    assessee_name: string;
+    assessee_age: string | number;
+    assessee_gender: string;
+    work_place: string;
+    type: string;
+    education: string;
+  };
+};
+
+export type BulkReportDataAssessment = {
+  generals: {
+    cover: string;
+    guide: {
+      content: string;
+    };
+    batch: {
+      name: string;
+      code: string;
+      type: string;
+    };
+  };
+  reports: ReportItem[];
+};
+
 export type ReportDetailResult = {
   test_point: number;
   criteria: string;

@@ -47,5 +47,6 @@ Report.get("/cover/:id", checkPermission("fread", 17), handleGetCover, errorMidd
 Report.delete("/cover/:id", checkPermission("fdelete", 17), handleDeleteCover, errorMiddleware);
 Report.get("/allcover", checkPermission("fread", 17), handleGetAllCover, errorMiddleware);
 Report.get("/pdfgen", checkPermission("fread", 17), PDFController.RenderReport);
+Report.post("/bulkpdfgen", checkPermission("fread", 17), PDFController.GetDataReportBulk, errorMiddleware);
 Report.get("/download/:batchId", checkPermission("fread", 17), handleDownloadBatchReport, errorMiddleware);
 export default Report;

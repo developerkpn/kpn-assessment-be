@@ -48,6 +48,7 @@ import "moment-timezone/index.js";
 import axios, { isAxiosError } from "axios";
 import { PP_ID, TERMS_ID } from "@/constant.js";
 import { checkRegisteredExternalAssessee } from "@/models/transactions/AssesseeModel.js";
+import MutexModel from "@/models/mutex/MutexModel.js";
 
 export const handleAssessmentToken = async (token: string) => {
   try {
@@ -124,12 +125,19 @@ export const checkBatchPeriod = async (batchStartPeriod: string, batchEndPeriod:
   }
 };
 
-export const handleGetBatchDetail = async (req: Request, res: Response, next: NextFunction) => {
+export const handleGenerateBatchDetailPerAsse = async (req: Request, res: Response, next: NextFunction) => {
   try {
     // Validate and get token
     const token: any = await handleAssessmentToken(req.params.token);
     const { batch } = await getBatchDetail(token.batch_id);
-
+    let lock_tr = await MutexModel.LockTransaction(token.batch_id);
+    if (!lock_tr) {
+      res.status(203).send({
+        message: "Transaction Currently Locked",
+        data: batch,
+      });
+      return;
+    }
     await checkBatchPeriod(batch.start_period, batch.end_period);
 
     const progressHead = await getProgressHead(token.user_id, token.batch_id);
@@ -143,6 +151,9 @@ export const handleGetBatchDetail = async (req: Request, res: Response, next: Ne
         message: "Assessment progress already exists!",
         data: batch,
       });
+      if (lock_tr) {
+        await MutexModel.UnlockTransaction(token.batch_id);
+      }
     } else {
       // Get all tests from group test
       const tests = await getTestIdByGroupTestId(batch.grouptest_id);
@@ -150,8 +161,6 @@ export const handleGetBatchDetail = async (req: Request, res: Response, next: Ne
         throw new ResponseError(404, "No tests found in this group");
       }
 
-      console.log("take test yang error");
-      console.log(tests);
       // Create progress details for each test and its subtests
       const progressDetails = [];
       for (const test of tests) {
@@ -171,15 +180,32 @@ export const handleGetBatchDetail = async (req: Request, res: Response, next: Ne
           }
         }
       }
-
+      console.log("progress details");
+      console.log(progressDetails);
       // Bulk create all progress details
       await createAssessmentProgressDetail(progressDetails);
-
+      if (lock_tr) {
+        await MutexModel.UnlockTransaction(token.batch_id);
+      }
       res.status(200).send({
         message: "Assessment progress initialized successfully!",
         data: batch,
       });
     }
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const handleGetBatchDetail = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    // Validate and get token
+    const token: any = await handleAssessmentToken(req.params.token);
+    const { batch } = await getBatchDetail(token.batch_id);
+
+    res.status(200).send({
+      data: batch,
+    });
   } catch (e) {
     next(e);
   }

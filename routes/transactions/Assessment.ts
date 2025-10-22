@@ -1,5 +1,6 @@
 import { Router } from "express";
 import {
+  handleGenerateBatchDetailPerAsse,
   handleGetAssesseeProfile,
   handleGetAssessmentsByUserId,
   handleGetAssessmentSubTest,
@@ -24,6 +25,7 @@ Assessment.put("/subtest/submission", handleSubmissionConfirmation);
 Assessment.get("/:token/profile", handleGetAssesseeProfile);
 Assessment.get("/:token/termspp", handleGetAssessmentTermsPP);
 Assessment.get("/:token/batch", handleGetBatchDetail);
+Assessment.get("/:token/genbatchdet", handleGenerateBatchDetailPerAsse);
 // Assessment.get("/:token", handleStartProgress);
 Assessment.get("/:token/test", handleGetAssessmentTest);
 // Assessment.get("/test/:testId/subtest");

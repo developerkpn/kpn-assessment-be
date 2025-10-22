@@ -45,9 +45,9 @@ const __dirname = path.dirname(__filename); // get the name of the directory
 export const handleGetBatchForReport = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const role_name = req.userDecode?.role_name as string;
-    const bu_id = req.userDecode?.bu_id as string;
+    const user_id = req.userDecode?.user_id as string;
     console.log(req.userDecode);
-    const batch = await getBatchForReport({ role_name, bu_id });
+    const batch = await getBatchForReport({ role_name, user_id });
     res.status(200).send({
       message: "Success!",
       data: batch,

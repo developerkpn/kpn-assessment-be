@@ -292,14 +292,14 @@ export const handleCreateBatch = async (req: Request, res: Response, next: NextF
 export const handleGetBatch = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { published } = req.query;
-    const bu_id = req.userDecode?.bu_id as string;
+    const user_id = req.userDecode?.user_id as string;
     const role_name = req.userDecode?.role_name as string;
     let query: { published: boolean } = { published: false };
     if (published) {
       query.published = true;
     }
 
-    const result = await getBatch(query, { role_name, bu_id });
+    const result = await getBatch(query, { role_name, user_id });
 
     res.status(200).send({
       message: "Success!",
