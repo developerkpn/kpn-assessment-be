@@ -1,8 +1,5 @@
-import {
-  translateFieldsBatch,
-  getLanguageByCode,
-} from "@/models/TranslationModel.js";
-import { Request, Response } from "express";
+import { translateFieldsBatch, getLanguageByCode, handleSimpleTranslation } from "@/models/TranslationModel.js";
+import { NextFunction, Request, Response } from "express";
 
 export const handleTranslateFields = async (req: Request, res: Response): Promise<any> => {
   try {
@@ -42,11 +39,7 @@ export const handleTranslateFields = async (req: Request, res: Response): Promis
     }
 
     // Perform batch translation
-    const translatedFields = await translateFieldsBatch(
-      fieldsToTranslate,
-      sourceLanguage,
-      targetLanguage
-    );
+    const translatedFields = await translateFieldsBatch(fieldsToTranslate, sourceLanguage, targetLanguage);
 
     res.status(200).send({
       message: "Translation completed successfully",
@@ -58,5 +51,17 @@ export const handleTranslateFields = async (req: Request, res: Response): Promis
       message: "Translation failed",
       error: error.message,
     });
+  }
+};
+
+export const handleGenerateSimpleTranslation = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { from, to, value } = req.body;
+    const result = await handleSimpleTranslation(from, to, value);
+    res.status(200).send({
+      data: result,
+    });
+  } catch (error) {
+    next(error);
   }
 };

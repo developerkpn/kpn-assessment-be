@@ -296,3 +296,9 @@ export type XLSAssessee = {
   Email: string;
   Name: string;
 };
+
+export type ElementTranslation = {
+  language_id: string;
+  element_id: string;
+  description: string;
+};
