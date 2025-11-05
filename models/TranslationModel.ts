@@ -219,8 +219,8 @@ export const getElementTranslationMaster = async () => {
       let idx = 0;
       const map_subtable = new Map();
       const kept_value = new Array<ElementTranslation>();
-      while (kept_value.length > 1 || idx < rows.length) {
-        if (kept_value.length > 1) {
+      while (kept_value.length > 0 || idx < rows.length) {
+        if (kept_value.length > 0) {
           const data_kept = kept_value[0];
           if (map_subtable.get(data_kept.element_id)) {
             map_subtable.get(data_kept.element_id).subtable.push(data_kept);
@@ -246,6 +246,97 @@ export const getElementTranslationMaster = async () => {
         result.push(value);
       });
       return result;
+    } catch (error) {
+      throw error;
+    }
+  });
+};
+
+export const createElementTranslation = async (
+  element_id: string,
+  language_id: string,
+  description: string,
+  session: Request["userDecode"]
+) => {
+  return await ClientAction(async (client) => {
+    try {
+      await client.query(TRANSACTION.BEGIN);
+      const { rows } = await client.query(
+        `
+        INSERT INTO mst_element_translations (element_id, language_id, description, create_by)
+        VALUES ($1, $2, $3, $4)
+        RETURNING id, element_id, language_id, description
+        `,
+        [element_id, language_id, description, session?.user_id]
+      );
+      await client.query(TRANSACTION.COMMIT);
+      return rows[0];
+    } catch (error) {
+      await client.query(TRANSACTION.ROLLBACK);
+      throw error;
+    }
+  });
+};
+
+export const updateElementTranslation = async (
+  id: string,
+  description: string,
+  session: Request["userDecode"]
+) => {
+  return await ClientAction(async (client) => {
+    try {
+      await client.query(TRANSACTION.BEGIN);
+      const { rows } = await client.query(
+        `
+        UPDATE mst_element_translations
+        SET description = $1, update_at = $2, update_by = $3
+        WHERE id = $4
+        RETURNING id, element_id, language_id, description
+        `,
+        [description, moment().toISOString(), session?.user_id, id]
+      );
+      await client.query(TRANSACTION.COMMIT);
+      return rows[0];
+    } catch (error) {
+      await client.query(TRANSACTION.ROLLBACK);
+      throw error;
+    }
+  });
+};
+
+export const deleteElementTranslation = async (id: string) => {
+  return await ClientAction(async (client) => {
+    try {
+      await client.query(TRANSACTION.BEGIN);
+      const { rows } = await client.query(
+        `
+        DELETE FROM mst_element_translations
+        WHERE id = $1
+        RETURNING id, element_id, language_id
+        `,
+        [id]
+      );
+      await client.query(TRANSACTION.COMMIT);
+      return rows[0];
+    } catch (error) {
+      await client.query(TRANSACTION.ROLLBACK);
+      throw error;
+    }
+  });
+};
+
+export const getElementTranslationById = async (id: string) => {
+  return await ClientAction(async (client) => {
+    try {
+      const { rows } = await client.query(
+        `
+        SELECT id, element_id, language_id, description
+        FROM mst_element_translations
+        WHERE id = $1
+        `,
+        [id]
+      );
+      return rows[0];
     } catch (error) {
       throw error;
     }
