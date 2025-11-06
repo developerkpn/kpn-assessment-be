@@ -1,6 +1,6 @@
 import { db } from "@/config/connection.js";
 import { TRANSACTION } from "@/config/transaction.js";
-import { ClientAction, updateQuery } from "@/helper/queryBuilder.js";
+import { ClientAction, deleteQuery, insertQuery, updateQuery } from "@/helper/queryBuilder.js";
 import { ElementTranslation } from "@/types/MasterDataTypes.js";
 import { Request } from "express";
 import { translate } from "google-translate-api-x";
@@ -219,8 +219,8 @@ export const getElementTranslationMaster = async () => {
       let idx = 0;
       const map_subtable = new Map();
       const kept_value = new Array<ElementTranslation>();
-      while (kept_value.length > 1 || idx < rows.length) {
-        if (kept_value.length > 1) {
+      while (kept_value.length > 0 || idx < rows.length) {
+        if (kept_value.length > 0) {
           const data_kept = kept_value[0];
           if (map_subtable.get(data_kept.element_id)) {
             map_subtable.get(data_kept.element_id).subtable.push(data_kept);
@@ -246,6 +246,90 @@ export const getElementTranslationMaster = async () => {
         result.push(value);
       });
       return result;
+    } catch (error) {
+      throw error;
+    }
+  });
+};
+
+export const createElementTranslation = async (
+  element_id: string,
+  language_id: string,
+  description: string,
+  session: Request["userDecode"]
+) => {
+  return await ClientAction(async (client) => {
+    try {
+      await client.query(TRANSACTION.BEGIN);
+      const payload = {
+        element_id,
+        language_id,
+        description,
+        create_by: session?.user_id,
+      };
+      const [q, v] = insertQuery("mst_element_translations", payload, "id, element_id, language_id, description");
+      const { rows } = await client.query(q, v);
+      await client.query(TRANSACTION.COMMIT);
+      return rows[0];
+    } catch (error) {
+      await client.query(TRANSACTION.ROLLBACK);
+      throw error;
+    }
+  });
+};
+
+export const updateElementTranslation = async (
+  id: string,
+  description: string,
+  session: Request["userDecode"]
+) => {
+  return await ClientAction(async (client) => {
+    try {
+      await client.query(TRANSACTION.BEGIN);
+      const payload = {
+        description,
+        update_at: moment().toISOString(),
+        update_by: session?.user_id,
+      };
+      const [q, v] = updateQuery("mst_element_translations", payload, { id }, "id, element_id, language_id, description");
+      const { rows } = await client.query(q, v);
+      await client.query(TRANSACTION.COMMIT);
+      return rows[0];
+    } catch (error) {
+      await client.query(TRANSACTION.ROLLBACK);
+      throw error;
+    }
+  });
+};
+
+export const deleteElementTranslation = async (id: string) => {
+  return await ClientAction(async (client) => {
+    try {
+      await client.query(TRANSACTION.BEGIN);
+      const [q, v] = deleteQuery("mst_element_translations", { id });
+      const result = await client.query(q, v);
+      if (result.rowCount === 0) throw new Error(`ID ${id} not exist`);
+      await client.query(TRANSACTION.COMMIT);
+      return { id };
+    } catch (error) {
+      await client.query(TRANSACTION.ROLLBACK);
+      throw error;
+    }
+  });
+};
+
+export const getElementTranslationById = async (id: string) => {
+  return await ClientAction(async (client) => {
+    try {
+      const { rows } = await client.query(
+        `
+        SELECT id, element_id, language_id, description
+        FROM mst_element_translations
+        WHERE id = $1
+        `,
+        [id]
+      );
+      return rows[0];
     } catch (error) {
       throw error;
     }
