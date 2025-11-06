@@ -12,6 +12,7 @@ import {
 } from "@/models/TranslationModel.js";
 import { NextFunction, Request, Response } from "express";
 import { ResponseError } from "@/error/response-error.js";
+import { PostgresError } from "pg-error-enum";
 
 export const handleGetLanguages = async (req: Request, res: Response): Promise<any> => {
   try {
@@ -102,7 +103,7 @@ export const handleCreateElementTranslation = async (req: Request, res: Response
       data: result,
     });
   } catch (error: any) {
-    if (error.code === "23505") {
+    if (error.code === PostgresError.UNIQUE_VIOLATION) {
       next(new ResponseError(409, "Translation for this element and language already exists"));
     } else {
       next(error);

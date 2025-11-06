@@ -1,6 +1,6 @@
 import { db } from "@/config/connection.js";
 import { TRANSACTION } from "@/config/transaction.js";
-import { ClientAction, updateQuery } from "@/helper/queryBuilder.js";
+import { ClientAction, deleteQuery, insertQuery, updateQuery } from "@/helper/queryBuilder.js";
 import { ElementTranslation } from "@/types/MasterDataTypes.js";
 import { Request } from "express";
 import { translate } from "google-translate-api-x";
@@ -261,14 +261,14 @@ export const createElementTranslation = async (
   return await ClientAction(async (client) => {
     try {
       await client.query(TRANSACTION.BEGIN);
-      const { rows } = await client.query(
-        `
-        INSERT INTO mst_element_translations (element_id, language_id, description, create_by)
-        VALUES ($1, $2, $3, $4)
-        RETURNING id, element_id, language_id, description
-        `,
-        [element_id, language_id, description, session?.user_id]
-      );
+      const payload = {
+        element_id,
+        language_id,
+        description,
+        create_by: session?.user_id,
+      };
+      const [q, v] = insertQuery("mst_element_translations", payload, "id, element_id, language_id, description");
+      const { rows } = await client.query(q, v);
       await client.query(TRANSACTION.COMMIT);
       return rows[0];
     } catch (error) {
@@ -286,15 +286,13 @@ export const updateElementTranslation = async (
   return await ClientAction(async (client) => {
     try {
       await client.query(TRANSACTION.BEGIN);
-      const { rows } = await client.query(
-        `
-        UPDATE mst_element_translations
-        SET description = $1, update_at = $2, update_by = $3
-        WHERE id = $4
-        RETURNING id, element_id, language_id, description
-        `,
-        [description, moment().toISOString(), session?.user_id, id]
-      );
+      const payload = {
+        description,
+        update_at: moment().toISOString(),
+        update_by: session?.user_id,
+      };
+      const [q, v] = updateQuery("mst_element_translations", payload, { id }, "id, element_id, language_id, description");
+      const { rows } = await client.query(q, v);
       await client.query(TRANSACTION.COMMIT);
       return rows[0];
     } catch (error) {
@@ -308,16 +306,11 @@ export const deleteElementTranslation = async (id: string) => {
   return await ClientAction(async (client) => {
     try {
       await client.query(TRANSACTION.BEGIN);
-      const { rows } = await client.query(
-        `
-        DELETE FROM mst_element_translations
-        WHERE id = $1
-        RETURNING id, element_id, language_id
-        `,
-        [id]
-      );
+      const [q, v] = deleteQuery("mst_element_translations", { id });
+      const result = await client.query(q, v);
+      if (result.rowCount === 0) throw new Error(`ID ${id} not exist`);
       await client.query(TRANSACTION.COMMIT);
-      return rows[0];
+      return { id };
     } catch (error) {
       await client.query(TRANSACTION.ROLLBACK);
       throw error;
