@@ -227,19 +227,21 @@ export const getElementTranslationMaster = async () => {
             kept_value.shift();
           }
         }
-        if (!map_subtable.get(rows[idx].element_id)) {
-          if (rows[idx].language_id != "en") {
-            kept_value.push(rows[idx]);
+        if (idx < rows.length) {
+          if (!map_subtable.get(rows[idx].element_id)) {
+            if (rows[idx].language_id != "en") {
+              kept_value.push(rows[idx]);
+            } else {
+              map_subtable.set(rows[idx].element_id, {
+                ...rows[idx],
+                subtable: [rows[idx]],
+              });
+            }
           } else {
-            map_subtable.set(rows[idx].element_id, {
-              ...rows[idx],
-              subtable: [rows[idx]],
-            });
+            map_subtable.get(rows[idx].element_id).subtable.push(rows[idx]);
           }
-        } else {
-          map_subtable.get(rows[idx].element_id).subtable.push(rows[idx]);
+          idx++;
         }
-        idx++;
       }
       let result = new Array();
       map_subtable.forEach((value) => {
@@ -278,11 +280,7 @@ export const createElementTranslation = async (
   });
 };
 
-export const updateElementTranslation = async (
-  id: string,
-  description: string,
-  session: Request["userDecode"]
-) => {
+export const updateElementTranslation = async (id: string, description: string, session: Request["userDecode"]) => {
   return await ClientAction(async (client) => {
     try {
       await client.query(TRANSACTION.BEGIN);
@@ -291,7 +289,12 @@ export const updateElementTranslation = async (
         update_at: moment().toISOString(),
         update_by: session?.user_id,
       };
-      const [q, v] = updateQuery("mst_element_translations", payload, { id }, "id, element_id, language_id, description");
+      const [q, v] = updateQuery(
+        "mst_element_translations",
+        payload,
+        { id },
+        "id, element_id, language_id, description"
+      );
       const { rows } = await client.query(q, v);
       await client.query(TRANSACTION.COMMIT);
       return rows[0];
