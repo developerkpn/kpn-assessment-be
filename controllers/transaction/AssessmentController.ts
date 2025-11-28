@@ -47,7 +47,7 @@ import moment from "moment";
 import "moment-timezone/index.js";
 import axios, { isAxiosError } from "axios";
 import { PP_ID, TERMS_ID } from "@/constant.js";
-import { checkRegisteredExternalAssessee } from "@/models/transactions/AssesseeModel.js";
+import { checkRegisteredExternalAssessee, openGuideline } from "@/models/transactions/AssesseeModel.js";
 import MutexModel from "@/models/mutex/MutexModel.js";
 
 export const handleAssessmentToken = async (token: string) => {
@@ -125,12 +125,24 @@ export const checkBatchPeriod = async (batchStartPeriod: string, batchEndPeriod:
   }
 };
 
+export const handleOpenedGuidelineperTrans = async (req: Request, res: Response, next: NextFunction) => {
+  const token: any = await handleAssessmentToken(req.params?.token as string);
+  try {
+    const result = await openGuideline(token?.batch_id as string, token?.user_id as string);
+    res.status(200).send({
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const handleGenerateBatchDetailPerAsse = async (req: Request, res: Response, next: NextFunction) => {
+  const token: any = await handleAssessmentToken(req.params.token);
+  const { batch } = await getBatchDetail(token.batch_id);
+  let lock_tr = await MutexModel.LockTransaction(token.batch_id);
   try {
     // Validate and get token
-    const token: any = await handleAssessmentToken(req.params.token);
-    const { batch } = await getBatchDetail(token.batch_id);
-    let lock_tr = await MutexModel.LockTransaction(token.batch_id);
     if (!lock_tr) {
       res.status(203).send({
         message: "Transaction Currently Locked",
@@ -194,6 +206,10 @@ export const handleGenerateBatchDetailPerAsse = async (req: Request, res: Respon
     }
   } catch (error) {
     next(error);
+  } finally {
+    if (lock_tr) {
+      await MutexModel.UnlockTransaction(token.batch_id);
+    }
   }
 };
 

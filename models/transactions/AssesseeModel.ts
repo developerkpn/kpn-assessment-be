@@ -276,3 +276,29 @@ export const updateExternalAssessee = async (id: string, payload: any) => {
     client.release();
   }
 };
+
+export const openGuideline = async (batch_id: string, user_id: string) => {
+  return await ClientAction(async (client) => {
+    try {
+      await client.query(TRANS.BEGIN);
+      //get if guideline opened;
+      const { rows } = await client.query(
+        `select guideline_open from t_progress_batch_head where batch_id = $1 and assessee_id = $2`,
+        [batch_id, user_id]
+      );
+      if (rows[0].guideline_open) {
+        return false;
+      }
+      const [upque, upval] = updateQuery(
+        "t_progress_batch_head",
+        { guideline_open: true },
+        { batch_id, assessee_id: user_id }
+      );
+      await client.query(upque, upval);
+      await client.query(TRANS.COMMIT);
+      return true;
+    } catch (error) {
+      throw error;
+    }
+  });
+};
