@@ -160,7 +160,7 @@ export const translateFieldsBatch = async (
 export const handleSimpleTranslation = async (from: string, to: string, from_value: string) => {
   try {
     const translated_text = await translate(from_value, { from, to, forceTo: true });
-    return translated_text;
+    return translated_text.text;
   } catch (error) {
     throw error;
   }

@@ -2,6 +2,7 @@ import {
   createFunctionMenu,
   deleteFunctionMenu,
   getFunctionMenu,
+  getFunctionMenuFinal,
   updateFunctionMenu,
 } from "@/models/FunctionMenuModel.js";
 import { FunctionMenuRequest } from "@/types/MasterDataTypes.js";
@@ -13,6 +14,18 @@ import { FunctionMenuValidation } from "@/validation/FunctionMenuValidation.js";
 export const handleGetFunctionMenu = async (req: Request, res: Response, next: NextFunction) => {
   try {
     let result = await getFunctionMenu();
+    res.status(200).send({
+      message: `Success get function menu`,
+      data: result,
+    });
+  } catch (e) {
+    next(e);
+  }
+};
+
+export const handleGetFunctionMenuFinal = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    let result = await getFunctionMenuFinal();
     res.status(200).send({
       message: `Success get function menu`,
       data: result,

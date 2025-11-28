@@ -130,8 +130,8 @@ export const handleCreateBatch = async (req: Request, res: Response, next: NextF
       bu_id: validatedRequest.bu_id,
       function_id: validatedRequest.function_id,
       template_email_id: validatedRequest.template_email_id,
-      is_mic: validatedRequest.is_mic,
-      is_screenshot: validatedRequest.is_screenshot,
+      is_mic: validatedRequest.is_mic ?? false,
+      is_screenshot: validatedRequest.is_screenshot ?? false,
       note: validatedRequest.note,
       description: mainDescription, // Use main language description for the main table
       language_id: mainLanguageId || null, // Add main language ID to the main table

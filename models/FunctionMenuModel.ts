@@ -20,6 +20,23 @@ export const getFunctionMenu = async () => {
   }
 };
 
+export const getFunctionMenuFinal = async () => {
+  const client = await db.connect();
+  try {
+    const result = await client.query(
+      `
+    SELECT * FROM mst_function_menu where is_active = true
+    `
+    );
+    return result.rows;
+  } catch (error) {
+    console.error(error);
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
 export const createFunctionMenu = async (payload: FunctionMenuRequest) => {
   const client = await db.connect();
   try {
