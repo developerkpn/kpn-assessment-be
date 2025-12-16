@@ -9,12 +9,23 @@ export class BatchValidation {
     template_email_id: z.string().uuid({ message: "Invalid Template Email ID. Please provide a valid UUID." }),
     start_period: z.string().min(1, { message: "Start period is required. Please provide a valid value." }),
     end_period: z.string().min(1, { message: "End period is required. Please provide a valid value." }),
-    is_mic: z.boolean({ required_error: "Mic status (is_mic) must be provided as true or false." }),
-    is_screenshot: z.boolean({
-      required_error: "Screenshot status (is_screenshot) must be provided as true or false.",
-    }),
+    is_mic: z.boolean(),
+    is_screenshot: z.boolean(),
     note: z.string().trim().min(1, { message: "Note cannot be empty if provided." }).optional(),
-    description: z.string().trim().min(1, { message: "Description is required. Please enter a description." }),
+    description: z.union([
+      // String for legacy/simple description (edit mode)
+      z.string().trim().min(1, { message: "Description is required. Please enter a description." }),
+      // Array for multi-language descriptions (create mode)
+      z
+        .array(
+          z.object({
+            language_id: z.string().min(1, { message: "Language ID is required." }),
+            description: z.string().trim().min(1, { message: "Language description is required." }),
+            language_type: z.enum(["main", "sub"], { message: "Language type must be either 'main' or 'sub'." }),
+          })
+        )
+        .min(1, { message: "At least one language description is required." }),
+    ]),
     type: z.string().trim().length(8, { message: "Type must be exactly 8 characters." }),
     cc_email: z.object({
       roles: z
@@ -56,6 +67,8 @@ export class BatchValidation {
     note: z.string().trim().min(1, { message: "Note cannot be empty." }).optional(),
     description: z.string().trim().min(1, { message: "Description cannot be empty." }).optional(),
     type: z.string().trim().length(8, { message: "Type must be exactly 8 characters." }).optional(),
+    language_type: z.string().trim().optional(),
+    language_id: z.string().trim().optional(),
     cc_email: z.object({
       roles: z.object({
         deleted_roles: z
@@ -125,4 +138,19 @@ export class BatchValidation {
       assessee_email: z.string().trim().email({ message: "Invalid email format." }),
     })
   );
+
+  static readonly CREATE_TRANSLATION: ZodType = z.object({
+    batch_id: z.string().uuid({ message: "Invalid batch ID. Please provide a valid UUID." }),
+    language_id: z.string().min(1, { message: "Language ID is required." }),
+    description: z.string().trim().min(1, { message: "Description is required for translation." }),
+  });
+
+  static readonly UPDATE_TRANSLATION: ZodType = z.object({
+    description: z.string().trim().min(1, { message: "Description is required for translation." }),
+  });
+
+  static readonly TRANSLATION_PARAMS: ZodType = z.object({
+    batchId: z.string().uuid({ message: "Invalid batch ID. Please provide a valid UUID." }),
+    languageId: z.string().min(1, { message: "Language ID is required." }),
+  });
 }

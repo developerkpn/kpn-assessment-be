@@ -9,6 +9,7 @@ import {
   handleGetAsssessmentQuestion,
   handleGetBatchDetail,
   handleGetSubtestExampleData,
+  handleOpenedGuidelineperTrans,
   handleStoreAnswer,
   handleStoringLog,
   handleSubmissionConfirmation,
@@ -26,6 +27,7 @@ Assessment.get("/:token/profile", handleGetAssesseeProfile);
 Assessment.get("/:token/termspp", handleGetAssessmentTermsPP);
 Assessment.get("/:token/batch", handleGetBatchDetail);
 Assessment.get("/:token/genbatchdet", handleGenerateBatchDetailPerAsse);
+Assessment.get("/guidelineopen/:token", handleOpenedGuidelineperTrans);
 // Assessment.get("/:token", handleStartProgress);
 Assessment.get("/:token/test", handleGetAssessmentTest);
 // Assessment.get("/test/:testId/subtest");

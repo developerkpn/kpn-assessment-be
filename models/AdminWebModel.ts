@@ -405,7 +405,7 @@ export const getPermission = async (id: string | null = null) => {
   try {
     const { rows } = await client.query(
       `
-          SELECT rl.*, ad.fullname AS created_by, ac.menu_id, ac.fcreate, ac.fread, ac.fupdate, ac.fdelete, pg.name AS menu_name 
+          SELECT rl.*, ad.fullname AS created_by, ac.menu_id, ac.fcreate, ac.fread, ac.fupdate, ac.fdelete, pg.name AS menu_name
       FROM mst_role rl
       LEFT JOIN mst_menu_access ac ON rl.id = ac.role_id
       LEFT JOIN mst_menu pg ON ac.menu_id = pg.id

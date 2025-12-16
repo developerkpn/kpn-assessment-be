@@ -8,6 +8,10 @@ import {
   handleGetSubTest,
   handleGetSubTestDetail,
   handleUpdateSubTest,
+  handleGenerateSubTestTranslation,
+  handleSubTestLanguageTypeSwitch,
+  handleGetSubTestTranslationForLanguage,
+  handleGetLanguagesWithSubTestTranslationStatus,
 } from "@/controllers/SubTestController.js";
 const SubTest = Router();
 
@@ -18,5 +22,11 @@ SubTest.patch("/:id", checkPermission("fupdate", 12), handleUpdateSubTest);
 SubTest.get("/:id", checkPermission("fupdate", [12, 15]), handleGetSubTestDetail);
 SubTest.get("/:id/series-available", checkPermission("fread", 12), handleGetAvailableSeriesForSubTest);
 SubTest.delete("/:id/series/:detailId", checkPermission("fdelete", 12), handleDeleteSeriesFromSubTest);
+
+// SubTest translation endpoints
+SubTest.get("/:id/language/:languageId?", checkPermission("fread", 12), handleGetSubTestTranslationForLanguage);
+SubTest.post("/:id/language/:languageId/generate", checkPermission("fread", 12), handleGenerateSubTestTranslation);
+SubTest.get("/:subtestId/language-selection", checkPermission("fread", 12), handleSubTestLanguageTypeSwitch);
+SubTest.get("/:id/languages", checkPermission("fread", 12), handleGetLanguagesWithSubTestTranslationStatus);
 
 export default SubTest;

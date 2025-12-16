@@ -39,3 +39,18 @@ export type BatchAssessee = {
   assessee_name: string;
   assessee_email: string;
 };
+
+export type BatchTranslationRequest = {
+  batch_id: string;
+  language_id: string;
+  description: string;
+  created_by?: string;
+  updated_by?: string;
+};
+
+export type BatchTranslationUpdateRequest = {
+  description: string;
+  updated_by?: string;
+};
+
+

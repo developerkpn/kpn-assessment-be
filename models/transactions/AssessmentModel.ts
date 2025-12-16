@@ -256,7 +256,7 @@ export const getQuestionsBySeriesId = async (seriesId: string) => {
 export const getQuestionAssessment = async (questionIds: string[]) => {
   const client = await db.connect();
   try {
-    // Use parameterized query with array
+    // Get main question data
     const result = await client.query(
       `
             SELECT
@@ -277,7 +277,8 @@ export const getQuestionAssessment = async (questionIds: string[]) => {
                 answer_choice_f_text,
                 answer_choice_f_image_url,
                 answer_choice_g_text,
-                answer_choice_g_image_url
+                answer_choice_g_image_url,
+                language_id
             FROM mst_question_answer
             WHERE id = ANY($1)
             `,
@@ -287,10 +288,132 @@ export const getQuestionAssessment = async (questionIds: string[]) => {
     console.log("cek coy databasenya");
     console.log(result.rows);
 
-    return result.rows;
+    // Get all active languages
+    const allLanguagesResult = await client.query(`SELECT language_code FROM mst_language WHERE is_active = true`);
+
+    // Get all translations
+    const translationsResult = await client.query(
+      `SELECT * FROM mst_question_answer_translations WHERE question_answer_id = ANY($1)`,
+      [questionIds]
+    );
+
+    // Get English fallback
+    const enFallbackResult = await client.query(
+      `SELECT * FROM mst_question_answer_translations WHERE question_answer_id = ANY($1) AND language_id = 'en'`,
+      [questionIds]
+    );
+
+    // Build translations by language
+    const translationsByLanguage: Record<string, any> = {};
+
+    allLanguagesResult.rows.forEach((lang: any) => {
+      const languageCode = lang.language_code;
+      translationsByLanguage[languageCode] = {};
+
+      questionIds.forEach((questionId: string) => {
+        const mainQuestion = result.rows.find((q: any) => q.id === questionId);
+
+        if (mainQuestion && languageCode === mainQuestion?.language_id) {
+          translationsByLanguage[languageCode][questionId] = {
+            input: { text: mainQuestion.q_input_text },
+            choices: {
+              a: { text: mainQuestion.answer_choice_a_text },
+              b: { text: mainQuestion.answer_choice_b_text },
+              c: { text: mainQuestion.answer_choice_c_text },
+              d: { text: mainQuestion.answer_choice_d_text },
+              e: { text: mainQuestion.answer_choice_e_text },
+              f: { text: mainQuestion.answer_choice_f_text },
+              g: { text: mainQuestion.answer_choice_g_text },
+            },
+          };
+        } else {
+          const translation = translationsResult.rows.find(
+            (t: any) => t.question_answer_id === questionId && t.language_id === languageCode
+          );
+
+          if (translation) {
+            translationsByLanguage[languageCode][questionId] = {
+              input: { text: translation.q_input_text },
+              choices: {
+                a: { text: translation.answer_choice_a_text },
+                b: { text: translation.answer_choice_b_text },
+                c: { text: translation.answer_choice_c_text },
+                d: { text: translation.answer_choice_d_text },
+                e: { text: translation.answer_choice_e_text },
+                f: { text: translation.answer_choice_f_text },
+                g: { text: translation.answer_choice_g_text },
+              },
+            };
+          } else {
+            const enFallback = enFallbackResult.rows.find((t: any) => t.question_answer_id === questionId);
+
+            if (enFallback) {
+              translationsByLanguage[languageCode][questionId] = {
+                input: { text: enFallback.q_input_text },
+                choices: {
+                  a: { text: enFallback.answer_choice_a_text },
+                  b: { text: enFallback.answer_choice_b_text },
+                  c: { text: enFallback.answer_choice_c_text },
+                  d: { text: enFallback.answer_choice_d_text },
+                  e: { text: enFallback.answer_choice_e_text },
+                  f: { text: enFallback.answer_choice_f_text },
+                  g: { text: enFallback.answer_choice_g_text },
+                },
+              };
+            } else {
+              translationsByLanguage[languageCode][questionId] = {
+                input: { text: mainQuestion?.q_input_text || "" },
+                choices: {
+                  a: { text: mainQuestion?.answer_choice_a_text || "" },
+                  b: { text: mainQuestion?.answer_choice_b_text || "" },
+                  c: { text: mainQuestion?.answer_choice_c_text || "" },
+                  d: { text: mainQuestion?.answer_choice_d_text || "" },
+                  e: { text: mainQuestion?.answer_choice_e_text || "" },
+                  f: { text: mainQuestion?.answer_choice_f_text || "" },
+                  g: { text: mainQuestion?.answer_choice_g_text || "" },
+                },
+              };
+            }
+          }
+        }
+      });
+    });
+
+    const resultByLanguage: Record<string, any> = {};
+
+    allLanguagesResult.rows.forEach((lang: any) => {
+      const languageCode = lang.language_code;
+
+      resultByLanguage[languageCode] = result.rows.map((item) => {
+        const translatedData = translationsByLanguage[languageCode][item.id];
+
+        return {
+          id: item.id,
+          q_input_text: translatedData?.input?.text || item.q_input_text,
+          q_input_image_url: item.q_input_image_url,
+          answer_type: item.answer_type,
+          answer_choice_a_text: translatedData?.choices?.a?.text || item.answer_choice_a_text,
+          answer_choice_a_image_url: item.answer_choice_a_image_url,
+          answer_choice_b_text: translatedData?.choices?.b?.text || item.answer_choice_b_text,
+          answer_choice_b_image_url: item.answer_choice_b_image_url,
+          answer_choice_c_text: translatedData?.choices?.c?.text || item.answer_choice_c_text,
+          answer_choice_c_image_url: item.answer_choice_c_image_url,
+          answer_choice_d_text: translatedData?.choices?.d?.text || item.answer_choice_d_text,
+          answer_choice_d_image_url: item.answer_choice_d_image_url,
+          answer_choice_e_text: translatedData?.choices?.e?.text || item.answer_choice_e_text,
+          answer_choice_e_image_url: item.answer_choice_e_image_url,
+          answer_choice_f_text: translatedData?.choices?.f?.text || item.answer_choice_f_text,
+          answer_choice_f_image_url: item.answer_choice_f_image_url,
+          answer_choice_g_text: translatedData?.choices?.g?.text || item.answer_choice_g_text,
+          answer_choice_g_image_url: item.answer_choice_g_image_url,
+        };
+      });
+    });
+
+    return resultByLanguage;
   } catch (error) {
-    throw error;
     console.log(error);
+    throw error;
   } finally {
     client.release();
   }
@@ -609,7 +732,6 @@ export const getAssessmentByUserNIK = async (userId: string) => {
       [userId]
     );
 
-    console.log("resultnya", result.rows);
     // Process each assessment to determine status and add progress info
     const assessmentsWithProgress = result.rows.map((assessment) => {
       let status = "Not Taken";
@@ -693,11 +815,17 @@ export const getSubtestExampleData = async (subtest_id: string) => {
     try {
       const {
         rows,
-      }: QueryResult<QuestionRequest & { subtest_name: string; intro_desc: string; is_example_answer_shown: boolean }> =
-        await client.query(
-          `
+      }: QueryResult<
+        QuestionRequest & {
+          subtest_name: string;
+          intro_desc: string;
+          is_example_answer_shown: boolean;
+          subtest_id: string;
+        }
+      > = await client.query(
+        `
         select
-          mqa.*, msh.subtest_name, msh.subtest_name, msh.intro_desc, msh.is_example_answer_shown
+          mqa.*, msh.subtest_name, msh.subtest_name, msh.intro_desc, msh.is_example_answer_shown, tpbd.subtest_id
         from
           t_progress_batch_det tpbd
         left join mst_subtest_head msh on
@@ -709,58 +837,216 @@ export const getSubtestExampleData = async (subtest_id: string) => {
         where
           tpbd.id = $1
         `,
-          [subtest_id]
+        [subtest_id]
+      );
+
+      // Get all active languages
+      const allLanguagesResult = await client.query(`SELECT language_code FROM mst_language WHERE is_active = true`);
+
+      const questionIds = rows.map((row) => row.id);
+      const subtestId = rows[0]?.subtest_id;
+
+      let resultByLanguage: Record<string, any> = {};
+      let introDescByLanguage: Record<string, string> = {};
+
+      if (questionIds.length > 0) {
+        const translationsResult = await client.query(
+          `SELECT * FROM mst_question_answer_translations
+           WHERE question_answer_id = ANY($1)`,
+          [questionIds]
         );
-      const result = rows.map((item) => ({
-        question_id: item.id,
-        input: {
-          text: item.q_input_text,
-          image_url: item.q_input_image_url,
-        },
-        answer_type: item.answer_type,
-        choices: {
-          a: {
-            text: item.answer_choice_a_text,
-            image_url: item.answer_choice_a_image_url,
-            point: item.key_answer_point_a,
-          },
-          b: {
-            text: item.answer_choice_b_text,
-            image_url: item.answer_choice_b_image_url,
-            point: item.key_answer_point_b,
-          },
-          c: {
-            text: item.answer_choice_c_text,
-            image_url: item.answer_choice_c_image_url,
-            point: item.key_answer_point_c,
-          },
-          d: {
-            text: item.answer_choice_d_text,
-            image_url: item.answer_choice_d_image_url,
-            point: item.key_answer_point_d,
-          },
-          e: {
-            text: item.answer_choice_e_text,
-            image_url: item.answer_choice_e_image_url,
-            point: item.key_answer_point_e,
-          },
-          f: {
-            text: item.answer_choice_f_text,
-            image_url: item.answer_choice_f_image_url,
-            point: item.key_answer_point_f,
-          },
-          g: {
-            text: item.answer_choice_g_text,
-            image_url: item.answer_choice_g_image_url,
-            point: item.key_answer_point_g,
-          },
-        },
-      }));
+
+        const enFallbackResult = await client.query(
+          `SELECT * FROM mst_question_answer_translations
+           WHERE question_answer_id = ANY($1) AND language_id = 'en'`,
+          [questionIds]
+        );
+
+        const translationsMap: Record<string, any> = {};
+
+        allLanguagesResult.rows.forEach((lang: any) => {
+          const languageCode = lang.language_code;
+          translationsMap[languageCode] = {};
+
+          questionIds.forEach((questionId: string) => {
+            // Find the question's main data
+            const mainQuestion = rows.find((row) => row.id === questionId);
+            const mainLanguageId = mainQuestion?.language_id;
+
+            if (languageCode === mainLanguageId && mainQuestion) {
+              translationsMap[languageCode][questionId] = {
+                input: {
+                  text: mainQuestion.q_input_text,
+                },
+                choices: {
+                  a: { text: mainQuestion.answer_choice_a_text },
+                  b: { text: mainQuestion.answer_choice_b_text },
+                  c: { text: mainQuestion.answer_choice_c_text },
+                  d: { text: mainQuestion.answer_choice_d_text },
+                  e: { text: mainQuestion.answer_choice_e_text },
+                  f: { text: mainQuestion.answer_choice_f_text },
+                  g: { text: mainQuestion.answer_choice_g_text },
+                },
+              };
+            } else {
+              const translation = translationsResult.rows.find(
+                (t: any) => t.question_answer_id === questionId && t.language_id === languageCode
+              );
+
+              if (translation) {
+                translationsMap[languageCode][questionId] = {
+                  input: {
+                    text: translation.q_input_text,
+                  },
+                  choices: {
+                    a: { text: translation.answer_choice_a_text },
+                    b: { text: translation.answer_choice_b_text },
+                    c: { text: translation.answer_choice_c_text },
+                    d: { text: translation.answer_choice_d_text },
+                    e: { text: translation.answer_choice_e_text },
+                    f: { text: translation.answer_choice_f_text },
+                    g: { text: translation.answer_choice_g_text },
+                  },
+                };
+              } else {
+                const enFallback = enFallbackResult.rows.find((t: any) => t.question_answer_id === questionId);
+
+                if (enFallback) {
+                  translationsMap[languageCode][questionId] = {
+                    input: {
+                      text: enFallback.q_input_text,
+                    },
+                    choices: {
+                      a: { text: enFallback.answer_choice_a_text },
+                      b: { text: enFallback.answer_choice_b_text },
+                      c: { text: enFallback.answer_choice_c_text },
+                      d: { text: enFallback.answer_choice_d_text },
+                      e: { text: enFallback.answer_choice_e_text },
+                      f: { text: enFallback.answer_choice_f_text },
+                      g: { text: enFallback.answer_choice_g_text },
+                    },
+                  };
+                } else {
+                  if (mainQuestion) {
+                    translationsMap[languageCode][questionId] = {
+                      input: {
+                        text: mainQuestion.q_input_text,
+                      },
+                      choices: {
+                        a: { text: mainQuestion.answer_choice_a_text },
+                        b: { text: mainQuestion.answer_choice_b_text },
+                        c: { text: mainQuestion.answer_choice_c_text },
+                        d: { text: mainQuestion.answer_choice_d_text },
+                        e: { text: mainQuestion.answer_choice_e_text },
+                        f: { text: mainQuestion.answer_choice_f_text },
+                        g: { text: mainQuestion.answer_choice_g_text },
+                      },
+                    };
+                  }
+                }
+              }
+            }
+          });
+        });
+
+        // Build result organized by language_id
+        allLanguagesResult.rows.forEach((lang: any) => {
+          const languageCode = lang.language_code;
+
+          resultByLanguage[languageCode] = rows.map((item) => {
+            const translatedData = translationsMap[languageCode][item.id];
+
+            return {
+              question_id: item.id,
+              input: {
+                text: translatedData?.input?.text || item.q_input_text,
+                image_url: item.q_input_image_url,
+              },
+              answer_type: item.answer_type,
+              choices: {
+                a: {
+                  text: translatedData?.choices?.a?.text || item.answer_choice_a_text,
+                  image_url: item.answer_choice_a_image_url,
+                  point: item.key_answer_point_a,
+                },
+                b: {
+                  text: translatedData?.choices?.b?.text || item.answer_choice_b_text,
+                  image_url: item.answer_choice_b_image_url,
+                  point: item.key_answer_point_b,
+                },
+                c: {
+                  text: translatedData?.choices?.c?.text || item.answer_choice_c_text,
+                  image_url: item.answer_choice_c_image_url,
+                  point: item.key_answer_point_c,
+                },
+                d: {
+                  text: translatedData?.choices?.d?.text || item.answer_choice_d_text,
+                  image_url: item.answer_choice_d_image_url,
+                  point: item.key_answer_point_d,
+                },
+                e: {
+                  text: translatedData?.choices?.e?.text || item.answer_choice_e_text,
+                  image_url: item.answer_choice_e_image_url,
+                  point: item.key_answer_point_e,
+                },
+                f: {
+                  text: translatedData?.choices?.f?.text || item.answer_choice_f_text,
+                  image_url: item.answer_choice_f_image_url,
+                  point: item.key_answer_point_f,
+                },
+                g: {
+                  text: translatedData?.choices?.g?.text || item.answer_choice_g_text,
+                  image_url: item.answer_choice_g_image_url,
+                  point: item.key_answer_point_g,
+                },
+              },
+            };
+          });
+        });
+      }
+
+      if (subtestId) {
+        const subtestDataResult = await client.query(
+          `
+          SELECT
+            msh.language_id as main_language_id,
+            msh.intro_desc as main_intro_desc,
+            msht.language_id as translation_language_id,
+            msht.intro_desc as translation_intro_desc
+          FROM mst_subtest_head msh
+          LEFT JOIN mst_subtest_head_translations msht ON msht.subtest_id = msh.id
+          WHERE msh.id = $1
+          `,
+          [subtestId]
+        );
+
+        const subtestMainLanguageId = subtestDataResult.rows[0]?.main_language_id;
+        const subtestMainIntroDesc = subtestDataResult.rows[0]?.main_intro_desc;
+
+        allLanguagesResult.rows.forEach((lang: any) => {
+          const languageCode = lang.language_code;
+
+          // If this is the main language, use main data
+          if (languageCode === subtestMainLanguageId) {
+            introDescByLanguage[languageCode] = subtestMainIntroDesc;
+          } else {
+            // Try to find translation
+            const translation = subtestDataResult.rows.find((r: any) => r.translation_language_id === languageCode);
+            if (translation?.translation_intro_desc) {
+              introDescByLanguage[languageCode] = translation.translation_intro_desc;
+            } else {
+              // Fallback to main data
+              introDescByLanguage[languageCode] = subtestMainIntroDesc || "";
+            }
+          }
+        });
+      }
+
       return {
-        data: result,
-        subtest_name: rows[0].subtest_name,
-        intro_desc: rows[0].intro_desc,
-        is_example_answer_shown: rows[0].is_example_answer_shown,
+        data: resultByLanguage,
+        intro_desc: introDescByLanguage,
+        subtest_name: rows[0]?.subtest_name,
+        is_example_answer_shown: rows[0]?.is_example_answer_shown,
       };
     } catch (error) {
       throw error;
