@@ -322,7 +322,7 @@ export const getRole = async () => {
     await client.query(TRANS.BEGIN);
     const { rows } = await client.query(
       `
-      SELECT id, role_name FROM mst_role;
+      SELECT id, role_name FROM mst_role where is_active = true;
       `
     );
 
@@ -436,6 +436,7 @@ export const getPermission2 = async (id: string | null = null) => {
       rl.created_date,
       rl.updated_date,
       rl.role_name,
+      rl.is_active,
       coalesce(mma.fcreate, false) as fcreate ,
       coalesce(mma.fread, false) as fread ,
       coalesce(mma.fupdate, false) as fupdate,
