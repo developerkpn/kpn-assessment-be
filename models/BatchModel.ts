@@ -81,8 +81,8 @@ export const getBatch = async (
                   mfm.fm_code,
                   tbh.created_by,
                   tbh.created_at,
-                  creator.fullname,
-                  creator.id,
+                  creator.fullname as creator_fullname,
+                  creator.id as creator_id,
                   maw.fullname,
                   maw.id as user_id
                 from
@@ -344,6 +344,10 @@ export const getBatchDetail = async (id: string) => {
         `,
       [id]
     );
+
+    if (result.rows.length === 0) {
+      throw new ResponseError(404, `Batch with ID ${id} is not found`);
+    }
 
     const email = await client.query(
       `
