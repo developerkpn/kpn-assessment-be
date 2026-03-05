@@ -322,6 +322,14 @@ interface BatchReportRow {
 
 export const handleDownloadBatchReport = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    const roleName = req.userDecode?.role_name;
+    if (roleName !== "Super Admin") {
+      res.status(403).send({
+        message: "Forbidden",
+      });
+      return;
+    }
+
     const batchId = req.params.batchId;
 
     // Mendapatkan data dari database
