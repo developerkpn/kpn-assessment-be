@@ -315,7 +315,8 @@ export const handleUpdateBatch = async (req: Request, res: Response, next: NextF
     const validatedId = Validation.validate(BatchValidation.ID, req.params.id);
     const validatedRequest = Validation.validate(BatchValidation.UPDATE, req.body);
 
-    const batchStatus: any = await getBatchDetail(validatedId);
+    const batchDetail: any = await getBatchDetail(validatedId);
+    const batchStatus = batchDetail.batch;
 
     if (batchStatus.status === "Published") {
       throw new ResponseError(400, "Can't be edited. This batch is already published!");
@@ -474,7 +475,7 @@ export const handleUpdateBatch = async (req: Request, res: Response, next: NextF
     console.log("deleted assessee");
     console.log(deletedAssessee);
 
-    const selectedNewAssessee = validatedRequest.assessees.selected_assessees?.length
+    let selectedNewAssessee = validatedRequest.assessees.selected_assessees?.length
       ? validatedRequest.assessees.selected_assessees.map((prev: any) => {
           const assesseeId = uuid();
           return {
@@ -485,6 +486,43 @@ export const handleUpdateBatch = async (req: Request, res: Response, next: NextF
           };
         })
       : [];
+
+    // Batch eksternal: pre-seed mst_user_extern untuk assessee baru (sama seperti flow create),
+    // supaya email-nya dikenali isreg/registrasi via universal link
+    if (batchStatus.type === "external" && selectedNewAssessee.length > 0) {
+      const emails = selectedNewAssessee.map((a: any) => String(a.assessee_email).trim());
+      const existingExtern = await ClientAction<Map<string, any>>(async (client) => {
+        const { rows } = await client.query(`select email, id from mst_user_extern where email = ANY($1)`, [emails]);
+        return new Map(rows.map((v: any) => [v.email, v]));
+      });
+      selectedNewAssessee = await ClientAction<any>(async (client) => {
+        const seeded = [];
+        try {
+          await client.query(TRANSACTION.BEGIN);
+          for (const ass of selectedNewAssessee) {
+            const dataExt = existingExtern.get(String(ass.assessee_email).trim());
+            const payload = {
+              name: ass.assessee_name,
+              email: String(ass.assessee_email).trim(),
+              id: uuid(),
+            };
+            if (!dataExt) {
+              const [queIns, valIns] = insertQuery("mst_user_extern", payload);
+              await client.query(queIns, valIns);
+            }
+            seeded.push({
+              ...ass,
+              assessee_nik: dataExt ? dataExt.id : payload.id,
+            });
+          }
+          await client.query(TRANSACTION.COMMIT);
+          return seeded;
+        } catch (error) {
+          await client.query(TRANSACTION.ROLLBACK);
+          throw error;
+        }
+      });
+    }
 
     console.log("selected new Assesse");
     console.log(selectedNewAssessee);
