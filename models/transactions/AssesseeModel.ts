@@ -91,6 +91,10 @@ export const loginExternalAssessee = async (email: string, password: string) => 
     await client.query(TRANS.COMMIT);
     console.log(data);
     if (data) {
+      if (!data.password) {
+        // Diundang tapi belum registrasi — password masih NULL, jangan lempar ke bcrypt
+        throw new ResponseError(400, "Account is not registered yet. Please register first.");
+      }
       const valid = await validatePassword(password, data.password);
       if (!valid) {
         throw new ResponseError(400, "Invalid email or password");
