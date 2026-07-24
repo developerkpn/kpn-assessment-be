@@ -36,6 +36,9 @@ export const storeExternalAssesseeAccount = async (payload: any) => {
     await client.query(TRANS.BEGIN);
     const [Q, V] = updateQuery("mst_user_extern", payload, { email: payload.email });
     const result = await client.query(Q, V);
+    if (result.rowCount === 0) {
+      throw new ResponseError(400, "Email's not registered for any assessment");
+    }
     await client.query(TRANS.COMMIT);
     return result.rows[0];
   } catch (e) {
@@ -160,9 +163,11 @@ export const getAssesseeExternalbyEmail = async (email: string) => {
         [email]
       );
 
-      return result?.rows[0].password
-        ? { is_exist: true, data: result?.rows[0] }
-        : { is_exist: false, data: result?.rows[0] };
+      const row = result?.rows[0];
+      if (!row) {
+        return { is_exist: false, data: null };
+      }
+      return row.password ? { is_exist: true, data: row } : { is_exist: false, data: row };
     } catch (error) {
       throw error;
     }

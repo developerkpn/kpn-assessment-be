@@ -7,7 +7,7 @@ import { v7 as uuid } from "uuid";
 import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url); // get the resolved path to the file
 const __dirname = path.dirname(__filename); // get the name of the directory
-import { getDarwinUser } from "@/models/BatchModel.js";
+import { getBatchAssesses, getDarwinUser } from "@/models/BatchModel.js";
 import { getCriteriaDetail } from "@/models/CriteriaModel.js";
 import { transformResponseFormat } from "@/helper/transformers.js";
 import { getAssesseeExternalProfile } from "@/models/transactions/AssesseeModel.js";
@@ -1286,20 +1286,51 @@ export const proceedDetail = async (batchId: string, assessee_id: string): Promi
   }
 };
 
-export const proceeedProfile = async (type: string, assesseeId: string) => {
+export const proceeedProfile = async (type: string, assesseeId: string, batchId?: string) => {
   try {
-    const assesseeData: any =
-      type === "internal" ? await getDarwinUser(String(assesseeId)) : await getAssesseeExternalProfile(assesseeId);
+    // Identitas dari t_batch_assessee: sumber email untuk fallback lookup eksternal
+    // (assessee_nik pada batch eksternal bukan id mst_user_extern) dan untuk profil darurat
+    let batchAssessee: any = null;
+    if (batchId) {
+      const rows = await getBatchAssesses(batchId, assesseeId);
+      batchAssessee = rows?.[0] ?? null;
+    }
+
+    let assesseeData: any = null;
+    if (type === "internal") {
+      try {
+        assesseeData = await getDarwinUser(String(assesseeId));
+      } catch (e) {
+        console.error(`Darwin lookup failed for assessee ${assesseeId}:`, e);
+      }
+    } else {
+      assesseeData = await getAssesseeExternalProfile(assesseeId);
+      if (!assesseeData && batchAssessee?.assessee_email) {
+        assesseeData = await getAssesseeExternalProfile(batchAssessee.assessee_email);
+      }
+    }
+
+    if (!assesseeData) {
+      return {
+        assessee_id: assesseeId,
+        assessee_name: batchAssessee?.assessee_name ?? "-",
+        assessee_email: batchAssessee?.assessee_email ?? "-",
+        assessee_gender: null,
+        work_place: null,
+        assessee_age: null,
+        type: type,
+        education: null,
+      };
+    }
+
+    const dateOfBirth = assesseeData.date_of_birth;
     const profile = {
       assessee_id: type === "internal" ? assesseeData.employee_id : assesseeData.id,
       assessee_name: type === "internal" ? assesseeData.full_name : assesseeData.name,
       assessee_email: type === "internal" ? assesseeData.company_email_id : assesseeData.email,
       assessee_gender: type === "internal" ? assesseeData.gender : assesseeData.gender,
       work_place: type === "internal" ? assesseeData.group_company : assesseeData.institution,
-      assessee_age: moment().diff(
-        moment(type === "internal" ? assesseeData.date_of_birth : assesseeData.date_of_birth, "YYYY-MM-DD"),
-        "years"
-      ),
+      assessee_age: dateOfBirth ? moment().diff(moment(dateOfBirth, "YYYY-MM-DD"), "years") : null,
       type: type,
       education: type === "internal" ? "" : assesseeData.education,
     };
@@ -1347,7 +1378,7 @@ export const generateReportIndividual = async (batchId: string, assesseeId: stri
     // Get Report Guide
 
     const batchInformation = await getSpecificBatchInformationForReport(batchId, assesseeId);
-    const profile = await proceeedProfile(batchInformation.type, assesseeId);
+    const profile = await proceeedProfile(batchInformation.type, assesseeId, batchId);
     const reportDetail = await proceedDetail(batchId, assesseeId);
     // Get Report Intro
     const reportIntro = await proceedIntro(batchId, reportDetail);
@@ -1391,7 +1422,7 @@ export const getDataBulkReportIndividual = async (
     let assessee_report_data: BulkReportDataAssessment["reports"] = [];
     for (const id of assesseeId) {
       const assess_taken = await getTakenAt(batchId, id);
-      const profile = await proceeedProfile(batch_data.type, id);
+      const profile = await proceeedProfile(batch_data.type, id, batchId);
       const reportDetail = await proceedDetail(batchId, id);
       // Get Report Intro
       const reportIntro = await proceedIntro(batchId, reportDetail);
@@ -1423,6 +1454,93 @@ export const getDataBulkReportIndividual = async (
         },
       },
       reports: assessee_report_data,
+    };
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Column structure for the batch score-summary Excel, taken from report/test config
+// (not from assessee results) so columns stay visible even when nobody has data yet
+export const getBatchExcelStructure = async (batchId: string) => {
+  return await ClientAction(async (client) => {
+    const { rows } = await client.query(
+      `
+      SELECT
+        rtd.test_id,
+        t.test_name,
+        t.test_code,
+        rtd.summary_type,
+        (
+          SELECT json_agg(
+            json_build_object('subtest_id', msh.id, 'subtest_name', msh.subtest_name, 'subtest_code', msh.subtest_code)
+            ORDER BY mtd.added_at
+          )
+          FROM mst_test_det mtd
+          JOIN mst_subtest_head msh ON msh.id = mtd.subtest_id
+          WHERE mtd.test_id = rtd.test_id
+        ) AS subtests,
+        (
+          SELECT json_agg(
+            json_build_object('category_id', c.id, 'category_name', c.category_name, 'category_code', c.category_code)
+            ORDER BY c.created_at
+          )
+          FROM (
+            SELECT DISTINCT c0.id, c0.category_name, c0.category_code, c0.created_at
+            FROM mst_test_det mtd
+            JOIN mst_subtest_det msd ON msd.subtest_id = mtd.subtest_id
+            JOIN mst_series_det msrd ON msrd.series_id = msd.series_id
+            JOIN mst_question_answer qa ON qa.id = msrd.question_id
+            JOIN mst_category c0 ON c0.id = qa.category_id
+            WHERE mtd.test_id = rtd.test_id
+          ) c
+        ) AS categories
+      FROM t_batch_head bh
+      JOIN report_head rh ON rh.batch_id = bh.id
+      JOIN report_test_detail rtd ON rtd.report_id = rh.id
+      JOIN mst_test_head t ON t.id = rtd.test_id
+      WHERE bh.id = $1
+      `,
+      [batchId]
+    );
+    return rows;
+  });
+};
+
+// Data for the batch score-summary Excel: one row per assessee with final scored detail
+export const getDataBatchExcelSummary = async (batchId: string) => {
+  try {
+    const batch_data = await getBatchReportData(batchId);
+    if (!batch_data) {
+      throw new ResponseError(404, `Batch with ID ${batchId} is not found`);
+    }
+    const structure = await getBatchExcelStructure(batchId);
+    const assessees = await getAssesseeListForReport(batchId);
+
+    const rows = [];
+    for (const assessee of assessees) {
+      let detail = null;
+      if (assessee.last_finished_subtest_at) {
+        detail = await proceedDetail(batchId, assessee.assessee_nik);
+      }
+      rows.push({
+        assessee_nik: assessee.assessee_nik,
+        assessee_name: assessee.assessee_name,
+        assessee_email: assessee.assessee_email,
+        first_taken_subtest_at: assessee.first_taken_subtest_at,
+        last_finished_subtest_at: assessee.last_finished_subtest_at,
+        detail,
+      });
+    }
+
+    return {
+      batch: {
+        name: batch_data.batch_name,
+        code: batch_data.batch_code,
+        type: batch_data.type,
+      },
+      structure,
+      rows,
     };
   } catch (error) {
     throw error;

@@ -4,8 +4,12 @@ import { handleGetSubTestTranslationForLanguage } from "@/controllers/SubTestCon
 import { handleGetQuestionTranslationForLanguage } from "@/controllers/QuestionController.js";
 import { handleGetTermsPPTranslationForLanguage } from "@/controllers/TermsPPController.js";
 import { handleGetTestTranslationForLanguage } from "@/controllers/TestController.js";
+import { handleGetPublicUniversalLink } from "@/controllers/UniversalLinkController.js";
 
 const Public = Router();
+
+// Public universal (campaign) link lookup for /join/:slug pages - no auth required
+Public.get("/universal-link/:slug", handleGetPublicUniversalLink);
 
 // Public batch translation endpoints (for client pages - no auth required)
 Public.get("/batch/:id/language/:languageId?", handleGetBatchTranslationForLanguage);

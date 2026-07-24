@@ -6,6 +6,32 @@ import fs from "fs";
 import path from "path";
 import { pipeline } from "stream/promises";
 import { getBatchAssesses } from "@/models/BatchModel.js";
+import { getAssesseeExternalProfile } from "@/models/transactions/AssesseeModel.js";
+
+// Cari mtime terbaru foto profil assessee (id internal = employee_id/NIK, eksternal = id mst_user_extern),
+// dua kemungkinan ekstensi. Null jika tidak ada foto.
+const getLatestProfilePhotoMtime = async (assesseeId: string, assesseeEmail?: string): Promise<Date | null> => {
+  const photoIds = [assesseeId];
+  if (assesseeEmail) {
+    try {
+      const extern = await getAssesseeExternalProfile(assesseeEmail);
+      if (extern?.id && !photoIds.includes(extern.id)) photoIds.push(extern.id);
+    } catch (e) {
+      console.error("extern lookup for photo mtime failed:", e);
+    }
+  }
+  let latest: Date | null = null;
+  for (const id of photoIds) {
+    for (const ext of [".jpg", ".jpeg"]) {
+      const p = path.join(process.cwd(), "uploads", "profile_photos", `${id}${ext}`);
+      if (fs.existsSync(p)) {
+        const mtime = fs.statSync(p).mtime;
+        if (!latest || mtime > latest) latest = mtime;
+      }
+    }
+  }
+  return latest;
+};
 
 export const PDFController = {
   RenderPDF: async (req: Request, res: Response, next: NextFunction) => {
@@ -41,14 +67,26 @@ export const PDFController = {
       const status = await checkGenerate(batch_id as string, assessee_id as string);
       const isGenerated = status?.is_generate;
 
-      // 🔁 Jika sudah tersedia dan tidak ingin generate ulang
+      // 🔁 Jika sudah tersedia dan tidak ingin generate ulang.
+      // Cache dilewati jika foto profil lebih baru dari PDF tersimpan
+      // (kasus: report sempat digenerate sebelum kandidat upload/ganti foto)
       if (isGenerated && fs.existsSync(filePath)) {
-        res.setHeader("Content-Type", "application/pdf");
-        res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+        const pdfMtime = fs.statSync(filePath).mtime;
+        const photoMtime = await getLatestProfilePhotoMtime(
+          assessee_id as string,
+          req.query.assessee_email as string | undefined
+        );
+        const cacheStale = photoMtime !== null && photoMtime > pdfMtime;
 
-        await pipeline(fs.createReadStream(filePath), res);
+        if (!cacheStale) {
+          res.setHeader("Content-Type", "application/pdf");
+          res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
 
-        return;
+          await pipeline(fs.createReadStream(filePath), res);
+
+          return;
+        }
+        console.log(`Cached PDF stale (photo newer), regenerating: ${filename}`);
       }
 
       // 🔄 Render ulang PDF

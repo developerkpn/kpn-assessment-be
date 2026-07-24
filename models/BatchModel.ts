@@ -144,7 +144,7 @@ export const getBatch = async (
                 mst_business_unit b ON tbh.bu_id = b.id
             LEFT JOIN
                 mst_function_menu f ON tbh.function_id = f.id
-            GROUP BY 
+            GROUP BY
                 tbh.id, tbh.batch_name, tbh.batch_code, g.grouptest_code, tbh.type, tbh.status,
                 tbh.start_period, tbh.end_period, b.bu_code, f.fm_code ${where}
             ORDER BY 
@@ -331,7 +331,7 @@ export const getBatchDetail = async (id: string) => {
                     h.is_screenshot,
                     h.description,
                     h.status,
-                    h.type      
+                    h.type
            `,
       [id]
     );

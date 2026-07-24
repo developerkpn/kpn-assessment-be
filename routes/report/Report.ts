@@ -5,6 +5,7 @@ import {
   handleCreateReportForBatch,
   handleDeleteCover,
   handleDownloadBatchReport,
+  handleDownloadBatchScoreExcel,
   handleGetAllCover,
   handleGetAssesseeListForReport,
   handleGetAssessmentResult,
@@ -49,4 +50,5 @@ Report.get("/allcover", checkPermission("fread", 17), handleGetAllCover, errorMi
 Report.get("/pdfgen", checkPermission("fread", 17), PDFController.RenderReport);
 Report.post("/bulkpdfgen", checkPermission("fread", 17), PDFController.GetDataReportBulk, errorMiddleware);
 Report.get("/download/:batchId", checkPermission("fread", 17), handleDownloadBatchReport, errorMiddleware);
+Report.get("/exportscores/:batchId", checkPermission("fread", 17), handleDownloadBatchScoreExcel, errorMiddleware);
 export default Report;

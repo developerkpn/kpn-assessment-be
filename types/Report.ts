@@ -110,11 +110,11 @@ export type ReportItem = {
   profile: {
     assessee_id: string;
     assessee_name: string;
-    assessee_age: string | number;
-    assessee_gender: string;
-    work_place: string;
+    assessee_age: string | number | null;
+    assessee_gender: string | null;
+    work_place: string | null;
     type: string;
-    education: string;
+    education: string | null;
   };
 };
 

@@ -13,6 +13,7 @@ import {
   getCategoryCriteriaModel,
   getCoverbyID,
   getCoverDetailData,
+  getDataBatchExcelSummary,
   getGenerateStatus,
   getIntroData,
   getPersonalReportData,
@@ -359,6 +360,218 @@ export const handleDownloadBatchReport = async (req: Request, res: Response, nex
     next(e);
   }
 };
+
+export const handleDownloadBatchScoreExcel = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const batchId = req.params.batchId;
+
+    const data = await getDataBatchExcelSummary(batchId);
+
+    if (!data.rows || data.rows.length === 0) {
+      res.status(404).send({
+        message: "No assessees found for the specified batch ID",
+      });
+      return;
+    }
+
+    const excelBuffer = await createBatchScoreSummaryExcel(data);
+
+    const currentDate = new Date().toISOString().split("T")[0];
+    const fileName = `${data.batch.name}-${data.batch.code}-Scores-${currentDate}.xlsx`.replace(/[/\\]/g, "_");
+
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
+    res.status(200).send(excelBuffer);
+    return;
+  } catch (e) {
+    console.error("Error generating batch score excel:", e);
+    next(e);
+  }
+};
+
+/**
+ * Membuat Excel ringkasan skor per batch sesuai template:
+ * No | EMPLOYEE ID/CANDIDATE ID | FULL NAME | EMAIL | DATE | TIME (START) | TIME (END)
+ * lalu per test: subtest final scores + total + category (summary_type "subtest"),
+ * atau per category scores + highest category (summary_type "category").
+ */
+export async function createBatchScoreSummaryExcel(data: Awaited<ReturnType<typeof getDataBatchExcelSummary>>) {
+  const workbook = new ExcelJS.Workbook();
+  addScoreSummarySheet(workbook, data);
+  return await workbook.xlsx.writeBuffer();
+}
+
+// Sheet "Scores" sesuai template TM — dipakai sendiri (export admin BU)
+// dan sebagai sheet tambahan pada report lengkap Super Admin
+function addScoreSummarySheet(workbook: ExcelJS.Workbook, data: Awaited<ReturnType<typeof getDataBatchExcelSummary>>) {
+  const sheet = workbook.addWorksheet("Scores");
+
+  const fixedHeaders = [
+    "No",
+    "EMPLOYEE ID/CANDIDATE ID",
+    "FULL NAME",
+    "EMAIL",
+    "DATE",
+    "TIME (START)",
+    "TIME (END)",
+  ];
+
+  // Struktur kolom test diambil dari konfigurasi report/test (bukan dari hasil assessee),
+  // supaya kolom tetap tampil walau belum ada assessee yang punya data
+  type ScoreCol = { header: string; getValue: (detail: any[] | null) => any };
+  type TestGroup = { title: string; cols: ScoreCol[] };
+  const testGroups: TestGroup[] = [];
+
+  for (const test of data.structure as any[]) {
+    const findTest = (detail: any[] | null) => detail?.find((t: any) => t.test_id === test.test_id);
+    const cols: ScoreCol[] = [];
+
+    if (test.summary_type === "subtest") {
+      // Urutan subtest sesuai template TM (Gq, Gf, Gc); kode lain mengikuti urutan konfigurasi
+      const SUBTEST_ORDER = ["GQ", "GF", "GC"];
+      const orderedSubtests = [...(test.subtests ?? [])].sort((a: any, b: any) => {
+        const ia = SUBTEST_ORDER.indexOf(String(a.subtest_code).toUpperCase());
+        const ib = SUBTEST_ORDER.indexOf(String(b.subtest_code).toUpperCase());
+        if (ia === -1 && ib === -1) return 0;
+        if (ia === -1) return 1;
+        if (ib === -1) return -1;
+        return ia - ib;
+      });
+      // "GQ" -> "Gq" sesuai penulisan template
+      const prettyCode = (code: string) => (/^G[A-Z]$/.test(code) ? code[0] + code[1].toLowerCase() : code);
+
+      for (const subtest of orderedSubtests) {
+        const code = prettyCode(String(subtest.subtest_code));
+        cols.push({
+          header: subtest.subtest_name?.includes(subtest.subtest_code)
+            ? subtest.subtest_name
+            : `${subtest.subtest_name} (${code})`,
+          getValue: (detail) =>
+            findTest(detail)?.subtests?.find((s: any) => s.subtest_id === subtest.subtest_id)?.result
+              ?.subtest_point ?? null,
+        });
+      }
+      cols.push({
+        header: `${test.test_code} Total Score`,
+        getValue: (detail) => findTest(detail)?.result?.test_point ?? null,
+      });
+      cols.push({
+        header: `${test.test_code} Category`,
+        getValue: (detail) => findTest(detail)?.result?.criteria ?? null,
+      });
+    } else if (test.summary_type === "category") {
+      for (const category of test.categories ?? []) {
+        // "KPT-O" / "KPT - E" -> "O" / "E" sesuai template
+        const shortCode = String(category.category_code).split("-").pop()?.trim() || category.category_code;
+        cols.push({
+          header: shortCode,
+          getValue: (detail) =>
+            findTest(detail)
+              ?.subtests?.[0]?.result?.categories?.find((c: any) => c.category_id === category.category_id)
+              ?.category_point ?? null,
+        });
+      }
+      cols.push({
+        header: "HIGHEST CATEGORY",
+        getValue: (detail) => findTest(detail)?.subtests?.[0]?.result?.subtest_criteria ?? null,
+      });
+    }
+
+    if (cols.length > 0) {
+      testGroups.push({
+        title: test.test_name?.includes(test.test_code) ? test.test_name : `${test.test_name} (${test.test_code})`,
+        cols,
+      });
+    }
+  }
+
+  // Header 2 baris: baris 1 = kolom tetap (merge vertikal) + judul test (merge horizontal), baris 2 = sub kolom
+  const headerRow1 = sheet.getRow(1);
+  const headerRow2 = sheet.getRow(2);
+
+  // Warna sesuai Template Excel TM: kolom tetap biru tua + font putih,
+  // tiap group test bergantian biru muda / pink
+  const FIXED_FILL = "FF1E4E79";
+  const GROUP_FILLS = ["FFA4C2F4", "FFD5A6BD"];
+  const headerFillByCol: Record<number, string> = {};
+  const headerFontByCol: Record<number, Partial<ExcelJS.Font>> = {};
+
+  fixedHeaders.forEach((header, i) => {
+    headerRow1.getCell(i + 1).value = header;
+    sheet.mergeCells(1, i + 1, 2, i + 1);
+    headerFillByCol[i + 1] = FIXED_FILL;
+    headerFontByCol[i + 1] = { bold: true, color: { argb: "FFFFFFFF" }, size: 9 };
+  });
+
+  let colIndex = fixedHeaders.length + 1;
+  testGroups.forEach((group, groupIndex) => {
+    const startCol = colIndex;
+    const groupFill = GROUP_FILLS[groupIndex % GROUP_FILLS.length];
+    headerRow1.getCell(startCol).value = group.title;
+    for (const col of group.cols) {
+      headerRow2.getCell(colIndex).value = col.header;
+      headerFillByCol[colIndex] = groupFill;
+      headerFontByCol[colIndex] = { bold: true, size: 9 };
+      colIndex++;
+    }
+    if (group.cols.length > 1) {
+      sheet.mergeCells(1, startCol, 1, colIndex - 1);
+    }
+  });
+
+  const totalCols = colIndex - 1;
+  for (let c = 1; c <= totalCols; c++) {
+    for (const row of [headerRow1, headerRow2]) {
+      const cell = row.getCell(c);
+      cell.font = headerFontByCol[c];
+      cell.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: headerFillByCol[c] } };
+      cell.border = {
+        top: { style: "thin" },
+        left: { style: "thin" },
+        bottom: { style: "thin" },
+        right: { style: "thin" },
+      };
+    }
+  }
+
+  // Data rows
+  data.rows.forEach((assessee: any, i: number) => {
+    const first = assessee.first_taken_subtest_at; // "YYYY-MM-DD HH:mm:ss" atau null
+    const last = assessee.last_finished_subtest_at;
+    const values: any[] = [
+      i + 1,
+      assessee.assessee_nik ?? "-",
+      assessee.assessee_name,
+      assessee.assessee_email,
+      first ? first.slice(0, 10) : "-",
+      first ? first.slice(11, 16) : "-",
+      last ? last.slice(11, 16) : "-",
+    ];
+    for (const group of testGroups) {
+      for (const col of group.cols) {
+        values.push(col.getValue(assessee.detail));
+      }
+    }
+    const row = sheet.addRow(values);
+    row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+      if (colNumber > totalCols) return;
+      cell.border = {
+        top: { style: "thin" },
+        left: { style: "thin" },
+        bottom: { style: "thin" },
+        right: { style: "thin" },
+      };
+      cell.alignment = { horizontal: colNumber <= 4 && colNumber !== 1 ? "left" : "center", vertical: "middle" };
+    });
+  });
+
+  // Lebar kolom
+  const widths = [6, 26, 30, 32, 12, 12, 12];
+  for (let c = 1; c <= totalCols; c++) {
+    sheet.getColumn(c).width = widths[c - 1] ?? 18;
+  }
+}
 
 /**
  * Membuat file Excel dari data batch
