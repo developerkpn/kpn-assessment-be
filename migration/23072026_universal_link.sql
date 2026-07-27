@@ -1,9 +1,8 @@
 -- public.mst_universal_link definition
 -- Universal (campaign) links for external assessee login, e.g. /join/<slug>
+-- Idempotent: aman dijalankan ulang, tidak mengubah/menghapus baris yang sudah ada.
 
--- DROP TABLE public.mst_universal_link;
-
-CREATE TABLE public.mst_universal_link (
+CREATE TABLE IF NOT EXISTS public.mst_universal_link (
 	id varchar(200) DEFAULT gen_random_uuid() NOT NULL,
 	link_name varchar(255) NOT NULL,
 	slug varchar(100) NOT NULL,
@@ -16,12 +15,25 @@ CREATE TABLE public.mst_universal_link (
 	CONSTRAINT mst_universal_link_slug_uq UNIQUE (slug)
 );
 
--- Admin menu entry (id 22), access granted to Super Admin (master admin) only
+-- Admin menu entry. id HARUS 22: dipakai hardcoded oleh checkPermission(..., 22)
+-- di routes/UniversalLink.ts dan getPermission(..., 22) di frontend.
 INSERT INTO public.mst_menu (id, name, path, icon, is_active, position, subheader)
-VALUES (22, 'Universal Link', '/admin/universal-link', 'Link', true, 10, 'Master Data');
+SELECT 22, 'Universal Link', '/admin/universal-link', 'Link', true, 10, 'Master Data'
+WHERE NOT EXISTS (SELECT 1 FROM public.mst_menu WHERE id = 22);
 
-INSERT INTO public.mst_menu_access (id, role_id, fcreate, fread, fupdate, fdelete, menu_id)
-SELECT (SELECT COALESCE(MAX(id), 0) FROM mst_menu_access) + 1,
-       id, true, true, true, true, 22
-FROM mst_role
-WHERE role_name = 'Super Admin';
+-- id diisi eksplisit di atas, jadi sequence disinkronkan ke max(id) supaya insert
+-- menu berikutnya tidak bentrok. GREATEST menjaga sequence tidak pernah turun.
+SELECT setval(
+  'mst_page_id_seq',
+  GREATEST((SELECT MAX(id) FROM public.mst_menu), (SELECT last_value FROM mst_page_id_seq))
+);
+
+-- Akses hanya untuk Super Admin (master admin). Admin BU tidak boleh melihat menu ini.
+INSERT INTO public.mst_menu_access (role_id, fcreate, fread, fupdate, fdelete, menu_id)
+SELECT r.id, true, true, true, true, 22
+FROM public.mst_role r
+WHERE r.role_name = 'Super Admin'
+  AND NOT EXISTS (
+    SELECT 1 FROM public.mst_menu_access ma
+    WHERE ma.menu_id = 22 AND ma.role_id = r.id
+  );

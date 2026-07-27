@@ -13,6 +13,7 @@ import { fileURLToPath } from "url";
 import Html from "react-pdf-html";
 import moment from "moment";
 import pLimit from "p-limit";
+import { readProfilePhoto } from "../../helper/profilePhoto.js";
 
 const __filename = fileURLToPath(import.meta.url); // get the resolved path to the file
 const __dirname = path.dirname(__filename);
@@ -42,18 +43,8 @@ export const ReportPDFTemplate = async (batchId: string, assesseeId: string) => 
   const placeholderImg = fs.readFileSync(path.join(__dirname, "../../assets/place-holder.jpg"));
   const testDate = moment(data.batch.taken_at).utcOffset("+7:00").locale("id").format("LLLL");
 
-  //get user profile — coba .jpg lalu .jpeg (upload menyimpan ekstensi asli)
-  let userProfPic = null;
-  for (const ext of [".jpg", ".jpeg"]) {
-    try {
-      userProfPic = await fs.promises.readFile(
-        path.resolve(path.join(__dirname, "../../uploads/profile_photos", `${data.profile.assessee_id}${ext}`))
-      );
-      break;
-    } catch (error) {
-      // lanjut coba ekstensi berikutnya; kalau dua-duanya gagal pakai placeholder
-    }
-  }
+  // Foto profil assessee — helper mencoba .jpg/.jpeg, null kalau belum upload.
+  const userProfPic = await readProfilePhoto(data.profile.assessee_id);
 
   const cover = await ClientAction(async (client) => {
     try {

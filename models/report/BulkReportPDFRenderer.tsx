@@ -13,6 +13,7 @@ import pLimit from "p-limit";
 import { BulkReportDataAssessment, ReportItem } from "@/types/Report.js";
 import { workerData, parentPort } from "worker_threads";
 import { renderToFile } from "@react-pdf/renderer";
+import { readProfilePhoto } from "../../helper/profilePhoto.js";
 
 const __filename = fileURLToPath(import.meta.url); // get the resolved path to the file
 const __dirname = path.dirname(__filename);
@@ -39,7 +40,14 @@ export const ReportPDFTemplate = async (data_report: ReportItem, generals: BulkR
   // const logo = fs.readFileSync(path.join(__dirname, "../../assets/KPN_CORP_NEW_LOGO.png"));
   const placeholderImg = fs.readFileSync(path.join(__dirname, "../../assets/place-holder.jpg"));
   const testDate = moment(data.taken_at).utcOffset("+7:00").locale("id").format("LLLL");
-  const cover = fs.readFileSync(path.join(process.cwd(), "/uploads/cover/" + generals.cover));
+  const coverPath = path.join(process.cwd(), "/uploads/cover/" + generals.cover);
+  if (!generals.cover || !fs.existsSync(coverPath)) {
+    throw new Error("Cover not found, please add cover");
+  }
+  const cover = fs.readFileSync(coverPath);
+
+  // Foto profil assessee — sama seperti report individual; null kalau belum upload.
+  const userProfPic = await readProfilePhoto(data.profile?.assessee_id);
 
   // get images file
   let resultChart: Record<string, any> = {};
@@ -175,7 +183,7 @@ export const ReportPDFTemplate = async (data_report: ReportItem, generals: BulkR
             )}
           </View>
           <View style={styles.profileImageContainer}>
-            <Image src={placeholderImg} />
+            <Image style={{ objectFit: "contain" }} src={userProfPic ? userProfPic : placeholderImg} />
           </View>
         </View>
 
@@ -632,7 +640,8 @@ export default async function BulkReportPDFRenderer(data: {
     return filenames;
   } catch (error) {
     console.error(`error:`, error);
-    // parentPort?.close();
-    // process.exit(1);
+    // Error tidak boleh ditelan: kalau di-swallow, pemanggil menerima undefined
+    // lalu mengemas folder kosong menjadi ZIP kosong 22 byte tanpa pesan error.
+    throw error;
   }
 }

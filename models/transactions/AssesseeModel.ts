@@ -34,10 +34,30 @@ export const storeExternalAssesseeAccount = async (payload: any) => {
   const client = await db.connect();
   try {
     await client.query(TRANS.BEGIN);
-    const [Q, V] = updateQuery("mst_user_extern", payload, { email: payload.email });
-    const result = await client.query(Q, V);
+    // Hanya akun yang belum registrasi (password IS NULL) yang boleh di-set.
+    // Tanpa syarat ini endpoint registrasi (tanpa auth) bisa dipakai menimpa
+    // password akun yang sudah terdaftar (account takeover).
+    const result = await client.query(
+      `
+        UPDATE mst_user_extern
+        SET name = $1, password = $2, age = $3, gender = $4, phone = $5, education = $6, institution = $7
+        WHERE email = $8 AND password IS NULL
+        RETURNING id, name, email
+      `,
+      [
+        payload.name,
+        payload.password,
+        payload.age,
+        payload.gender,
+        payload.phone,
+        payload.education,
+        payload.institution,
+        payload.email,
+      ]
+    );
     if (result.rowCount === 0) {
-      throw new ResponseError(400, "Email's not registered for any assessment");
+      // Tidak diundang ATAU sudah terdaftar — sengaja tidak dibedakan
+      throw new ResponseError(400, "Unable to register this email");
     }
     await client.query(TRANS.COMMIT);
     return result.rows[0];
@@ -62,7 +82,7 @@ export const loginExternalAssessee = async (email: string, password: string) => 
     );
 
     if (result.rows.length === 0) {
-      throw new ResponseError(400, "Email's not registered");
+      throw new ResponseError(400, "Invalid email or password");
     }
 
     const data = result.rows[0];
@@ -92,8 +112,9 @@ export const loginExternalAssessee = async (email: string, password: string) => 
     console.log(data);
     if (data) {
       if (!data.password) {
-        // Diundang tapi belum registrasi — password masih NULL, jangan lempar ke bcrypt
-        throw new ResponseError(400, "Account is not registered yet. Please register first.");
+        // Diundang tapi belum registrasi — password masih NULL, jangan lempar ke bcrypt.
+        // Pesan sengaja generik agar tidak membocorkan status akun.
+        throw new ResponseError(400, "Invalid email or password");
       }
       const valid = await validatePassword(password, data.password);
       if (!valid) {

@@ -7,9 +7,10 @@ import path from "path";
 import { pipeline } from "stream/promises";
 import { getBatchAssesses } from "@/models/BatchModel.js";
 import { getAssesseeExternalProfile } from "@/models/transactions/AssesseeModel.js";
+import { findProfilePhotoMtime } from "@/helper/profilePhoto.js";
 
-// Cari mtime terbaru foto profil assessee (id internal = employee_id/NIK, eksternal = id mst_user_extern),
-// dua kemungkinan ekstensi. Null jika tidak ada foto.
+// Cari mtime terbaru foto profil assessee. assessee_nik batch eksternal bukan id
+// mst_user_extern, jadi id hasil lookup by email ikut dicek. Null jika tidak ada foto.
 const getLatestProfilePhotoMtime = async (assesseeId: string, assesseeEmail?: string): Promise<Date | null> => {
   const photoIds = [assesseeId];
   if (assesseeEmail) {
@@ -22,13 +23,8 @@ const getLatestProfilePhotoMtime = async (assesseeId: string, assesseeEmail?: st
   }
   let latest: Date | null = null;
   for (const id of photoIds) {
-    for (const ext of [".jpg", ".jpeg"]) {
-      const p = path.join(process.cwd(), "uploads", "profile_photos", `${id}${ext}`);
-      if (fs.existsSync(p)) {
-        const mtime = fs.statSync(p).mtime;
-        if (!latest || mtime > latest) latest = mtime;
-      }
-    }
+    const mtime = findProfilePhotoMtime(id);
+    if (mtime && (!latest || mtime > latest)) latest = mtime;
   }
   return latest;
 };

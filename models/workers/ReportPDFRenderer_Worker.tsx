@@ -13,6 +13,7 @@ import pLimit from "p-limit";
 import { BulkReportDataAssessment, ReportItem } from "@/types/Report.js";
 import { workerData, parentPort } from "worker_threads";
 import { renderToFile } from "@react-pdf/renderer";
+import { readProfilePhoto } from "../../helper/profilePhoto.js";
 
 const __filename = fileURLToPath(import.meta.url); // get the resolved path to the file
 const __dirname = path.dirname(__filename);
@@ -40,6 +41,9 @@ export const ReportPDFTemplate = async (data_report: ReportItem, generals: BulkR
   const placeholderImg = fs.readFileSync(path.join(__dirname, "../../assets/place-holder.jpg"));
   const testDate = moment(data.taken_at).utcOffset("+7:00").locale("id").format("LLLL");
   const cover = fs.readFileSync(path.join(__dirname, "../../uploads/cover/" + generals.cover));
+
+  // Foto profil assessee — null kalau belum upload, jatuh ke placeholder.
+  const userProfPic = await readProfilePhoto(data.profile?.assessee_id);
 
   // get images file
   let resultChart: Record<string, any> = {};
@@ -170,7 +174,7 @@ export const ReportPDFTemplate = async (data_report: ReportItem, generals: BulkR
             )}
           </View>
           <View style={styles.profileImageContainer}>
-            <Image src={placeholderImg} />
+            <Image style={{ objectFit: "contain" }} src={userProfPic ? userProfPic : placeholderImg} />
           </View>
         </View>
 
