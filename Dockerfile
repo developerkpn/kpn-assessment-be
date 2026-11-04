@@ -5,6 +5,23 @@ FROM node:20-slim as build
 
 WORKDIR /app
 
+# Build toolchain for native deps (e.g. `canvas`, pulled in transitively) that
+# don't have a prebuilt binary available for every target platform/arch -
+# without this, npm falls back to node-gyp from source and fails on arches
+# like arm64 where no prebuild is fetched.
+RUN apt-get update && apt-get install -y \
+  python3 \
+  make \
+  g++ \
+  pkg-config \
+  libcairo2-dev \
+  libpango1.0-dev \
+  libjpeg-dev \
+  libgif-dev \
+  librsvg2-dev \
+  libpixman-1-dev \
+  && rm -rf /var/lib/apt/lists/*
+
 COPY package.json package-lock.json ./
 
 RUN npm ci
