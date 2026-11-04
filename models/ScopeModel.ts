@@ -13,10 +13,10 @@ const ScopeModel = {
   },
   GetScopeByUserId: async (user_id: string, role_name: string) => {
     return await ClientAction(async (client) => {
-      let where = "";
+      let where = "where ms.is_active IS NOT FALSE";
       let whereval: any[] = [];
       if (role_name !== "Super Admin") {
-        where = "where maws.user_id = $1";
+        where += " and maws.user_id = $1";
         whereval = [user_id];
       }
       try {

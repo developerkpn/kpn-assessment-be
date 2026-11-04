@@ -3,7 +3,7 @@ import { NextFunction, Request, Response } from "express";
 import { createAdmin } from "@/models/AdminWebModel.js";
 import { Validation } from "@/validation/Validation.js";
 import { CategoryValidation } from "@/validation/CategoryValidation.js";
-import { createCategory, deleteCategory, getCategory, updateCategory } from "@/models/CategoryModel.js";
+import { createCategory, deleteCategory, getCategory, getCategoryActive, updateCategory } from "@/models/CategoryModel.js";
 import { error } from "winston";
 
 export const handleCreateCategory = async (req: Request, res: Response, next: NextFunction) => {
@@ -31,6 +31,18 @@ export const handleCreateCategory = async (req: Request, res: Response, next: Ne
 export const handleGetCategory = async (req: Request, res: Response, next: NextFunction) => {
   try {
     let result = await getCategory();
+    res.status(200).send({
+      message: `Success get category`,
+      data: result,
+    });
+  } catch (e) {
+    next(e);
+  }
+};
+
+export const handleGetCategoryActive = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    let result = await getCategoryActive();
     res.status(200).send({
       message: `Success get category`,
       data: result,

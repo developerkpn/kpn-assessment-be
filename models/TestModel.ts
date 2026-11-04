@@ -60,6 +60,42 @@ export const getTest = async () => {
   }
 };
 
+// Same as getTest but excludes inactive records. Use this for selection
+// dropdowns/tables (e.g. choosing Tests when creating a Group Test); keep
+// using getTest for the admin master-data table, which must show every status.
+export const getTestActive = async () => {
+  const client = await db.connect();
+  try {
+    const result = await client.query(
+      `
+            SELECT
+                h.id,
+                h.test_name,
+                h.test_code,
+                c.category_name,
+                c.category_code,
+                h.is_active,
+                a.fullname AS created_by,
+                h.created_at,
+                COUNT(d.subtest_id) AS subtest_count
+            FROM mst_test_head h
+            LEFT JOIN mst_test_det d ON h.id = d.test_id
+            LEFT JOIN mst_admin_web a ON h.created_by = a.id
+            LEFT JOIN mst_category c ON h.category_id = c.id
+            WHERE h.is_active IS NOT FALSE
+            GROUP BY h.id, h.test_name, h.test_code, c.category_name, c.category_code, h.is_active, a.fullname, h.created_at
+            ORDER BY h.created_at DESC
+            `
+    );
+    return result.rows;
+  } catch (error) {
+    console.error(error);
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
 export const updateTest = async (testId: string, headerPayload: any, detailPayload: any[]) => {
   const client = await db.connect();
   console.log(`test`);

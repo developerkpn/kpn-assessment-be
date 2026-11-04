@@ -41,6 +41,32 @@ export const getCategory = async () => {
   }
 };
 
+// Same as getCategory but excludes inactive records. Use this for selection
+// dropdowns (e.g. choosing a Category when creating a Test/Question/Series);
+// keep using getCategory for the admin master-data table, which must show
+// every status.
+export const getCategoryActive = async () => {
+  const client = await db.connect();
+  try {
+    const result = await client.query(
+      `
+            SELECT h.id, h.category_name, h.category_code, h.criteria_id, v.value_name, v.value_code, h.created_at, h.is_active, d.fullname AS created_by
+            FROM mst_category h
+            LEFT JOIN mst_admin_web d ON h.created_by = d.id
+            LEFT JOIN mst_value v ON h.criteria_id = v.id
+            WHERE h.is_active IS NOT FALSE
+            ORDER BY h.created_at DESC
+            `
+    );
+    return result.rows;
+  } catch (error) {
+    console.error(error);
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
 export const updateCategory = async (payload: CategoryUpdateRequest, id: number) => {
   const client = await db.connect();
   try {

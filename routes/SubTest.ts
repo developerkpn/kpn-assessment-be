@@ -6,6 +6,7 @@ import {
   handleDeleteSubTest,
   handleGetAvailableSeriesForSubTest,
   handleGetSubTest,
+  handleGetSubTestActive,
   handleGetSubTestDetail,
   handleUpdateSubTest,
   handleGenerateSubTestTranslation,
@@ -17,6 +18,7 @@ const SubTest = Router();
 
 SubTest.post("/", checkPermission("fcreate", 12), handleCreateSubTest);
 SubTest.get("/", checkPermission("fread", [12, 15]), handleGetSubTest);
+SubTest.get("/active", checkPermission("fread", [12, 15]), handleGetSubTestActive);
 SubTest.delete("/:id", checkPermission("fdelete", 12), handleDeleteSubTest);
 SubTest.patch("/:id", checkPermission("fupdate", 12), handleUpdateSubTest);
 SubTest.get("/:id", checkPermission("fupdate", [12, 15]), handleGetSubTestDetail);

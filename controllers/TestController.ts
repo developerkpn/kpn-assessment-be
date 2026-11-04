@@ -9,6 +9,7 @@ import {
   deleteTest,
   getAvailableSubTestForTest,
   getTest,
+  getTestActive,
   getTestDetail,
   updateTest,
   createTestTranslation,
@@ -67,6 +68,18 @@ export const handleCreateTest = async (req: Request, res: Response, next: NextFu
 export const handleGetTest = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const result = await getTest();
+    res.status(200).send({
+      message: `Success!`,
+      data: result,
+    });
+  } catch (e) {
+    next(e);
+  }
+};
+
+export const handleGetTestActive = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const result = await getTestActive();
     res.status(200).send({
       message: `Success!`,
       data: result,

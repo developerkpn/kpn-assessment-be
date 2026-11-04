@@ -2,6 +2,7 @@ import {
   createBusinessUnit,
   deleteBusinessUnit,
   getBusinessUnit,
+  getBusinessUnitActive,
   getBusinessUnitByUserId,
   updateBusinessUnit,
 } from "@/models/BusinessUnitModel.js";
@@ -37,6 +38,18 @@ export const handleCreateBusinessUnit = async (req: Request, res: Response, next
 export const handleGetBusinessUnit = async (req: Request, res: Response, next: NextFunction) => {
   try {
     let result = await getBusinessUnit();
+    res.status(200).send({
+      message: `Success get business unit`,
+      data: result,
+    });
+  } catch (e) {
+    next(e);
+  }
+};
+
+export const handleGetBusinessUnitActive = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    let result = await getBusinessUnitActive();
     res.status(200).send({
       message: `Success get business unit`,
       data: result,

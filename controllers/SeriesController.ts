@@ -4,6 +4,7 @@ import {
   deleteSeries,
   getAvailableQuestionsForSeries,
   getSeries,
+  getSeriesActive,
   getSeriesbyID,
   getSeriesDetail,
   updateSeries,
@@ -52,6 +53,18 @@ export const handleCreateSeries = async (req: Request, res: Response, next: Next
 export const handleGetSeries = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const result = await getSeries();
+    res.status(200).send({
+      message: "Success!",
+      data: result,
+    });
+  } catch (e) {
+    next(e);
+  }
+};
+
+export const handleGetSeriesActive = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const result = await getSeriesActive();
     res.status(200).send({
       message: "Success!",
       data: result,

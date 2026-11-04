@@ -81,7 +81,7 @@ export const getGroupTest = async () => {
   try {
     const result = await client.query(
       `
-            SELECT 
+            SELECT
             h.id,
             h.grouptest_name,
             h.grouptest_code,
@@ -92,6 +92,39 @@ export const getGroupTest = async () => {
             FROM mst_grouptest_head h
             LEFT JOIN  mst_grouptest_det d ON h.id = d.grouptest_id
             LEFT JOIN mst_admin_web a ON h.created_by = a.id
+            GROUP BY h.id, h.grouptest_name, h.grouptest_code, h.is_active, a.fullname, h.created_at
+            ORDER BY h.created_at DESC
+            `
+    );
+    return result.rows;
+  } catch (error) {
+    console.error(error);
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+// Same as getGroupTest but excludes inactive records. Use this for selection
+// dropdowns (e.g. choosing a Group Test when creating a Batch); keep using
+// getGroupTest for the admin master-data table, which must show every status.
+export const getGroupTestActive = async () => {
+  const client = await db.connect();
+  try {
+    const result = await client.query(
+      `
+            SELECT
+            h.id,
+            h.grouptest_name,
+            h.grouptest_code,
+            h.is_active,
+            a.fullname AS created_by,
+            h.created_at,
+            COUNT(d.test_id) AS test_count
+            FROM mst_grouptest_head h
+            LEFT JOIN  mst_grouptest_det d ON h.id = d.grouptest_id
+            LEFT JOIN mst_admin_web a ON h.created_by = a.id
+            WHERE h.is_active IS NOT FALSE
             GROUP BY h.id, h.grouptest_name, h.grouptest_code, h.is_active, a.fullname, h.created_at
             ORDER BY h.created_at DESC
             `

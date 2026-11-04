@@ -39,10 +39,10 @@ export const getBusinessUnit = async () => {
 
 export const getBusinessUnitByUserId = async (user_id: string, role_name: string) => {
   return await ClientAction(async (client) => {
-    let where = "";
+    let where = "where mbu.is_active IS NOT FALSE";
     let whereval: any[] = [];
     if (role_name !== "Super Admin") {
-      (where = `where mawb.user_id = $1`), (whereval = [user_id]);
+      (where += ` and mawb.user_id = $1`), (whereval = [user_id]);
     }
     try {
       const { rows } = await client.query(
@@ -63,6 +63,27 @@ export const getBusinessUnitByUserId = async (user_id: string, role_name: string
       throw error;
     }
   });
+};
+
+// Same as getBusinessUnit but excludes inactive records. Use this for
+// selection dropdowns (e.g. choosing a Business Unit when creating an admin
+// account); keep using getBusinessUnit for the admin master-data table,
+// which must show every status.
+export const getBusinessUnitActive = async () => {
+  const client = await db.connect();
+  try {
+    const result = await client.query(
+      `
+    SELECT * FROM mst_business_unit WHERE is_active IS NOT FALSE
+    `
+    );
+    return result.rows;
+  } catch (error) {
+    console.error(error);
+    throw error;
+  } finally {
+    client.release();
+  }
 };
 
 export const updateBusinessUnit = async (payload: BURequest, id: string) => {

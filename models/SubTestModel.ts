@@ -54,6 +54,41 @@ export const getSubTest = async () => {
   }
 };
 
+// Same as getSubTest but excludes inactive records. Use this for selection
+// tables (e.g. choosing SubTests when creating a Test); keep using getSubTest
+// for the admin master-data table, which must show every status.
+export const getSubTestActive = async () => {
+  const client = await db.connect();
+  try {
+    const result = await client.query(
+      `
+            SELECT
+                h.id,
+                h.subtest_name,
+                h.subtest_code,
+                h.is_duration,
+                h.subtest_duration,
+                h.is_active,
+                a.fullname AS created_by,
+                h.created_at,
+                COUNT(d.series_id) AS series_count
+            FROM mst_subtest_head h
+            LEFT JOIN mst_subtest_det d ON h.id = d.subtest_id
+            LEFT JOIN mst_admin_web a ON h.created_by = a.id
+            WHERE h.is_active IS NOT FALSE
+            GROUP BY h.id, h.subtest_name, h.subtest_code, h.is_active, h.is_duration, h.subtest_duration, a.fullname, h.created_at
+            ORDER BY h.created_at DESC
+            `
+    );
+    return result.rows;
+  } catch (error) {
+    console.error(error);
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
 export const updateSubTest = async (subtestId: string, headerPayload: any, addSeries: any) => {
   const client = await db.connect();
   try {

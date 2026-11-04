@@ -56,6 +56,40 @@ export const getSeries = async () => {
   }
 };
 
+// Same as getSeries but excludes inactive records. Use this for selection
+// tables (e.g. choosing Series when creating a Sub Test); keep using
+// getSeries for the admin master-data table, which must show every status.
+export const getSeriesActive = async () => {
+  const client = await db.connect();
+  try {
+    const result = await client.query(
+      `
+      SELECT
+        h.id,
+        h.series_name,
+        h.series_code,
+        h.is_active,
+        a.fullname AS created_by,
+        h.created_date AS created_at,
+        COUNT(d.question_id) AS question_count
+      FROM mst_series h
+      LEFT JOIN mst_series_det d ON h.id = d.series_id
+      LEFT JOIN mst_admin_web a ON h.created_by = a.id
+      WHERE h.is_active IS NOT FALSE
+      GROUP BY h.id, h.series_name, h.series_code, h.is_active, a.fullname, h.created_date
+      ORDER BY h.created_date DESC
+      `
+    );
+
+    return result.rows;
+  } catch (error) {
+    console.error(error);
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
 export const deleteSeries = async (id: string) => {
   const client = await db.connect();
   try {

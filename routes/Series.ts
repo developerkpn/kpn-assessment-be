@@ -10,6 +10,7 @@ import {
   // handleGetListSeriesByCategory,
   // handleGetQuestionsList,
   handleGetSeries,
+  handleGetSeriesActive,
   handleGetSeriesByID,
   handleUpdateSeries,
 } from "@/controllers/SeriesController.js";
@@ -20,6 +21,7 @@ const Series = Router();
 
 Series.post("/", checkPermission("fcreate", 4), handleCreateSeries);
 Series.get("/", checkPermission("fread", 4), handleGetSeries);
+Series.get("/active", checkPermission("fread", 4), handleGetSeriesActive);
 Series.delete("/:id", checkPermission("fdelete", 4), handleDeleteSeries);
 Series.patch("/:id", checkPermission("fupdate", 4), handleUpdateSeries);
 

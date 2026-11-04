@@ -10,6 +10,7 @@ import {
   deleteSubTest,
   getAvailableSeriesForSubTest,
   getSubTest,
+  getSubTestActive,
   getSubTestDetail,
   updateSubTest,
   createSubTestTranslation,
@@ -73,6 +74,18 @@ export const handleCreateSubTest = async (req: Request, res: Response, next: Nex
 export const handleGetSubTest = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const result = await getSubTest();
+    res.status(200).send({
+      message: `Success!`,
+      data: result,
+    });
+  } catch (e) {
+    next(e);
+  }
+};
+
+export const handleGetSubTestActive = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const result = await getSubTestActive();
     res.status(200).send({
       message: `Success!`,
       data: result,

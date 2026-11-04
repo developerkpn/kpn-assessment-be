@@ -9,6 +9,7 @@ import {
   deleteTestFromGroupTest,
   getAvailableSubTestForGroupTest,
   getGroupTest,
+  getGroupTestActive,
   getGroupTestDetail,
   updateGroupTest,
 } from "@/models/GroupTestModel.js";
@@ -64,6 +65,18 @@ export const handleCreateGroupTest = async (req: Request, res: Response, next: N
 export const handleGetGroupTest = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const result = await getGroupTest();
+    res.status(200).send({
+      message: `Success!`,
+      data: result,
+    });
+  } catch (e) {
+    next(e);
+  }
+};
+
+export const handleGetGroupTestActive = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const result = await getGroupTestActive();
     res.status(200).send({
       message: `Success!`,
       data: result,

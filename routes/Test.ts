@@ -6,6 +6,7 @@ import {
   handleDeleteTest,
   handleGetAvailableSubTestForTest,
   handleGetTest,
+  handleGetTestActive,
   handleGetTestDetail,
   handleUpdateTest,
   handleGenerateTestTranslation,
@@ -17,6 +18,7 @@ const Test = Router();
 
 Test.post("/", checkPermission("fcreate", 14), handleCreateTest);
 Test.get("/", checkPermission("fread", [14]), handleGetTest);
+Test.get("/active", checkPermission("fread", [14]), handleGetTestActive);
 Test.delete("/:id", checkPermission("fdelete", 14), handleDeleteTest);
 Test.patch("/:id", checkPermission("fupdate", 14), handleUpdateTest);
 Test.get("/:id", checkPermission("fupdate", [14, 15]), handleGetTestDetail);
