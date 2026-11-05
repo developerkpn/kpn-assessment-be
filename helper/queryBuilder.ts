@@ -26,7 +26,9 @@ export const insertQuery = (table: string, values: any, returning: string | null
   // Build the payload and value arrays for multiple rows
   valuesArray.forEach((valueObj, rowIndex) => {
     let rowPlaceholders: string[] = [];
-    Object.keys(valueObj).forEach((key, colIndex) => {
+    // Keep every row aligned with the columns derived from the first row.
+    // Objects from a form can have the same keys in a different insertion order.
+    columnArray.forEach((key, colIndex) => {
       rowPlaceholders.push(`$${rowIndex * columnArray.length + colIndex + 1}`);
       valueArray.push(valueObj[key]);
     });
