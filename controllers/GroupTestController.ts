@@ -14,6 +14,7 @@ import {
   updateGroupTest,
 } from "@/models/GroupTestModel.js";
 import { SubTestValidation } from "@/validation/SubTestValidation.js";
+import { ResponseError } from "@/error/response-error.js";
 
 export const handleGetAvailableSubTestForGroupTest = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -36,10 +37,15 @@ export const handleCreateGroupTest = async (req: Request, res: Response, next: N
     const grouptestId = uuidv4();
     const creator = req.userDecode!.user_id;
 
+    if (validatedRequest.instruction && req.userDecode?.role_name !== "Super Admin") {
+      throw new ResponseError(403, "Only Super Admin can edit Instruction");
+    }
+
     const grouptestHeaderRequest: GroupTestHeaderRequest = {
       id: grouptestId,
       grouptest_name: validatedRequest.grouptest_name,
       grouptest_code: validatedRequest.grouptest_code,
+      instruction: validatedRequest.instruction ?? null,
       created_by: creator,
       created_at: date,
     };
@@ -93,6 +99,10 @@ export const handleUpdateGroupTest = async (req: Request, res: Response, next: N
 
     const validatedId = Validation.validate(GroupTestValidation.ID, req.params.id);
     const validatedRequest = Validation.validate(GroupTestValidation.UPDATE, req.body);
+
+    if (validatedRequest.instruction !== undefined && req.userDecode?.role_name !== "Super Admin") {
+      throw new ResponseError(403, "Only Super Admin can edit Instruction");
+    }
 
     const grouptestUpdateRequest = {
       ...validatedRequest,

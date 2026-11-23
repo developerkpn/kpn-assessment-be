@@ -269,6 +269,7 @@ export type GroupTestHeaderRequest = {
   id: string;
   grouptest_name: string;
   grouptest_code: string;
+  instruction?: string | null;
   created_by: string;
   created_at: Date;
 };

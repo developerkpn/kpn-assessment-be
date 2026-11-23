@@ -977,3 +977,43 @@ export const getLanguagesWithBatchTranslationStatus = async (batchId: string) =>
     client.release();
   }
 };
+
+export const getIncompleteAssesseesByBatchId = async (batchId: string) => {
+  const client = await db.connect();
+  try {
+    const result = await client.query(
+      `
+      SELECT
+        a.id,
+        a.batch_id,
+        a.assessee_nik,
+        a.assessee_name,
+        a.assessee_email,
+        COALESCE(
+          (SELECT COUNT(*) FROM t_progress_batch_det bd 
+           JOIN t_progress_batch_head bh ON bd.head_id = bh.id 
+           WHERE bh.assessee_id = a.assessee_nik AND bh.batch_id = a.batch_id AND bd.status = 'Completed'), 0
+        ) as count_completed,
+        COALESCE(
+          (SELECT COUNT(*) FROM t_progress_batch_det bd 
+           JOIN t_progress_batch_head bh ON bd.head_id = bh.id 
+           WHERE bh.assessee_id = a.assessee_nik AND bh.batch_id = a.batch_id), 0
+        ) as total_tests
+      FROM t_batch_assessee a
+      WHERE a.batch_id = $1
+      `,
+      [batchId]
+    );
+
+    return result.rows.filter((row) => {
+      const completed = parseInt(row.count_completed) || 0;
+      const total = parseInt(row.total_tests) || 0;
+      return total === 0 || completed < total;
+    });
+  } catch (error) {
+    console.error("Error in getIncompleteAssesseesByBatchId:", error);
+    throw error;
+  } finally {
+    client.release();
+  }
+};
