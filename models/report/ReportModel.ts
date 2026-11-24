@@ -398,6 +398,7 @@ export const generateReportForWholeBatch = async (batchId: string) => {
         left join t_progress_batch_det tpbd on tpbh.id = tpbd.head_id and tpbd.test_id = t.id and tpbd.subtest_id = st.id
         left join t_store_answer sto on q.id = sto.question_id and tpbd.id = sto.det_id
         WHERE b.id = $1
+        ORDER BY t.test_code ASC NULLS LAST, st.subtest_code ASC NULLS LAST, sed.added_at ASC NULLS LAST, q.id ASC, a.assessee_name ASC
         `,
       [batchId]
     );

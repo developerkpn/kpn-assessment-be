@@ -801,7 +801,7 @@ function getUniqueQuestions(data: BatchReportRow[]): UniqueQuestion[] {
   const questionMap = new Map<string, UniqueQuestion>();
 
   data.forEach((row) => {
-    if (!questionMap.has(row.question_id)) {
+    if (row.question_id && !questionMap.has(row.question_id)) {
       questionMap.set(row.question_id, {
         question_id: row.question_id,
         q_input_text: row.q_input_text,
@@ -810,7 +810,17 @@ function getUniqueQuestions(data: BatchReportRow[]): UniqueQuestion[] {
     }
   });
 
-  return Array.from(questionMap.values());
+  return Array.from(questionMap.values()).sort((a, b) => {
+    if (a.category_code && b.category_code) {
+      return a.category_code.localeCompare(b.category_code, undefined, {
+        numeric: true,
+        sensitivity: "base",
+      });
+    }
+    if (a.category_code) return -1;
+    if (b.category_code) return 1;
+    return 0;
+  });
 }
 
 /**
