@@ -11,7 +11,8 @@ export const isAuth = (req: Request, res: Response, next: NextFunction): any => 
   const authHeaders = req.headers.Authorization || req.headers.authorization;
   let token = "";
   if (authHeaders) token = (authHeaders as string).split(" ")[1];
-  if (!authHeaders) {
+  if (!token && req.query.token) token = req.query.token as string;
+  if (!token) {
     return res.status(403).send({
       message: "Access Denied",
     });
