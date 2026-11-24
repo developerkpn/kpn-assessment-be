@@ -26,7 +26,10 @@ import {
   updateBatch,
   updateBatchTranslation,
   getDarwinUser,
+  getIncompleteAssesseesByBatchId,
 } from "@/models/BatchModel.js";
+import { getGroupTestDetail } from "@/models/GroupTestModel.js";
+import { createTransport } from "nodemailer";
 import { translateFieldsBatch } from "@/models/TranslationModel.js";
 import fs from "fs";
 import { AdminWebValidation } from "@/validation/AdminWebValidation.js";
@@ -108,6 +111,18 @@ export const handleCreateBatch = async (req: Request, res: Response, next: NextF
     if (mainEntry) {
       mainDescription = mainEntry.description;
       mainLanguageId = mainEntry.language_id;
+    }
+
+    // Auto-inherit instruction from Group Test if description is empty
+    if ((!mainDescription || mainDescription.trim() === "" || mainDescription === "<p><br></p>") && validatedRequest.grouptest_id) {
+      try {
+        const gtDetail: any = await getGroupTestDetail(validatedRequest.grouptest_id);
+        if (gtDetail && gtDetail.instruction) {
+          mainDescription = gtDetail.instruction;
+        }
+      } catch (err) {
+        console.error("Error auto-fetching grouptest instruction:", err);
+      }
     }
 
     // Find sub-language entries
@@ -318,9 +333,9 @@ export const handleUpdateBatch = async (req: Request, res: Response, next: NextF
     const batchDetail: any = await getBatchDetail(validatedId);
     const batchStatus = batchDetail.batch;
 
-    if (batchStatus.status === "Published") {
-      throw new ResponseError(400, "Can't be edited. This batch is already published!");
-    }
+    const isPublished = batchStatus.status === "Published";
+    const oldStart = batchStatus.start_period ? moment(batchStatus.start_period).toISOString() : null;
+    const oldEnd = batchStatus.end_period ? moment(batchStatus.end_period).toISOString() : null;
 
     // Handle language_type for translation support
     const languageType = validatedRequest.language_type;
@@ -368,8 +383,8 @@ export const handleUpdateBatch = async (req: Request, res: Response, next: NextF
       bu_id: validatedRequest.bu_id,
       function_id: validatedRequest.function_id,
       template_email_id: validatedRequest.template_email_id,
-      is_mic: validatedRequest.is_mic,
-      is_screenshot: validatedRequest.is_screenshot,
+      is_mic: validatedRequest.is_mic ?? batchStatus.is_mic ?? false,
+      is_screenshot: validatedRequest.is_screenshot ?? batchStatus.is_screenshot ?? false,
       note: validatedRequest.note,
       description: validatedRequest.description,
       type: validatedRequest.type,
@@ -536,6 +551,21 @@ export const handleUpdateBatch = async (req: Request, res: Response, next: NextF
       deletedAssessee,
       selectedNewAssessee
     );
+
+    const newStart = batchHeadUpdate.start_period ? moment(batchHeadUpdate.start_period).toISOString() : null;
+    const newEnd = batchHeadUpdate.end_period ? moment(batchHeadUpdate.end_period).toISOString() : null;
+    const dateChanged = (newStart && newStart !== oldStart) || (newEnd && newEnd !== oldEnd);
+
+    if (isPublished && dateChanged) {
+      sendBatchExtensionNotification(
+        validatedId,
+        batchHeadUpdate.batch_name || batchStatus.batch_name,
+        batchHeadUpdate.start_period,
+        batchHeadUpdate.end_period
+      ).catch((err) => {
+        console.error("Failed to send batch extension email notification:", err);
+      });
+    }
 
     message = message || "Batch with code is updated successfully!";
 
@@ -1295,5 +1325,65 @@ export const handleGetBatchTranslationForLanguage = async (
   } catch (e) {
     console.log(e, "error");
     next(e);
+  }
+};
+
+export const sendBatchExtensionNotification = async (
+  batchId: string,
+  batchName: string,
+  startPeriod: any,
+  endPeriod: any
+) => {
+  try {
+    const assessees = await getIncompleteAssesseesByBatchId(batchId);
+    if (!assessees || assessees.length === 0) {
+      console.log(`[BatchNotification] No incomplete assessees found for batch ${batchId}`);
+      return;
+    }
+
+    const s = startPeriod ? moment(startPeriod).tz("Asia/Jakarta").locale("id").format("DD MMMM YYYY") : "";
+    const e = endPeriod ? moment(endPeriod).tz("Asia/Jakarta").locale("id").format("DD MMMM YYYY HH:mm [WIB]") : "";
+    const intervalStr = s && e ? `${s} - ${e}` : (e || s || "-");
+
+    const emailSubject = `Pembaruan Jadwal KPN Online Assessment - ${batchName || ""}`;
+    const emailBody = `
+<p>Dear Bapak/Ibu,</p>
+<p>Kami menginformasikan bahwa jadwal KPN Online Assessment untuk batch Bapak/Ibu telah diperbaharui. Pengerjaan tes dapat dilakukan hingga <strong>${intervalStr}</strong>.</p>
+<p>Mohon untuk dapat segera mengerjakan seluruh rangkaian assessment sebelum tenggat waktu yang telah ditetapkan.</p>
+<p>Demikian yang dapat disampaikan.</p>
+    `.trim();
+
+    const transporter = createTransport({
+      name: "kpndomain.com",
+      host: process.env.SMTP_HOST,
+      secure: true,
+      port: Number(process.env.SMTP_PORT) || Number(process.env.SMPT_PORT) || 465,
+      tls: {
+        ciphers: "SSLv3",
+        rejectUnauthorized: false,
+      },
+      auth: {
+        user: `${process.env.SMTP_USERNAME}`,
+        pass: `${process.env.SMTP_PASSWORD}`,
+      },
+      pool: true,
+    });
+
+    for (const assessee of assessees) {
+      if (!assessee.assessee_email) continue;
+      try {
+        await transporter.sendMail({
+          from: process.env.SMTP_USERNAME,
+          to: assessee.assessee_email,
+          subject: emailSubject,
+          html: emailBody,
+        });
+        console.log(`[BatchNotification] Batch extension email sent to ${assessee.assessee_email}`);
+      } catch (sendErr) {
+        console.error(`[BatchNotification] Failed to send email to ${assessee.assessee_email}:`, sendErr);
+      }
+    }
+  } catch (error) {
+    console.error("[BatchNotification] Error in sendBatchExtensionNotification:", error);
   }
 };

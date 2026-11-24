@@ -85,6 +85,7 @@ export const getGroupTest = async () => {
             h.id,
             h.grouptest_name,
             h.grouptest_code,
+            h.instruction,
             h.is_active,
             a.fullname AS created_by,
             h.created_at,
@@ -92,7 +93,7 @@ export const getGroupTest = async () => {
             FROM mst_grouptest_head h
             LEFT JOIN  mst_grouptest_det d ON h.id = d.grouptest_id
             LEFT JOIN mst_admin_web a ON h.created_by = a.id
-            GROUP BY h.id, h.grouptest_name, h.grouptest_code, h.is_active, a.fullname, h.created_at
+            GROUP BY h.id, h.grouptest_name, h.grouptest_code, h.instruction, h.is_active, a.fullname, h.created_at
             ORDER BY h.created_at DESC
             `
     );
@@ -117,6 +118,7 @@ export const getGroupTestActive = async () => {
             h.id,
             h.grouptest_name,
             h.grouptest_code,
+            h.instruction,
             h.is_active,
             a.fullname AS created_by,
             h.created_at,
@@ -125,7 +127,7 @@ export const getGroupTestActive = async () => {
             LEFT JOIN  mst_grouptest_det d ON h.id = d.grouptest_id
             LEFT JOIN mst_admin_web a ON h.created_by = a.id
             WHERE h.is_active IS NOT FALSE
-            GROUP BY h.id, h.grouptest_name, h.grouptest_code, h.is_active, a.fullname, h.created_at
+            GROUP BY h.id, h.grouptest_name, h.grouptest_code, h.instruction, h.is_active, a.fullname, h.created_at
             ORDER BY h.created_at DESC
             `
     );
@@ -205,6 +207,7 @@ export const getGroupTestDetail = async (id: string) => {
                 h.id AS grouptest_id,
                 h.grouptest_name,
                 h.grouptest_code,
+                h.instruction,
                 h.is_active,
                 a.fullname AS created_by,
                 h.created_at,
@@ -243,6 +246,7 @@ export const getGroupTestDetail = async (id: string) => {
       id: result.rows[0].grouptest_id,
       grouptest_name: result.rows[0].grouptest_name,
       grouptest_code: result.rows[0].grouptest_code,
+      instruction: result.rows[0].instruction || "",
       is_active: result.rows[0].is_active,
       created_by: result.rows[0].created_by,
       created_at: result.rows[0].created_at,

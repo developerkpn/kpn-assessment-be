@@ -13,6 +13,7 @@ export class GroupTestValidation {
       .min(1, { message: "Group test code is required." })
       .max(16, { message: "Group test code must not exceed 16 characters." })
       .transform((val) => val.toUpperCase()),
+    instruction: z.string().optional().nullable(),
     tests: z
       .array(
         z.object({
@@ -41,6 +42,7 @@ export class GroupTestValidation {
       .transform((val) => val.toUpperCase())
       .optional(),
     is_active: z.boolean({ invalid_type_error: "is_active must be a boolean value." }).optional(),
+    instruction: z.string().optional().nullable(),
     tests: z
       .array(
         z.object({
