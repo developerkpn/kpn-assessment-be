@@ -319,6 +319,30 @@ interface BatchReportRow {
   assessee_name: string;
   assessee_email: string;
   point: number | null;
+  question_category_code?: string | null;
+  key_answer_point_a?: number | null;
+  key_answer_point_b?: number | null;
+  key_answer_point_c?: number | null;
+  key_answer_point_d?: number | null;
+  key_answer_point_e?: number | null;
+  key_answer_point_f?: number | null;
+  key_answer_point_g?: number | null;
+  answer_a?: boolean | null;
+  answer_b?: boolean | null;
+  answer_c?: boolean | null;
+  answer_d?: boolean | null;
+  answer_e?: boolean | null;
+  answer_f?: boolean | null;
+  answer_g?: boolean | null;
+}
+
+const ANSWER_LETTERS = ["a", "b", "c", "d", "e", "f", "g"] as const;
+
+// Huruf jawaban yang dipilih peserta (A/B/C/dst); null jika tidak menjawab
+function getSelectedLetters(row?: BatchReportRow): string | null {
+  if (!row) return null;
+  const letters = ANSWER_LETTERS.filter((l) => (row as any)[`answer_${l}`]).map((l) => l.toUpperCase());
+  return letters.length > 0 ? letters.join(", ") : null;
 }
 
 export const handleDownloadBatchReport = async (req: Request, res: Response, next: NextFunction) => {
@@ -600,70 +624,138 @@ async function createExcelReport(data: BatchReportRow[]) {
     // Ambil semua assessee unik untuk baris
     const uniqueAssessees = getUniqueAssessees(groupData);
 
-    // Buat headers - cell A1 kosong, lalu question_id di atasnya, plus kolom total
-    const headers = ["Assessee Name", "Assessee Email"];
-    uniqueQuestions.forEach((q) => {
-      headers.push(q.question_id);
-    });
-    headers.push("Subtest Total");
+    // Dua sheet per subtest mengikuti template CR 4:
+    // 1) skor per nomor (angka / "-" jika kosong), 2) detail jawaban (A/B/C/dst / "-" jika kosong)
+    const answerSheetName = `Jawaban ${sheetName}`.replace(/[\\/?*[\]:]/g, "_").slice(0, 31);
+    const answerSheet = workbook.addWorksheet(answerSheetName);
 
-    worksheet.addRow(headers);
+    const FILL_WRONG = "FFFFF2CC"; // jawaban salah
+    const FILL_RIGHT = "FFD9EAD3"; // jawaban benar
+    const FILL_EMPTY = "FFF4CCCC"; // jawaban kosong
+    const FILL_HEADER = "FFD0E0E3";
+    const border: Partial<ExcelJS.Borders> = {
+      top: { style: "thin" },
+      left: { style: "thin" },
+      bottom: { style: "thin" },
+      right: { style: "thin" },
+    };
+    const solid = (argb: string): ExcelJS.Fill => ({ type: "pattern", pattern: "solid", fgColor: { argb } });
 
-    // Baris kedua - kosong untuk Assessee Name dan Email, lalu q_input_text, plus label untuk total
-    const subHeaders = ["", ""];
-    uniqueQuestions.forEach((q) => {
-      subHeaders.push(q.q_input_text);
-    });
-    subHeaders.push("Total Score");
+    // Cek apakah subtest ini tipe Benar/Salah (setiap soal hanya berisi key_answer_point 0 atau 1)
+    const isRightWrongSubtest = groupData.every((row) =>
+      ANSWER_LETTERS.every((l) => {
+        const pt = Number((row as any)[`key_answer_point_${l}`] ?? 0);
+        return pt === 0 || pt === 1;
+      })
+    );
 
-    worksheet.addRow(subHeaders);
+    const questionCount = uniqueQuestions.length;
+    const lastQuestionCol = questionCount + 2;
 
-    // Style header
-    worksheet.getRow(1).font = { bold: true };
-    worksheet.getRow(2).font = { italic: true };
+    // Header: baris 1 = kategori soal (GF1, GF2, ...), baris 2 = teks soal
+    const categoryHeader = uniqueQuestions.map((q) => q.category_code || q.question_id);
+    const questionHeader = uniqueQuestions.map((q) => q.q_input_text);
 
-    // Tambahkan data untuk setiap assessee
+    worksheet.addRow(["Assessee Name", "Assessee Email", ...categoryHeader, "Subtest Total"]);
+    worksheet.addRow(["", "", ...questionHeader, "Total Score"]);
+    answerSheet.addRow(["Assessee Name", "Assessee Email", ...categoryHeader]);
+    answerSheet.addRow(["", "", ...questionHeader]);
+
+    for (const sh of [worksheet, answerSheet]) {
+      sh.getRow(1).font = { bold: true };
+      for (let c = 1; c <= lastQuestionCol; c++) {
+        const cell = sh.getCell(1, c);
+        cell.fill = solid(FILL_HEADER);
+        cell.border = border;
+        sh.getCell(2, c).border = border;
+      }
+    }
+    worksheet.getCell(1, lastQuestionCol + 1).border = border;
+    worksheet.getCell(2, lastQuestionCol + 1).border = border;
+
+    // Data per assessee
     uniqueAssessees.forEach((assessee) => {
-      const rowData = [assessee.assessee_name, assessee.assessee_email];
+      const scoreRow: (string | number)[] = [assessee.assessee_name, assessee.assessee_email];
+      const answerRow: (string | number)[] = [assessee.assessee_name, assessee.assessee_email];
+      const states: ("right" | "wrong" | "empty" | "neutral")[] = [];
       let totalScore = 0;
 
-      // Temukan point untuk setiap question
       uniqueQuestions.forEach((question) => {
         const matchingData = groupData.find(
           (item) => item.question_id === question.question_id && item.assessee_nik === assessee.assessee_nik
         );
-        const point = matchingData?.point || 0;
-        rowData.push(point !== null ? point.toString() : "0");
-        // Pastikan point diconvert ke number dulu sebelum di-sum
-        totalScore += Number(point) || 0;
+        const letters = getSelectedLetters(matchingData);
+        if (letters === null) {
+          // Soal tidak dijawab ditampilkan "-" (bukan "0")
+          scoreRow.push("-");
+          answerRow.push("-");
+          states.push("empty");
+        } else {
+          const point = Number(matchingData?.point) || 0;
+          scoreRow.push(point);
+          answerRow.push(letters);
+          states.push(isRightWrongSubtest ? (point > 0 ? "right" : "wrong") : "neutral");
+          totalScore += point;
+        }
       });
+      scoreRow.push(totalScore);
 
-      // Tambahkan total score untuk subtest sebagai number, bukan string
-      rowData.push(String(totalScore));
-
-      worksheet.addRow(rowData);
+      const sRow = worksheet.addRow(scoreRow);
+      const aRow = answerSheet.addRow(answerRow);
+      for (let c = 1; c <= lastQuestionCol; c++) {
+        sRow.getCell(c).border = border;
+        aRow.getCell(c).border = border;
+        if (c > 2) {
+          const st = states[c - 3];
+          const fill =
+            st === "right"
+              ? solid(FILL_RIGHT)
+              : st === "wrong"
+              ? solid(FILL_WRONG)
+              : st === "empty"
+              ? solid(FILL_EMPTY)
+              : null;
+          if (fill) {
+            sRow.getCell(c).fill = fill;
+            aRow.getCell(c).fill = fill;
+          }
+          sRow.getCell(c).alignment = { horizontal: "center" };
+          aRow.getCell(c).alignment = { horizontal: "center" };
+        }
+      }
+      sRow.getCell(lastQuestionCol + 1).border = border;
+      sRow.getCell(lastQuestionCol + 1).alignment = { horizontal: "center" };
     });
 
-    // Format lebar kolom
-    worksheet.getColumn(1).width = 30; // Assessee Name
-    worksheet.getColumn(2).width = 30; // Assessee Email
+    // Legenda (satu baris kosong setelah data)
+    const legendStart = uniqueAssessees.length + 4;
+    const legends: [number | string, string, string][] = isRightWrongSubtest
+      ? [
+          [0, "Jawaban salah", FILL_WRONG],
+          [1, "Jawaban benar", FILL_RIGHT],
+          ["-", "Jawaban kosong", FILL_EMPTY],
+        ]
+      : [["-", "Jawaban kosong", FILL_EMPTY]];
+    legends.forEach(([symbol, label, color], i) => {
+      worksheet.getCell(legendStart + i, 1).value = symbol;
+      worksheet.getCell(legendStart + i, 1).alignment = { horizontal: "center" };
+      worksheet.getCell(legendStart + i, 2).value = label;
+      worksheet.getCell(legendStart + i, 2).fill = solid(color);
+      answerSheet.getCell(legendStart + i, 2).value = label;
+      answerSheet.getCell(legendStart + i, 2).fill = solid(color);
+    });
 
-    // Set lebar untuk kolom question
-    for (let i = 0; i < uniqueQuestions.length; i++) {
-      worksheet.getColumn(i + 3).width = 15;
+    // Lebar kolom
+    for (const sh of [worksheet, answerSheet]) {
+      sh.getColumn(1).width = 30;
+      sh.getColumn(2).width = 30;
+      for (let c = 3; c <= lastQuestionCol; c++) sh.getColumn(c).width = 15;
     }
+    worksheet.getColumn(lastQuestionCol + 1).width = 15;
 
-    // Set lebar untuk kolom total
-    worksheet.getColumn(uniqueQuestions.length + 3).width = 15;
-
-    // Style kolom total dengan background kuning
-    const totalColumnIndex = uniqueQuestions.length + 3;
+    // Kolom total dengan background kuning
     for (let i = 1; i <= uniqueAssessees.length + 2; i++) {
-      worksheet.getCell(i, totalColumnIndex).fill = {
-        type: "pattern",
-        pattern: "solid",
-        fgColor: { argb: "FFFFFF00" }, // Kuning
-      };
+      worksheet.getCell(i, lastQuestionCol + 1).fill = solid("FFFFFF00");
     }
   }
 
@@ -702,6 +794,7 @@ function groupDataByTestAndSubtest(data: BatchReportRow[]): Record<string, Batch
 interface UniqueQuestion {
   question_id: string;
   q_input_text: string;
+  category_code?: string | null;
 }
 
 function getUniqueQuestions(data: BatchReportRow[]): UniqueQuestion[] {
@@ -712,6 +805,7 @@ function getUniqueQuestions(data: BatchReportRow[]): UniqueQuestion[] {
       questionMap.set(row.question_id, {
         question_id: row.question_id,
         q_input_text: row.q_input_text,
+        category_code: row.question_category_code,
       });
     }
   });
