@@ -31,6 +31,7 @@ import { errorMiddleware } from "@/middleware/errorMiddleware.js";
 import Translation from "./Translation.js";
 import Public from "./Public.js";
 import UniversalLink from "./UniversalLink.js";
+import VendorAssessment from "./VendorAssessment.js";
 
 //@using router
 // router.use('/api/<endpoint>', <controller>)
@@ -60,6 +61,7 @@ router.use("/api/extern", AssesseeExtern);
 router.use("/api/languages", Language);
 router.use("/api/public", Public); // Public endpoints for client pages (no auth)
 router.use("/api/universal-link", isAuth, UniversalLink);
+router.use("/api/vendor-assessment", isAuth, VendorAssessment);
 router.use("/api/translation", isAuth, Translation);
 router.use("/api/check", (req, res) => {
   res.status(200).send({
