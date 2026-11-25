@@ -74,6 +74,7 @@ export const getBatch = async (
                   tbh.status,
                   mgh.grouptest_code ,
                   tba.total_assessee ,
+                  coalesce(tba.assessee_names, '') as assessee_names ,
                   tbh.start_period ,
                   tbh.end_period ,
                   mbu.bu_code ,
@@ -101,6 +102,7 @@ export const getBatch = async (
                 left join (
                   select
                     count(tba.id) as total_assessee,
+                    coalesce(string_agg(tba.assessee_name, ', '), '') as assessee_names,
                     tba.batch_id
                   from
                     t_batch_assessee tba
@@ -128,6 +130,7 @@ export const getBatch = async (
                 tbh.status,
                 g.grouptest_code,
                 COUNT(d.id) AS total_assessee,
+                COALESCE(STRING_AGG(d.assessee_name, ', '), '') AS assessee_names,
                 tbh.start_period,
                 tbh.end_period,
                 b.bu_code,

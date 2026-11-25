@@ -366,7 +366,22 @@ export const generateReportForWholeBatch = async (batchId: string) => {
            a.assessee_nik,
            a.assessee_name,
            a.assessee_email,
-           sto.point
+           sto.point,
+            qc.category_code as question_category_code,
+            q.key_answer_point_a,
+            q.key_answer_point_b,
+            q.key_answer_point_c,
+            q.key_answer_point_d,
+            q.key_answer_point_e,
+            q.key_answer_point_f,
+            q.key_answer_point_g,
+            sto.answer_a,
+            sto.answer_b,
+            sto.answer_c,
+            sto.answer_d,
+            sto.answer_e,
+            sto.answer_f,
+            sto.answer_g
         from t_batch_head b
         left join mst_grouptest_head mgh on b.grouptest_id = mgh.id  
         left join mst_grouptest_det gd on b.grouptest_id = gd.grouptest_id 
@@ -377,11 +392,13 @@ export const generateReportForWholeBatch = async (batchId: string) => {
         left join mst_series s on sd.series_id = s.id 
         left join mst_series_det sed on s.id = sed.series_id 
         left join mst_question_answer q on sed.question_id = q.id 
+        left join mst_category qc on q.category_id = qc.id
         left join t_batch_assessee a on b.id = a.batch_id 
         left join t_progress_batch_head tpbh on a.assessee_nik = tpbh.assessee_id and b.id = tpbh.batch_id 
-        left join t_progress_batch_det tpbd on tpbh.id = tpbd.head_id 
+        left join t_progress_batch_det tpbd on tpbh.id = tpbd.head_id and tpbd.test_id = t.id and tpbd.subtest_id = st.id
         left join t_store_answer sto on q.id = sto.question_id and tpbd.id = sto.det_id
         WHERE b.id = $1
+        ORDER BY t.test_code ASC NULLS LAST, st.subtest_code ASC NULLS LAST, sed.added_at ASC NULLS LAST, q.id ASC, a.assessee_name ASC
         `,
       [batchId]
     );
