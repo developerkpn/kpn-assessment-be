@@ -52,6 +52,7 @@ export const PDFController = {
         res.status(400).json({
           message: "Missing 'batch_id', 'assessee_id' query",
         });
+        return;
       }
 
       //get assessee name
@@ -107,6 +108,7 @@ export const PDFController = {
         {
           is_generate: true,
           report_path: `${batch_id}/${filename}`,
+          error_message: null,
         },
         batch_id as string,
         assessee_id as string
@@ -126,7 +128,7 @@ export const PDFController = {
       await storeReportPDF(
         {
           is_generate: false,
-          error_generate: message,
+          error_message: message,
         },
         batch_id as string,
         assessee_id as string

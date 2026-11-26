@@ -50,6 +50,10 @@ import { PP_ID, TERMS_ID } from "@/constant.js";
 import { checkRegisteredExternalAssessee, openGuideline } from "@/models/transactions/AssesseeModel.js";
 import MutexModel from "@/models/mutex/MutexModel.js";
 
+// Batas toleransi (detik) penyimpanan jawaban setelah should_be_finished_at, untuk jawaban
+// terakhir yang dikirim FE saat timer habis. Lihat handleStoreAnswer.
+const ANSWER_SAVE_GRACE_SECONDS = 30;
+
 export const handleAssessmentToken = async (token: string) => {
   try {
     const tokenDecode = verify(token, process.env.SECRETJWT as Secret);
@@ -262,12 +266,15 @@ export const handleGetAsssessmentQuestion = async (req: Request, res: Response, 
       // Langsung parse tanpa .utc()
       const shouldBeFinishedAt = moment.utc(finishAtFromDB.should_be_finished_at).tz("Asia/Jakarta");
 
-      // Jika waktu sudah habis, lempar error
+      // Jika waktu sudah habis, auto-submit lalu lempar error.
+      // Skor wajib dihitung di sini juga (sama seperti handleSubmissionConfirmation),
+      // kalau tidak sum_point tertinggal NULL saat kandidat baru kembali setelah waktu habis.
       if (now.isAfter(shouldBeFinishedAt)) {
         const payload = {
           submit_at: moment().tz("Asia/Jakarta"),
           status: "Completed",
         };
+        await countSubTest(progressDetailId);
         await assessmentSubmission(progressDetailId, payload);
         throw new ResponseError(404, "Time's Out!");
       }
@@ -606,8 +613,13 @@ export const handleStoreAnswer = async (req: Request, res: Response, next: NextF
       const shouldBeFinishedAt = moment.utc(finishAtFromDB.should_be_finished_at);
       console.log("Parsed shouldBeFinishedAt:", shouldBeFinishedAt.format());
 
-      // Jika waktu sudah habis, lempar error
-      if (now.isAfter(shouldBeFinishedAt)) throw new ResponseError(401, "Time's Out!");
+      // Jika waktu sudah habis (lewat masa toleransi), lempar error.
+      // Toleransi dibutuhkan karena saat timer FE habis, FE menyimpan jawaban yang sedang tampil
+      // sebelum auto-submit, dan request itu sampai sedikit setelah deadline.
+      // Setelah subtest disubmit, jawaban tetap ditolak oleh cek submit_at di atas.
+      if (now.isAfter(shouldBeFinishedAt.clone().add(ANSWER_SAVE_GRACE_SECONDS, "seconds"))) {
+        throw new ResponseError(401, "Time's Out!");
+      }
 
       const questionType = await checkQuestionType(question_id);
       console.log(questionType);

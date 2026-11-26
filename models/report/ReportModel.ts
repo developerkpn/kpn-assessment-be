@@ -591,6 +591,11 @@ export const storeReportPDF = async (report: any, batchId: string, assesseeId: s
     await client.query(Q, V);
     await client.query(TRANS.COMMIT);
   } catch (e) {
+    // Best-effort: jangan gagalkan request, tapi transaksi wajib di-rollback.
+    // Tanpa ROLLBACK, koneksi balik ke pool dalam status "transaction aborted"
+    // dan query request berikutnya yang memakai koneksi itu ikut gagal.
+    console.error("storeReportPDF failed:", e);
+    await client.query(TRANS.ROLLBACK).catch(() => {});
   } finally {
     client.release();
   }
